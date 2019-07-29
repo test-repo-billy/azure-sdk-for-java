@@ -44,7 +44,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "PhoenixObject", value = PhoenixObjectDataset.class),
     @JsonSubTypes.Type(name = "PaypalObject", value = PaypalObjectDataset.class),
     @JsonSubTypes.Type(name = "MarketoObject", value = MarketoObjectDataset.class),
-    @JsonSubTypes.Type(name = "AzureMariaDBTable", value = AzureMariaDBTableDataset.class),
     @JsonSubTypes.Type(name = "MariaDBTable", value = MariaDBTableDataset.class),
     @JsonSubTypes.Type(name = "MagentoObject", value = MagentoObjectDataset.class),
     @JsonSubTypes.Type(name = "JiraObject", value = JiraObjectDataset.class),
@@ -70,8 +69,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "SapHanaTable", value = SapHanaTableDataset.class),
     @JsonSubTypes.Type(name = "SapEccResource", value = SapEccResourceDataset.class),
     @JsonSubTypes.Type(name = "SapCloudForCustomerResource", value = SapCloudForCustomerResourceDataset.class),
-    @JsonSubTypes.Type(name = "SapBwCube", value = SapBwCubeDataset.class),
-    @JsonSubTypes.Type(name = "SybaseTable", value = SybaseTableDataset.class),
     @JsonSubTypes.Type(name = "SalesforceServiceCloudObject", value = SalesforceServiceCloudObjectDataset.class),
     @JsonSubTypes.Type(name = "SalesforceObject", value = SalesforceObjectDataset.class),
     @JsonSubTypes.Type(name = "MicrosoftAccessTable", value = MicrosoftAccessTableDataset.class),
@@ -80,8 +77,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "OdbcTable", value = OdbcTableDataset.class),
     @JsonSubTypes.Type(name = "InformixTable", value = InformixTableDataset.class),
     @JsonSubTypes.Type(name = "RelationalTable", value = RelationalTableDataset.class),
-    @JsonSubTypes.Type(name = "Db2Table", value = Db2TableDataset.class),
-    @JsonSubTypes.Type(name = "AmazonRedshiftTable", value = AmazonRedshiftTableDataset.class),
     @JsonSubTypes.Type(name = "AzureMySqlTable", value = AzureMySqlTableDataset.class),
     @JsonSubTypes.Type(name = "TeradataTable", value = TeradataTableDataset.class),
     @JsonSubTypes.Type(name = "OracleTable", value = OracleTableDataset.class),
@@ -107,7 +102,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "Binary", value = BinaryDataset.class),
     @JsonSubTypes.Type(name = "DelimitedText", value = DelimitedTextDataset.class),
     @JsonSubTypes.Type(name = "Parquet", value = ParquetDataset.class),
-    @JsonSubTypes.Type(name = "Avro", value = AvroDataset.class),
     @JsonSubTypes.Type(name = "AmazonS3Object", value = AmazonS3Dataset.class)
 })
 public class DatasetInner {
