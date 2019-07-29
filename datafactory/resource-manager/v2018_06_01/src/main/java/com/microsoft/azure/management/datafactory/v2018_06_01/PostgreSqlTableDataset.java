@@ -22,28 +22,14 @@ import com.microsoft.azure.management.datafactory.v2018_06_01.implementation.Dat
 @JsonFlatten
 public class PostgreSqlTableDataset extends DatasetInner {
     /**
-     * This property will be retired. Please consider using schema + table
-     * properties instead.
+     * The PostgreSQL table name. Type: string (or Expression with resultType
+     * string).
      */
     @JsonProperty(value = "typeProperties.tableName")
     private Object tableName;
 
     /**
-     * The PostgreSQL table name. Type: string (or Expression with resultType
-     * string).
-     */
-    @JsonProperty(value = "typeProperties.table")
-    private Object table;
-
-    /**
-     * The PostgreSQL schema name. Type: string (or Expression with resultType
-     * string).
-     */
-    @JsonProperty(value = "typeProperties.schema")
-    private Object postgreSqlTableDatasetSchema;
-
-    /**
-     * Get this property will be retired. Please consider using schema + table properties instead.
+     * Get the PostgreSQL table name. Type: string (or Expression with resultType string).
      *
      * @return the tableName value
      */
@@ -52,53 +38,13 @@ public class PostgreSqlTableDataset extends DatasetInner {
     }
 
     /**
-     * Set this property will be retired. Please consider using schema + table properties instead.
+     * Set the PostgreSQL table name. Type: string (or Expression with resultType string).
      *
      * @param tableName the tableName value to set
      * @return the PostgreSqlTableDataset object itself.
      */
     public PostgreSqlTableDataset withTableName(Object tableName) {
         this.tableName = tableName;
-        return this;
-    }
-
-    /**
-     * Get the PostgreSQL table name. Type: string (or Expression with resultType string).
-     *
-     * @return the table value
-     */
-    public Object table() {
-        return this.table;
-    }
-
-    /**
-     * Set the PostgreSQL table name. Type: string (or Expression with resultType string).
-     *
-     * @param table the table value to set
-     * @return the PostgreSqlTableDataset object itself.
-     */
-    public PostgreSqlTableDataset withTable(Object table) {
-        this.table = table;
-        return this;
-    }
-
-    /**
-     * Get the PostgreSQL schema name. Type: string (or Expression with resultType string).
-     *
-     * @return the postgreSqlTableDatasetSchema value
-     */
-    public Object postgreSqlTableDatasetSchema() {
-        return this.postgreSqlTableDatasetSchema;
-    }
-
-    /**
-     * Set the PostgreSQL schema name. Type: string (or Expression with resultType string).
-     *
-     * @param postgreSqlTableDatasetSchema the postgreSqlTableDatasetSchema value to set
-     * @return the PostgreSqlTableDataset object itself.
-     */
-    public PostgreSqlTableDataset withPostgreSqlTableDatasetSchema(Object postgreSqlTableDatasetSchema) {
-        this.postgreSqlTableDatasetSchema = postgreSqlTableDatasetSchema;
         return this;
     }
 

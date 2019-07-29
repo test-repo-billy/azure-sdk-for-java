@@ -22,14 +22,14 @@ public class BinarySink extends CopySink {
      * Binary store settings.
      */
     @JsonProperty(value = "storeSettings")
-    private StoreWriteSettings storeSettings;
+    private StoreReadSettings storeSettings;
 
     /**
      * Get binary store settings.
      *
      * @return the storeSettings value
      */
-    public StoreWriteSettings storeSettings() {
+    public StoreReadSettings storeSettings() {
         return this.storeSettings;
     }
 
@@ -39,7 +39,7 @@ public class BinarySink extends CopySink {
      * @param storeSettings the storeSettings value to set
      * @return the BinarySink object itself.
      */
-    public BinarySink withStoreSettings(StoreWriteSettings storeSettings) {
+    public BinarySink withStoreSettings(StoreReadSettings storeSettings) {
         this.storeSettings = storeSettings;
         return this;
     }
