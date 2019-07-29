@@ -39,7 +39,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "PhoenixSource", value = PhoenixSource.class),
     @JsonSubTypes.Type(name = "PaypalSource", value = PaypalSource.class),
     @JsonSubTypes.Type(name = "MarketoSource", value = MarketoSource.class),
-    @JsonSubTypes.Type(name = "AzureMariaDBSource", value = AzureMariaDBSource.class),
     @JsonSubTypes.Type(name = "MariaDBSource", value = MariaDBSource.class),
     @JsonSubTypes.Type(name = "MagentoSource", value = MagentoSource.class),
     @JsonSubTypes.Type(name = "JiraSource", value = JiraSource.class),
@@ -84,7 +83,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "SalesforceServiceCloudSource", value = SalesforceServiceCloudSource.class),
     @JsonSubTypes.Type(name = "SalesforceSource", value = SalesforceSource.class),
     @JsonSubTypes.Type(name = "ODataSource", value = ODataSource.class),
-    @JsonSubTypes.Type(name = "SapBwSource", value = SapBwSource.class),
     @JsonSubTypes.Type(name = "SybaseSource", value = SybaseSource.class),
     @JsonSubTypes.Type(name = "PostgreSqlSource", value = PostgreSqlSource.class),
     @JsonSubTypes.Type(name = "MySqlSource", value = MySqlSource.class),
@@ -100,10 +98,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
     @JsonSubTypes.Type(name = "BlobSource", value = BlobSource.class),
     @JsonSubTypes.Type(name = "AzureTableSource", value = AzureTableSource.class),
     @JsonSubTypes.Type(name = "BinarySource", value = BinarySource.class),
-    @JsonSubTypes.Type(name = "JsonSource", value = JsonSource.class),
     @JsonSubTypes.Type(name = "DelimitedTextSource", value = DelimitedTextSource.class),
-    @JsonSubTypes.Type(name = "ParquetSource", value = ParquetSource.class),
-    @JsonSubTypes.Type(name = "AvroSource", value = AvroSource.class)
+    @JsonSubTypes.Type(name = "ParquetSource", value = ParquetSource.class)
 })
 public class CopySource {
     /**
