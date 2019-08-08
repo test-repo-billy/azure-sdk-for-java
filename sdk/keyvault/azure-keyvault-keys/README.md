@@ -292,8 +292,8 @@ keyAsyncClient.getKey("keyName").subscribe(keyResponse -> {
 
 Delete an existing Key by calling `deleteKey`.
 ```java
-keyAsyncClient.deleteKey("keyName").subscribe(deletedKey ->
-   System.out.printf("Deleted Key's deletion time %s \n", deletedKey.deletedDate().toString()));
+keyAsyncClient.deleteKey("keyName").subscribe(deletedKeyResponse ->
+   System.out.printf("Deleted Key's deletion time %s \n", deletedKeyResponse.value().deletedDate().toString()));
 ```
 
 ### List Keys Asynchronously
