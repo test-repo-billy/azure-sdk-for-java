@@ -85,6 +85,11 @@ class SapMonitorImpl extends GroupableResourceCoreImpl<SapMonitor, SapMonitorInn
     }
 
     @Override
+    public String keyVaultId() {
+        return this.inner().keyVaultId();
+    }
+
+    @Override
     public HanaProvisioningStatesEnum provisioningState() {
         return this.inner().provisioningState();
     }
@@ -134,6 +139,12 @@ class SapMonitorImpl extends GroupableResourceCoreImpl<SapMonitor, SapMonitorInn
     @Override
     public SapMonitorImpl withHanaSubnet(String hanaSubnet) {
         this.inner().withHanaSubnet(hanaSubnet);
+        return this;
+    }
+
+    @Override
+    public SapMonitorImpl withKeyVaultId(String keyVaultId) {
+        this.inner().withKeyVaultId(keyVaultId);
         return this;
     }
 
