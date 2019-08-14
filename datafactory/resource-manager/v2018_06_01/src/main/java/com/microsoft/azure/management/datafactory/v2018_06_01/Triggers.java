@@ -19,6 +19,39 @@ import com.microsoft.azure.arm.model.HasInner;
  */
 public interface Triggers extends SupportsCreating<FactoryTriggerResource.DefinitionStages.Blank>, HasInner<TriggersInner> {
     /**
+     * Subscribe event trigger to events.
+     *
+     * @param resourceGroupName The resource group name.
+     * @param factoryName The factory name.
+     * @param triggerName The trigger name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<TriggerSubscriptionOperationStatus> subscribeToEventsAsync(String resourceGroupName, String factoryName, String triggerName);
+
+    /**
+     * Get a trigger's event subscription status.
+     *
+     * @param resourceGroupName The resource group name.
+     * @param factoryName The factory name.
+     * @param triggerName The trigger name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<TriggerSubscriptionOperationStatus> getEventSubscriptionStatusAsync(String resourceGroupName, String factoryName, String triggerName);
+
+    /**
+     * Unsubscribe event trigger from events.
+     *
+     * @param resourceGroupName The resource group name.
+     * @param factoryName The factory name.
+     * @param triggerName The trigger name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<TriggerSubscriptionOperationStatus> unsubscribeFromEventsAsync(String resourceGroupName, String factoryName, String triggerName);
+
+    /**
      * Starts a trigger.
      *
      * @param resourceGroupName The resource group name.
