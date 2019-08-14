@@ -51,9 +51,9 @@ public class EnrollmentAccountsInner {
      * used by Retrofit to perform actually REST calls.
      */
     interface EnrollmentAccountsService {
-        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.EnrollmentAccounts listByBillingAccount" })
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.EnrollmentAccounts listByBillingAccountName" })
         @GET("providers/Microsoft.Billing/billingAccounts/{billingAccountName}/enrollmentAccounts")
-        Observable<Response<ResponseBody>> listByBillingAccount(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Query("$expand") String expand, @Query("$filter") String filter, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> listByBillingAccountName(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Query("$expand") String expand, @Query("$filter") String filter, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.EnrollmentAccounts getByEnrollmentAccountId" })
         @GET("providers/Microsoft.Billing/billingAccounts/{billingAccountName}/enrollmentAccounts/{enrollmentAccountName}")
@@ -70,8 +70,8 @@ public class EnrollmentAccountsInner {
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the EnrollmentAccountListResultInner object if successful.
      */
-    public EnrollmentAccountListResultInner listByBillingAccount(String billingAccountName) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName).toBlocking().single().body();
+    public EnrollmentAccountListResultInner listByBillingAccountName(String billingAccountName) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName).toBlocking().single().body();
     }
 
     /**
@@ -82,8 +82,8 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<EnrollmentAccountListResultInner> listByBillingAccountAsync(String billingAccountName, final ServiceCallback<EnrollmentAccountListResultInner> serviceCallback) {
-        return ServiceFuture.fromResponse(listByBillingAccountWithServiceResponseAsync(billingAccountName), serviceCallback);
+    public ServiceFuture<EnrollmentAccountListResultInner> listByBillingAccountNameAsync(String billingAccountName, final ServiceCallback<EnrollmentAccountListResultInner> serviceCallback) {
+        return ServiceFuture.fromResponse(listByBillingAccountNameWithServiceResponseAsync(billingAccountName), serviceCallback);
     }
 
     /**
@@ -93,8 +93,8 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the EnrollmentAccountListResultInner object
      */
-    public Observable<EnrollmentAccountListResultInner> listByBillingAccountAsync(String billingAccountName) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName).map(new Func1<ServiceResponse<EnrollmentAccountListResultInner>, EnrollmentAccountListResultInner>() {
+    public Observable<EnrollmentAccountListResultInner> listByBillingAccountNameAsync(String billingAccountName) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName).map(new Func1<ServiceResponse<EnrollmentAccountListResultInner>, EnrollmentAccountListResultInner>() {
             @Override
             public EnrollmentAccountListResultInner call(ServiceResponse<EnrollmentAccountListResultInner> response) {
                 return response.body();
@@ -109,7 +109,7 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the EnrollmentAccountListResultInner object
      */
-    public Observable<ServiceResponse<EnrollmentAccountListResultInner>> listByBillingAccountWithServiceResponseAsync(String billingAccountName) {
+    public Observable<ServiceResponse<EnrollmentAccountListResultInner>> listByBillingAccountNameWithServiceResponseAsync(String billingAccountName) {
         if (billingAccountName == null) {
             throw new IllegalArgumentException("Parameter billingAccountName is required and cannot be null.");
         }
@@ -118,12 +118,12 @@ public class EnrollmentAccountsInner {
         }
         final String expand = null;
         final String filter = null;
-        return service.listByBillingAccount(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
+        return service.listByBillingAccountName(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<EnrollmentAccountListResultInner>>>() {
                 @Override
                 public Observable<ServiceResponse<EnrollmentAccountListResultInner>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponse<EnrollmentAccountListResultInner> clientResponse = listByBillingAccountDelegate(response);
+                        ServiceResponse<EnrollmentAccountListResultInner> clientResponse = listByBillingAccountNameDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -143,8 +143,8 @@ public class EnrollmentAccountsInner {
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the EnrollmentAccountListResultInner object if successful.
      */
-    public EnrollmentAccountListResultInner listByBillingAccount(String billingAccountName, String expand, String filter) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter).toBlocking().single().body();
+    public EnrollmentAccountListResultInner listByBillingAccountName(String billingAccountName, String expand, String filter) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter).toBlocking().single().body();
     }
 
     /**
@@ -157,8 +157,8 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<EnrollmentAccountListResultInner> listByBillingAccountAsync(String billingAccountName, String expand, String filter, final ServiceCallback<EnrollmentAccountListResultInner> serviceCallback) {
-        return ServiceFuture.fromResponse(listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter), serviceCallback);
+    public ServiceFuture<EnrollmentAccountListResultInner> listByBillingAccountNameAsync(String billingAccountName, String expand, String filter, final ServiceCallback<EnrollmentAccountListResultInner> serviceCallback) {
+        return ServiceFuture.fromResponse(listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter), serviceCallback);
     }
 
     /**
@@ -170,8 +170,8 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the EnrollmentAccountListResultInner object
      */
-    public Observable<EnrollmentAccountListResultInner> listByBillingAccountAsync(String billingAccountName, String expand, String filter) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter).map(new Func1<ServiceResponse<EnrollmentAccountListResultInner>, EnrollmentAccountListResultInner>() {
+    public Observable<EnrollmentAccountListResultInner> listByBillingAccountNameAsync(String billingAccountName, String expand, String filter) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter).map(new Func1<ServiceResponse<EnrollmentAccountListResultInner>, EnrollmentAccountListResultInner>() {
             @Override
             public EnrollmentAccountListResultInner call(ServiceResponse<EnrollmentAccountListResultInner> response) {
                 return response.body();
@@ -188,19 +188,19 @@ public class EnrollmentAccountsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the EnrollmentAccountListResultInner object
      */
-    public Observable<ServiceResponse<EnrollmentAccountListResultInner>> listByBillingAccountWithServiceResponseAsync(String billingAccountName, String expand, String filter) {
+    public Observable<ServiceResponse<EnrollmentAccountListResultInner>> listByBillingAccountNameWithServiceResponseAsync(String billingAccountName, String expand, String filter) {
         if (billingAccountName == null) {
             throw new IllegalArgumentException("Parameter billingAccountName is required and cannot be null.");
         }
         if (this.client.apiVersion() == null) {
             throw new IllegalArgumentException("Parameter this.client.apiVersion() is required and cannot be null.");
         }
-        return service.listByBillingAccount(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
+        return service.listByBillingAccountName(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<EnrollmentAccountListResultInner>>>() {
                 @Override
                 public Observable<ServiceResponse<EnrollmentAccountListResultInner>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponse<EnrollmentAccountListResultInner> clientResponse = listByBillingAccountDelegate(response);
+                        ServiceResponse<EnrollmentAccountListResultInner> clientResponse = listByBillingAccountNameDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -209,7 +209,7 @@ public class EnrollmentAccountsInner {
             });
     }
 
-    private ServiceResponse<EnrollmentAccountListResultInner> listByBillingAccountDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+    private ServiceResponse<EnrollmentAccountListResultInner> listByBillingAccountNameDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
         return this.client.restClient().responseBuilderFactory().<EnrollmentAccountListResultInner, ErrorResponseException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<EnrollmentAccountListResultInner>() { }.getType())
                 .registerError(ErrorResponseException.class)
