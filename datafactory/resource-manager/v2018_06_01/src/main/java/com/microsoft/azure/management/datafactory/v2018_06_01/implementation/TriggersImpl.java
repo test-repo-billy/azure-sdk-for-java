@@ -15,6 +15,7 @@ import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import com.microsoft.azure.Page;
+import com.microsoft.azure.management.datafactory.v2018_06_01.TriggerSubscriptionOperationStatus;
 import com.microsoft.azure.management.datafactory.v2018_06_01.FactoryTriggerResource;
 
 class TriggersImpl extends WrapperImpl<TriggersInner> implements Triggers {
@@ -40,6 +41,42 @@ class TriggersImpl extends WrapperImpl<TriggersInner> implements Triggers {
 
     private FactoryTriggerResourceImpl wrapModel(String name) {
         return new FactoryTriggerResourceImpl(name, this.manager());
+    }
+
+    @Override
+    public Observable<TriggerSubscriptionOperationStatus> subscribeToEventsAsync(String resourceGroupName, String factoryName, String triggerName) {
+        TriggersInner client = this.inner();
+        return client.subscribeToEventsAsync(resourceGroupName, factoryName, triggerName)
+        .map(new Func1<TriggerSubscriptionOperationStatusInner, TriggerSubscriptionOperationStatus>() {
+            @Override
+            public TriggerSubscriptionOperationStatus call(TriggerSubscriptionOperationStatusInner inner) {
+                return new TriggerSubscriptionOperationStatusImpl(inner, manager());
+            }
+        });
+    }
+
+    @Override
+    public Observable<TriggerSubscriptionOperationStatus> getEventSubscriptionStatusAsync(String resourceGroupName, String factoryName, String triggerName) {
+        TriggersInner client = this.inner();
+        return client.getEventSubscriptionStatusAsync(resourceGroupName, factoryName, triggerName)
+        .map(new Func1<TriggerSubscriptionOperationStatusInner, TriggerSubscriptionOperationStatus>() {
+            @Override
+            public TriggerSubscriptionOperationStatus call(TriggerSubscriptionOperationStatusInner inner) {
+                return new TriggerSubscriptionOperationStatusImpl(inner, manager());
+            }
+        });
+    }
+
+    @Override
+    public Observable<TriggerSubscriptionOperationStatus> unsubscribeFromEventsAsync(String resourceGroupName, String factoryName, String triggerName) {
+        TriggersInner client = this.inner();
+        return client.unsubscribeFromEventsAsync(resourceGroupName, factoryName, triggerName)
+        .map(new Func1<TriggerSubscriptionOperationStatusInner, TriggerSubscriptionOperationStatus>() {
+            @Override
+            public TriggerSubscriptionOperationStatus call(TriggerSubscriptionOperationStatusInner inner) {
+                return new TriggerSubscriptionOperationStatusImpl(inner, manager());
+            }
+        });
     }
 
     @Override
