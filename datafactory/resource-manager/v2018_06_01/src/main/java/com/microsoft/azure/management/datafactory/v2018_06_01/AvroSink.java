@@ -13,19 +13,25 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
- * A copy activity Binary sink.
+ * A copy activity Avro sink.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonTypeName("BinarySink")
-public class BinarySink extends CopySink {
+@JsonTypeName("AvroSink")
+public class AvroSink extends CopySink {
     /**
-     * Binary store settings.
+     * Avro store settings.
      */
     @JsonProperty(value = "storeSettings")
     private StoreWriteSettings storeSettings;
 
     /**
-     * Get binary store settings.
+     * Avro format settings.
+     */
+    @JsonProperty(value = "formatSettings")
+    private AvroWriteSettings formatSettings;
+
+    /**
+     * Get avro store settings.
      *
      * @return the storeSettings value
      */
@@ -34,13 +40,33 @@ public class BinarySink extends CopySink {
     }
 
     /**
-     * Set binary store settings.
+     * Set avro store settings.
      *
      * @param storeSettings the storeSettings value to set
-     * @return the BinarySink object itself.
+     * @return the AvroSink object itself.
      */
-    public BinarySink withStoreSettings(StoreWriteSettings storeSettings) {
+    public AvroSink withStoreSettings(StoreWriteSettings storeSettings) {
         this.storeSettings = storeSettings;
+        return this;
+    }
+
+    /**
+     * Get avro format settings.
+     *
+     * @return the formatSettings value
+     */
+    public AvroWriteSettings formatSettings() {
+        return this.formatSettings;
+    }
+
+    /**
+     * Set avro format settings.
+     *
+     * @param formatSettings the formatSettings value to set
+     * @return the AvroSink object itself.
+     */
+    public AvroSink withFormatSettings(AvroWriteSettings formatSettings) {
+        this.formatSettings = formatSettings;
         return this;
     }
 
