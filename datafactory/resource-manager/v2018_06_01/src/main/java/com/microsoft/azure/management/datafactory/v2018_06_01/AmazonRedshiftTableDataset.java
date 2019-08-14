@@ -15,12 +15,12 @@ import com.microsoft.rest.serializer.JsonFlatten;
 import com.microsoft.azure.management.datafactory.v2018_06_01.implementation.DatasetInner;
 
 /**
- * The PostgreSQL table dataset.
+ * The Amazon Redshift table dataset.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonTypeName("PostgreSqlTable")
+@JsonTypeName("AmazonRedshiftTable")
 @JsonFlatten
-public class PostgreSqlTableDataset extends DatasetInner {
+public class AmazonRedshiftTableDataset extends DatasetInner {
     /**
      * This property will be retired. Please consider using schema + table
      * properties instead.
@@ -29,18 +29,18 @@ public class PostgreSqlTableDataset extends DatasetInner {
     private Object tableName;
 
     /**
-     * The PostgreSQL table name. Type: string (or Expression with resultType
-     * string).
+     * The Amazon Redshift table name. Type: string (or Expression with
+     * resultType string).
      */
     @JsonProperty(value = "typeProperties.table")
     private Object table;
 
     /**
-     * The PostgreSQL schema name. Type: string (or Expression with resultType
-     * string).
+     * The Amazon Redshift schema name. Type: string (or Expression with
+     * resultType string).
      */
     @JsonProperty(value = "typeProperties.schema")
-    private Object postgreSqlTableDatasetSchema;
+    private Object amazonRedshiftTableDatasetSchema;
 
     /**
      * Get this property will be retired. Please consider using schema + table properties instead.
@@ -55,15 +55,15 @@ public class PostgreSqlTableDataset extends DatasetInner {
      * Set this property will be retired. Please consider using schema + table properties instead.
      *
      * @param tableName the tableName value to set
-     * @return the PostgreSqlTableDataset object itself.
+     * @return the AmazonRedshiftTableDataset object itself.
      */
-    public PostgreSqlTableDataset withTableName(Object tableName) {
+    public AmazonRedshiftTableDataset withTableName(Object tableName) {
         this.tableName = tableName;
         return this;
     }
 
     /**
-     * Get the PostgreSQL table name. Type: string (or Expression with resultType string).
+     * Get the Amazon Redshift table name. Type: string (or Expression with resultType string).
      *
      * @return the table value
      */
@@ -72,33 +72,33 @@ public class PostgreSqlTableDataset extends DatasetInner {
     }
 
     /**
-     * Set the PostgreSQL table name. Type: string (or Expression with resultType string).
+     * Set the Amazon Redshift table name. Type: string (or Expression with resultType string).
      *
      * @param table the table value to set
-     * @return the PostgreSqlTableDataset object itself.
+     * @return the AmazonRedshiftTableDataset object itself.
      */
-    public PostgreSqlTableDataset withTable(Object table) {
+    public AmazonRedshiftTableDataset withTable(Object table) {
         this.table = table;
         return this;
     }
 
     /**
-     * Get the PostgreSQL schema name. Type: string (or Expression with resultType string).
+     * Get the Amazon Redshift schema name. Type: string (or Expression with resultType string).
      *
-     * @return the postgreSqlTableDatasetSchema value
+     * @return the amazonRedshiftTableDatasetSchema value
      */
-    public Object postgreSqlTableDatasetSchema() {
-        return this.postgreSqlTableDatasetSchema;
+    public Object amazonRedshiftTableDatasetSchema() {
+        return this.amazonRedshiftTableDatasetSchema;
     }
 
     /**
-     * Set the PostgreSQL schema name. Type: string (or Expression with resultType string).
+     * Set the Amazon Redshift schema name. Type: string (or Expression with resultType string).
      *
-     * @param postgreSqlTableDatasetSchema the postgreSqlTableDatasetSchema value to set
-     * @return the PostgreSqlTableDataset object itself.
+     * @param amazonRedshiftTableDatasetSchema the amazonRedshiftTableDatasetSchema value to set
+     * @return the AmazonRedshiftTableDataset object itself.
      */
-    public PostgreSqlTableDataset withPostgreSqlTableDatasetSchema(Object postgreSqlTableDatasetSchema) {
-        this.postgreSqlTableDatasetSchema = postgreSqlTableDatasetSchema;
+    public AmazonRedshiftTableDataset withAmazonRedshiftTableDatasetSchema(Object amazonRedshiftTableDatasetSchema) {
+        this.amazonRedshiftTableDatasetSchema = amazonRedshiftTableDatasetSchema;
         return this;
     }
 
