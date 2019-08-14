@@ -23,7 +23,7 @@ public interface EnrollmentAccounts extends HasInner<EnrollmentAccountsInner> {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable for the request
      */
-    Observable<EnrollmentAccountListResult> listByBillingAccountNameAsync(String billingAccountName);
+    Observable<EnrollmentAccountListResult> listByBillingAccountAsync(String billingAccountName);
 
     /**
      * Get the enrollment account by id.
