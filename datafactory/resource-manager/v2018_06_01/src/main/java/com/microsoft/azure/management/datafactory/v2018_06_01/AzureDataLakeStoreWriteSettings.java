@@ -8,9 +8,13 @@
 
 package com.microsoft.azure.management.datafactory.v2018_06_01;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
  * Azure data lake store write settings.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeName("AzureDataLakeStoreWriteSettings")
 public class AzureDataLakeStoreWriteSettings extends StoreWriteSettings {
 }

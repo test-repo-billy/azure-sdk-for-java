@@ -8,9 +8,41 @@
 
 package com.microsoft.azure.management.datafactory.v2018_06_01;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
  * Azure blobFS write settings.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeName("AzureBlobFSWriteSettings")
 public class AzureBlobFSWriteSettings extends StoreWriteSettings {
+    /**
+     * Indicates the block size(MB) when writing data to blob. Type: integer
+     * (or Expression with resultType integer).
+     */
+    @JsonProperty(value = "blockSizeInMB")
+    private Object blockSizeInMB;
+
+    /**
+     * Get indicates the block size(MB) when writing data to blob. Type: integer (or Expression with resultType integer).
+     *
+     * @return the blockSizeInMB value
+     */
+    public Object blockSizeInMB() {
+        return this.blockSizeInMB;
+    }
+
+    /**
+     * Set indicates the block size(MB) when writing data to blob. Type: integer (or Expression with resultType integer).
+     *
+     * @param blockSizeInMB the blockSizeInMB value to set
+     * @return the AzureBlobFSWriteSettings object itself.
+     */
+    public AzureBlobFSWriteSettings withBlockSizeInMB(Object blockSizeInMB) {
+        this.blockSizeInMB = blockSizeInMB;
+        return this;
+    }
+
 }

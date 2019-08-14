@@ -8,9 +8,13 @@
 
 package com.microsoft.azure.management.datafactory.v2018_06_01;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
  * File server write settings.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeName("FileServerWriteSettings")
 public class FileServerWriteSettings extends StoreWriteSettings {
 }

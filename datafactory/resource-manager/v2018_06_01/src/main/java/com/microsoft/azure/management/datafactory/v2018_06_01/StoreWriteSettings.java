@@ -10,22 +10,27 @@ package com.microsoft.azure.management.datafactory.v2018_06_01;
 
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 
 /**
  * Connector write settings.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeName("StoreWriteSettings")
+@JsonSubTypes({
+    @JsonSubTypes.Type(name = "FileServerWriteSettings", value = FileServerWriteSettings.class),
+    @JsonSubTypes.Type(name = "AzureDataLakeStoreWriteSettings", value = AzureDataLakeStoreWriteSettings.class),
+    @JsonSubTypes.Type(name = "AzureBlobFSWriteSettings", value = AzureBlobFSWriteSettings.class),
+    @JsonSubTypes.Type(name = "AzureBlobStorageWriteSettings", value = AzureBlobStorageWriteSettings.class)
+})
 public class StoreWriteSettings {
     /**
      * Unmatched properties from the message are deserialized this collection.
      */
     @JsonProperty(value = "")
     private Map<String, Object> additionalProperties;
-
-    /**
-     * The write setting type.
-     */
-    @JsonProperty(value = "type", required = true)
-    private String type;
 
     /**
      * The maximum concurrent connection count for the source data store. Type:
@@ -57,26 +62,6 @@ public class StoreWriteSettings {
      */
     public StoreWriteSettings withAdditionalProperties(Map<String, Object> additionalProperties) {
         this.additionalProperties = additionalProperties;
-        return this;
-    }
-
-    /**
-     * Get the write setting type.
-     *
-     * @return the type value
-     */
-    public String type() {
-        return this.type;
-    }
-
-    /**
-     * Set the write setting type.
-     *
-     * @param type the type value to set
-     * @return the StoreWriteSettings object itself.
-     */
-    public StoreWriteSettings withType(String type) {
-        this.type = type;
         return this;
     }
 
