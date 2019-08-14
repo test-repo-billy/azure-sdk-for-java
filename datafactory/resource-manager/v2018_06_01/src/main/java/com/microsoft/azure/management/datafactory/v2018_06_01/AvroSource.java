@@ -13,33 +13,33 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
- * A copy activity Binary sink.
+ * A copy activity Avro source.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonTypeName("BinarySink")
-public class BinarySink extends CopySink {
+@JsonTypeName("AvroSource")
+public class AvroSource extends CopySource {
     /**
-     * Binary store settings.
+     * Avro store settings.
      */
     @JsonProperty(value = "storeSettings")
-    private StoreWriteSettings storeSettings;
+    private StoreReadSettings storeSettings;
 
     /**
-     * Get binary store settings.
+     * Get avro store settings.
      *
      * @return the storeSettings value
      */
-    public StoreWriteSettings storeSettings() {
+    public StoreReadSettings storeSettings() {
         return this.storeSettings;
     }
 
     /**
-     * Set binary store settings.
+     * Set avro store settings.
      *
      * @param storeSettings the storeSettings value to set
-     * @return the BinarySink object itself.
+     * @return the AvroSource object itself.
      */
-    public BinarySink withStoreSettings(StoreWriteSettings storeSettings) {
+    public AvroSource withStoreSettings(StoreReadSettings storeSettings) {
         this.storeSettings = storeSettings;
         return this;
     }
