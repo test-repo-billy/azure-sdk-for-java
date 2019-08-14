@@ -4,7 +4,6 @@ package com.azure.data.cosmos;
 
 import com.azure.data.cosmos.internal.Configs;
 import com.azure.data.cosmos.internal.Permission;
-import com.azure.data.cosmos.sync.CosmosSyncClient;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -211,7 +210,6 @@ public class CosmosClientBuilder {
             "cannot build client without any one of key, resource token, permissions, token resolver, and cosmos key credential");
         ifThrowIllegalArgException(cosmosKeyCredential != null && StringUtils.isEmpty(cosmosKeyCredential.key()),
             "cannot build client without key credential");
-    }
 
     /**
      * Builds a cosmos sync client object with the provided properties
