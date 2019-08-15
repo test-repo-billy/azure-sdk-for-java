@@ -20,17 +20,11 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
  * Base class for all types of DMS task properties. If task is not supported by
  * current client, this object is returned.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "taskType", defaultImpl = ProjectTaskProperties.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "taskType")
 @JsonTypeName("Unknown")
 @JsonSubTypes({
     @JsonSubTypes.Type(name = "Migrate.SqlServer.AzureDbSqlMi.Complete", value = MigrateMISyncCompleteCommandProperties.class),
     @JsonSubTypes.Type(name = "Migrate.Sync.Complete.Database", value = MigrateSyncCompleteCommandProperties.class),
-    @JsonSubTypes.Type(name = "MiSqlConnectionInfo", value = MiSqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "PostgreSqlConnectionInfo", value = PostgreSqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "OracleConnectionInfo", value = OracleConnectionInfo.class),
-    @JsonSubTypes.Type(name = "MySqlConnectionInfo", value = MySqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "MongoDbConnectionInfo", value = MongoDbConnectionInfo.class),
-    @JsonSubTypes.Type(name = "SqlConnectionInfo", value = SqlConnectionInfo.class),
     @JsonSubTypes.Type(name = "Migrate.Ssis", value = MigrateSsisTaskProperties.class),
     @JsonSubTypes.Type(name = "GetTDECertificates.Sql", value = GetTdeCertificatesSqlTaskProperties.class),
     @JsonSubTypes.Type(name = "Validate.Oracle.AzureDbPostgreSql.Sync", value = ValidateOracleAzureDbForPostgreSqlSyncTaskProperties.class),

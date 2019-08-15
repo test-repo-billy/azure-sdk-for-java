@@ -9,8 +9,8 @@
 package com.microsoft.azure.management.datamigration.v2018_07_15_preview.implementation;
 
 import java.util.List;
-
-import com.microsoft.azure.management.datamigration.v2018_07_15_preview.*;
+import com.microsoft.azure.management.datamigration.v2018_07_15_preview.ODataError;
+import com.microsoft.azure.management.datamigration.v2018_07_15_preview.CommandState;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -20,17 +20,11 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
  * Base class for all types of DMS command properties. If command is not
  * supported by current client, this object is returned.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "commandType", defaultImpl = CommandPropertiesInner.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "commandType")
 @JsonTypeName("Unknown")
 @JsonSubTypes({
     @JsonSubTypes.Type(name = "Migrate.SqlServer.AzureDbSqlMi.Complete", value = MigrateMISyncCompleteCommandProperties.class),
     @JsonSubTypes.Type(name = "Migrate.Sync.Complete.Database", value = MigrateSyncCompleteCommandProperties.class),
-    @JsonSubTypes.Type(name = "MiSqlConnectionInfo", value = MiSqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "PostgreSqlConnectionInfo", value = PostgreSqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "OracleConnectionInfo", value = OracleConnectionInfo.class),
-    @JsonSubTypes.Type(name = "MySqlConnectionInfo", value = MySqlConnectionInfo.class),
-    @JsonSubTypes.Type(name = "MongoDbConnectionInfo", value = MongoDbConnectionInfo.class),
-    @JsonSubTypes.Type(name = "SqlConnectionInfo", value = SqlConnectionInfo.class),
     @JsonSubTypes.Type(name = "Migrate.Ssis", value = MigrateSsisTaskProperties.class),
     @JsonSubTypes.Type(name = "GetTDECertificates.Sql", value = GetTdeCertificatesSqlTaskProperties.class),
     @JsonSubTypes.Type(name = "Validate.Oracle.AzureDbPostgreSql.Sync", value = ValidateOracleAzureDbForPostgreSqlSyncTaskProperties.class),
