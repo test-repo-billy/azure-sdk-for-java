@@ -54,6 +54,14 @@ public class AzureSqlSink extends CopySink {
     private Object storedProcedureTableTypeParameterName;
 
     /**
+     * The option to handle sink table, such as autoCreate. For now only
+     * 'autoCreate' value is supported. Type: string (or Expression with
+     * resultType string).
+     */
+    @JsonProperty(value = "tableOption")
+    private Object tableOption;
+
+    /**
      * Get sQL writer stored procedure name. Type: string (or Expression with resultType string).
      *
      * @return the sqlWriterStoredProcedureName value
@@ -150,6 +158,26 @@ public class AzureSqlSink extends CopySink {
      */
     public AzureSqlSink withStoredProcedureTableTypeParameterName(Object storedProcedureTableTypeParameterName) {
         this.storedProcedureTableTypeParameterName = storedProcedureTableTypeParameterName;
+        return this;
+    }
+
+    /**
+     * Get the option to handle sink table, such as autoCreate. For now only 'autoCreate' value is supported. Type: string (or Expression with resultType string).
+     *
+     * @return the tableOption value
+     */
+    public Object tableOption() {
+        return this.tableOption;
+    }
+
+    /**
+     * Set the option to handle sink table, such as autoCreate. For now only 'autoCreate' value is supported. Type: string (or Expression with resultType string).
+     *
+     * @param tableOption the tableOption value to set
+     * @return the AzureSqlSink object itself.
+     */
+    public AzureSqlSink withTableOption(Object tableOption) {
+        this.tableOption = tableOption;
         return this;
     }
 
