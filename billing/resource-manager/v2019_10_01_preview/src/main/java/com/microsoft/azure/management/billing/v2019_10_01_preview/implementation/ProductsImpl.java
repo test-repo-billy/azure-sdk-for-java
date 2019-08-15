@@ -115,18 +115,6 @@ class ProductsImpl extends WrapperImpl<ProductsInner> implements Products {
     }
 
     @Override
-    public Observable<UpdateAutoRenewOperation> updateAutoRenewByBillingAccountAsync(String billingAccountName, String productName) {
-        ProductsInner client = this.inner();
-        return client.updateAutoRenewByBillingAccountAsync(billingAccountName, productName)
-        .map(new Func1<UpdateAutoRenewOperationInner, UpdateAutoRenewOperation>() {
-            @Override
-            public UpdateAutoRenewOperation call(UpdateAutoRenewOperationInner inner) {
-                return new UpdateAutoRenewOperationImpl(inner, manager());
-            }
-        });
-    }
-
-    @Override
     public Observable<UpdateAutoRenewOperation> updateAutoRenewByInvoiceSectionAsync(String billingAccountName, String billingProfileName, String invoiceSectionName, String productName) {
         ProductsInner client = this.inner();
         return client.updateAutoRenewByInvoiceSectionAsync(billingAccountName, billingProfileName, invoiceSectionName, productName)

@@ -26,6 +26,15 @@ public interface BillingAccounts extends HasInner<BillingAccountsInner> {
     Observable<BillingAccount> getAsync(String billingAccountName);
 
     /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param billingAccountName billing Account Id.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<InvoiceSectionWithCreateSubPermission> listInvoiceSectionsByCreateSubscriptionPermissionAsync(final String billingAccountName);
+
+    /**
      * Lists all billing accounts for a user which he has access to.
      *
      * @throws IllegalArgumentException thrown if parameters fail the validation

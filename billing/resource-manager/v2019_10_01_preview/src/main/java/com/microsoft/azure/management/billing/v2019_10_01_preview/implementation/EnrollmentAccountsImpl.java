@@ -33,9 +33,9 @@ class EnrollmentAccountsImpl extends WrapperImpl<EnrollmentAccountsInner> implem
     }
 
     @Override
-    public Observable<EnrollmentAccountListResult> listByBillingAccountAsync(String billingAccountName) {
+    public Observable<EnrollmentAccountListResult> listByBillingAccountNameAsync(String billingAccountName) {
         EnrollmentAccountsInner client = this.inner();
-        return client.listByBillingAccountAsync(billingAccountName)
+        return client.listByBillingAccountNameAsync(billingAccountName)
         .map(new Func1<EnrollmentAccountListResultInner, EnrollmentAccountListResult>() {
             @Override
             public EnrollmentAccountListResult call(EnrollmentAccountListResultInner inner) {

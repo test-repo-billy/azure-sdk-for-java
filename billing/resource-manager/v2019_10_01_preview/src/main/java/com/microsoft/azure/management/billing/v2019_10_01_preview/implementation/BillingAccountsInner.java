@@ -10,13 +10,18 @@ package com.microsoft.azure.management.billing.v2019_10_01_preview.implementatio
 
 import retrofit2.Retrofit;
 import com.google.common.reflect.TypeToken;
+import com.microsoft.azure.AzureServiceFuture;
+import com.microsoft.azure.ListOperationCallback;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccountUpdateRequest;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.ErrorResponseException;
+import com.microsoft.azure.Page;
+import com.microsoft.azure.PagedList;
 import com.microsoft.rest.ServiceCallback;
 import com.microsoft.rest.ServiceFuture;
 import com.microsoft.rest.ServiceResponse;
 import com.microsoft.rest.Validator;
 import java.io.IOException;
+import java.util.List;
 import okhttp3.ResponseBody;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -25,6 +30,7 @@ import retrofit2.http.Headers;
 import retrofit2.http.PATCH;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.Url;
 import retrofit2.Response;
 import rx.functions.Func1;
 import rx.Observable;
@@ -70,6 +76,14 @@ public class BillingAccountsInner {
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccounts beginUpdate" })
         @PATCH("providers/Microsoft.Billing/billingAccounts/{billingAccountName}")
         Observable<Response<ResponseBody>> beginUpdate(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Body BillingAccountUpdateRequest parameters, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
+
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccounts listInvoiceSectionsByCreateSubscriptionPermission" })
+        @GET("providers/Microsoft.Billing/billingAccounts/{billingAccountName}/listInvoiceSectionsWithCreateSubscriptionPermission")
+        Observable<Response<ResponseBody>> listInvoiceSectionsByCreateSubscriptionPermission(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
+
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccounts listInvoiceSectionsByCreateSubscriptionPermissionNext" })
+        @GET
+        Observable<Response<ResponseBody>> listInvoiceSectionsByCreateSubscriptionPermissionNext(@Url String nextUrl, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
     }
 
@@ -507,6 +521,229 @@ public class BillingAccountsInner {
         return this.client.restClient().responseBuilderFactory().<BillingAccountInner, ErrorResponseException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<BillingAccountInner>() { }.getType())
                 .register(202, new TypeToken<Void>() { }.getType())
+                .registerError(ErrorResponseException.class)
+                .build(response);
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param billingAccountName billing Account Id.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws ErrorResponseException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object if successful.
+     */
+    public PagedList<InvoiceSectionWithCreateSubPermissionInner> listInvoiceSectionsByCreateSubscriptionPermission(final String billingAccountName) {
+        ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> response = listInvoiceSectionsByCreateSubscriptionPermissionSinglePageAsync(billingAccountName).toBlocking().single();
+        return new PagedList<InvoiceSectionWithCreateSubPermissionInner>(response.body()) {
+            @Override
+            public Page<InvoiceSectionWithCreateSubPermissionInner> nextPage(String nextPageLink) {
+                return listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink).toBlocking().single().body();
+            }
+        };
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param billingAccountName billing Account Id.
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<List<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionAsync(final String billingAccountName, final ListOperationCallback<InvoiceSectionWithCreateSubPermissionInner> serviceCallback) {
+        return AzureServiceFuture.fromPageResponse(
+            listInvoiceSectionsByCreateSubscriptionPermissionSinglePageAsync(billingAccountName),
+            new Func1<String, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(String nextPageLink) {
+                    return listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink);
+                }
+            },
+            serviceCallback);
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param billingAccountName billing Account Id.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object
+     */
+    public Observable<Page<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionAsync(final String billingAccountName) {
+        return listInvoiceSectionsByCreateSubscriptionPermissionWithServiceResponseAsync(billingAccountName)
+            .map(new Func1<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>, Page<InvoiceSectionWithCreateSubPermissionInner>>() {
+                @Override
+                public Page<InvoiceSectionWithCreateSubPermissionInner> call(ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> response) {
+                    return response.body();
+                }
+            });
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param billingAccountName billing Account Id.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object
+     */
+    public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> listInvoiceSectionsByCreateSubscriptionPermissionWithServiceResponseAsync(final String billingAccountName) {
+        return listInvoiceSectionsByCreateSubscriptionPermissionSinglePageAsync(billingAccountName)
+            .concatMap(new Func1<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> page) {
+                    String nextPageLink = page.body().nextPageLink();
+                    if (nextPageLink == null) {
+                        return Observable.just(page);
+                    }
+                    return Observable.just(page).concatWith(listInvoiceSectionsByCreateSubscriptionPermissionNextWithServiceResponseAsync(nextPageLink));
+                }
+            });
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+    ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> * @param billingAccountName billing Account Id.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object wrapped in {@link ServiceResponse} if successful.
+     */
+    public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> listInvoiceSectionsByCreateSubscriptionPermissionSinglePageAsync(final String billingAccountName) {
+        if (billingAccountName == null) {
+            throw new IllegalArgumentException("Parameter billingAccountName is required and cannot be null.");
+        }
+        if (this.client.apiVersion() == null) {
+            throw new IllegalArgumentException("Parameter this.client.apiVersion() is required and cannot be null.");
+        }
+        return service.listInvoiceSectionsByCreateSubscriptionPermission(billingAccountName, this.client.apiVersion(), this.client.acceptLanguage(), this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> result = listInvoiceSectionsByCreateSubscriptionPermissionDelegate(response);
+                        return Observable.just(new ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>(result.body(), result.response()));
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    private ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<PageImpl<InvoiceSectionWithCreateSubPermissionInner>, ErrorResponseException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<PageImpl<InvoiceSectionWithCreateSubPermissionInner>>() { }.getType())
+                .registerError(ErrorResponseException.class)
+                .build(response);
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param nextPageLink The NextLink from the previous successful call to List operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws ErrorResponseException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object if successful.
+     */
+    public PagedList<InvoiceSectionWithCreateSubPermissionInner> listInvoiceSectionsByCreateSubscriptionPermissionNext(final String nextPageLink) {
+        ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> response = listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink).toBlocking().single();
+        return new PagedList<InvoiceSectionWithCreateSubPermissionInner>(response.body()) {
+            @Override
+            public Page<InvoiceSectionWithCreateSubPermissionInner> nextPage(String nextPageLink) {
+                return listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink).toBlocking().single().body();
+            }
+        };
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param nextPageLink The NextLink from the previous successful call to List operation.
+     * @param serviceFuture the ServiceFuture object tracking the Retrofit calls
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<List<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionNextAsync(final String nextPageLink, final ServiceFuture<List<InvoiceSectionWithCreateSubPermissionInner>> serviceFuture, final ListOperationCallback<InvoiceSectionWithCreateSubPermissionInner> serviceCallback) {
+        return AzureServiceFuture.fromPageResponse(
+            listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink),
+            new Func1<String, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(String nextPageLink) {
+                    return listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink);
+                }
+            },
+            serviceCallback);
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param nextPageLink The NextLink from the previous successful call to List operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object
+     */
+    public Observable<Page<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionNextAsync(final String nextPageLink) {
+        return listInvoiceSectionsByCreateSubscriptionPermissionNextWithServiceResponseAsync(nextPageLink)
+            .map(new Func1<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>, Page<InvoiceSectionWithCreateSubPermissionInner>>() {
+                @Override
+                public Page<InvoiceSectionWithCreateSubPermissionInner> call(ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> response) {
+                    return response.body();
+                }
+            });
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+     * @param nextPageLink The NextLink from the previous successful call to List operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object
+     */
+    public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> listInvoiceSectionsByCreateSubscriptionPermissionNextWithServiceResponseAsync(final String nextPageLink) {
+        return listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(nextPageLink)
+            .concatMap(new Func1<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>> page) {
+                    String nextPageLink = page.body().nextPageLink();
+                    if (nextPageLink == null) {
+                        return Observable.just(page);
+                    }
+                    return Observable.just(page).concatWith(listInvoiceSectionsByCreateSubscriptionPermissionNextWithServiceResponseAsync(nextPageLink));
+                }
+            });
+    }
+
+    /**
+     * Lists all invoice sections with create subscription permission for a user.
+     *
+    ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> * @param nextPageLink The NextLink from the previous successful call to List operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the PagedList&lt;InvoiceSectionWithCreateSubPermissionInner&gt; object wrapped in {@link ServiceResponse} if successful.
+     */
+    public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> listInvoiceSectionsByCreateSubscriptionPermissionNextSinglePageAsync(final String nextPageLink) {
+        if (nextPageLink == null) {
+            throw new IllegalArgumentException("Parameter nextPageLink is required and cannot be null.");
+        }
+        String nextUrl = String.format("%s", nextPageLink);
+        return service.listInvoiceSectionsByCreateSubscriptionPermissionNext(nextUrl, this.client.acceptLanguage(), this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>>>() {
+                @Override
+                public Observable<ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> result = listInvoiceSectionsByCreateSubscriptionPermissionNextDelegate(response);
+                        return Observable.just(new ServiceResponse<Page<InvoiceSectionWithCreateSubPermissionInner>>(result.body(), result.response()));
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    private ServiceResponse<PageImpl<InvoiceSectionWithCreateSubPermissionInner>> listInvoiceSectionsByCreateSubscriptionPermissionNextDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<PageImpl<InvoiceSectionWithCreateSubPermissionInner>, ErrorResponseException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<PageImpl<InvoiceSectionWithCreateSubPermissionInner>>() { }.getType())
                 .registerError(ErrorResponseException.class)
                 .build(response);
     }
