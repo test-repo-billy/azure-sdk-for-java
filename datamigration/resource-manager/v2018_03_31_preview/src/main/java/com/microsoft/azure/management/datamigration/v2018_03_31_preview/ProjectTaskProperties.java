@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
  * current client, this object is returned.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "taskType")
-@JsonTypeName("Unknown")
+@JsonTypeName("ProjectTaskProperties")
 @JsonSubTypes({
     @JsonSubTypes.Type(name = "ValidateMigrationInput.SqlServer.AzureSqlDbMI", value = ValidateMigrationInputSqlServerSqlMITaskProperties.class),
     @JsonSubTypes.Type(name = "Migrate.SqlServer.SqlDb", value = MigrateSqlServerSqlDbTaskProperties.class),
