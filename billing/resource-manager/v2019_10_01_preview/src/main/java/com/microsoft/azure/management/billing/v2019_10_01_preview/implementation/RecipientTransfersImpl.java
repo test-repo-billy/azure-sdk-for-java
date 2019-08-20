@@ -15,6 +15,7 @@ import rx.functions.Func1;
 import rx.Observable;
 import com.microsoft.azure.Page;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.RecipientTransferDetails;
+import com.microsoft.azure.management.billing.v2019_10_01_preview.ValidateTransferListResponse;
 
 class RecipientTransfersImpl extends WrapperImpl<RecipientTransfersInner> implements RecipientTransfers {
     private final BillingManager manager;
@@ -36,6 +37,18 @@ class RecipientTransfersImpl extends WrapperImpl<RecipientTransfersInner> implem
             @Override
             public RecipientTransferDetails call(RecipientTransferDetailsInner inner) {
                 return new RecipientTransferDetailsImpl(inner, manager());
+            }
+        });
+    }
+
+    @Override
+    public Observable<ValidateTransferListResponse> validateAsync(String transferName) {
+        RecipientTransfersInner client = this.inner();
+        return client.validateAsync(transferName)
+        .map(new Func1<ValidateTransferListResponseInner, ValidateTransferListResponse>() {
+            @Override
+            public ValidateTransferListResponse call(ValidateTransferListResponseInner inner) {
+                return new ValidateTransferListResponseImpl(inner, manager());
             }
         });
     }
