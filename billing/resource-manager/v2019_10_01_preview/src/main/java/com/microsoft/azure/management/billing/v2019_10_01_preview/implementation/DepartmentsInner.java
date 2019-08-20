@@ -51,9 +51,9 @@ public class DepartmentsInner {
      * used by Retrofit to perform actually REST calls.
      */
     interface DepartmentsService {
-        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.Departments listByBillingAccount" })
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.Departments listByBillingAccountName" })
         @GET("providers/Microsoft.Billing/billingAccounts/{billingAccountName}/departments")
-        Observable<Response<ResponseBody>> listByBillingAccount(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Query("$expand") String expand, @Query("$filter") String filter, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> listByBillingAccountName(@Path("billingAccountName") String billingAccountName, @Query("api-version") String apiVersion, @Query("$expand") String expand, @Query("$filter") String filter, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.Departments get" })
         @GET("providers/Microsoft.Billing/billingAccounts/{billingAccountName}/departments/{departmentName}")
@@ -70,8 +70,8 @@ public class DepartmentsInner {
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DepartmentListResultInner object if successful.
      */
-    public DepartmentListResultInner listByBillingAccount(String billingAccountName) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName).toBlocking().single().body();
+    public DepartmentListResultInner listByBillingAccountName(String billingAccountName) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName).toBlocking().single().body();
     }
 
     /**
@@ -82,8 +82,8 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<DepartmentListResultInner> listByBillingAccountAsync(String billingAccountName, final ServiceCallback<DepartmentListResultInner> serviceCallback) {
-        return ServiceFuture.fromResponse(listByBillingAccountWithServiceResponseAsync(billingAccountName), serviceCallback);
+    public ServiceFuture<DepartmentListResultInner> listByBillingAccountNameAsync(String billingAccountName, final ServiceCallback<DepartmentListResultInner> serviceCallback) {
+        return ServiceFuture.fromResponse(listByBillingAccountNameWithServiceResponseAsync(billingAccountName), serviceCallback);
     }
 
     /**
@@ -93,8 +93,8 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DepartmentListResultInner object
      */
-    public Observable<DepartmentListResultInner> listByBillingAccountAsync(String billingAccountName) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName).map(new Func1<ServiceResponse<DepartmentListResultInner>, DepartmentListResultInner>() {
+    public Observable<DepartmentListResultInner> listByBillingAccountNameAsync(String billingAccountName) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName).map(new Func1<ServiceResponse<DepartmentListResultInner>, DepartmentListResultInner>() {
             @Override
             public DepartmentListResultInner call(ServiceResponse<DepartmentListResultInner> response) {
                 return response.body();
@@ -109,7 +109,7 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DepartmentListResultInner object
      */
-    public Observable<ServiceResponse<DepartmentListResultInner>> listByBillingAccountWithServiceResponseAsync(String billingAccountName) {
+    public Observable<ServiceResponse<DepartmentListResultInner>> listByBillingAccountNameWithServiceResponseAsync(String billingAccountName) {
         if (billingAccountName == null) {
             throw new IllegalArgumentException("Parameter billingAccountName is required and cannot be null.");
         }
@@ -118,12 +118,12 @@ public class DepartmentsInner {
         }
         final String expand = null;
         final String filter = null;
-        return service.listByBillingAccount(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
+        return service.listByBillingAccountName(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DepartmentListResultInner>>>() {
                 @Override
                 public Observable<ServiceResponse<DepartmentListResultInner>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponse<DepartmentListResultInner> clientResponse = listByBillingAccountDelegate(response);
+                        ServiceResponse<DepartmentListResultInner> clientResponse = listByBillingAccountNameDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -143,8 +143,8 @@ public class DepartmentsInner {
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DepartmentListResultInner object if successful.
      */
-    public DepartmentListResultInner listByBillingAccount(String billingAccountName, String expand, String filter) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter).toBlocking().single().body();
+    public DepartmentListResultInner listByBillingAccountName(String billingAccountName, String expand, String filter) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter).toBlocking().single().body();
     }
 
     /**
@@ -157,8 +157,8 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<DepartmentListResultInner> listByBillingAccountAsync(String billingAccountName, String expand, String filter, final ServiceCallback<DepartmentListResultInner> serviceCallback) {
-        return ServiceFuture.fromResponse(listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter), serviceCallback);
+    public ServiceFuture<DepartmentListResultInner> listByBillingAccountNameAsync(String billingAccountName, String expand, String filter, final ServiceCallback<DepartmentListResultInner> serviceCallback) {
+        return ServiceFuture.fromResponse(listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter), serviceCallback);
     }
 
     /**
@@ -170,8 +170,8 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DepartmentListResultInner object
      */
-    public Observable<DepartmentListResultInner> listByBillingAccountAsync(String billingAccountName, String expand, String filter) {
-        return listByBillingAccountWithServiceResponseAsync(billingAccountName, expand, filter).map(new Func1<ServiceResponse<DepartmentListResultInner>, DepartmentListResultInner>() {
+    public Observable<DepartmentListResultInner> listByBillingAccountNameAsync(String billingAccountName, String expand, String filter) {
+        return listByBillingAccountNameWithServiceResponseAsync(billingAccountName, expand, filter).map(new Func1<ServiceResponse<DepartmentListResultInner>, DepartmentListResultInner>() {
             @Override
             public DepartmentListResultInner call(ServiceResponse<DepartmentListResultInner> response) {
                 return response.body();
@@ -188,19 +188,19 @@ public class DepartmentsInner {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DepartmentListResultInner object
      */
-    public Observable<ServiceResponse<DepartmentListResultInner>> listByBillingAccountWithServiceResponseAsync(String billingAccountName, String expand, String filter) {
+    public Observable<ServiceResponse<DepartmentListResultInner>> listByBillingAccountNameWithServiceResponseAsync(String billingAccountName, String expand, String filter) {
         if (billingAccountName == null) {
             throw new IllegalArgumentException("Parameter billingAccountName is required and cannot be null.");
         }
         if (this.client.apiVersion() == null) {
             throw new IllegalArgumentException("Parameter this.client.apiVersion() is required and cannot be null.");
         }
-        return service.listByBillingAccount(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
+        return service.listByBillingAccountName(billingAccountName, this.client.apiVersion(), expand, filter, this.client.acceptLanguage(), this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DepartmentListResultInner>>>() {
                 @Override
                 public Observable<ServiceResponse<DepartmentListResultInner>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponse<DepartmentListResultInner> clientResponse = listByBillingAccountDelegate(response);
+                        ServiceResponse<DepartmentListResultInner> clientResponse = listByBillingAccountNameDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -209,7 +209,7 @@ public class DepartmentsInner {
             });
     }
 
-    private ServiceResponse<DepartmentListResultInner> listByBillingAccountDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+    private ServiceResponse<DepartmentListResultInner> listByBillingAccountNameDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
         return this.client.restClient().responseBuilderFactory().<DepartmentListResultInner, ErrorResponseException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<DepartmentListResultInner>() { }.getType())
                 .registerError(ErrorResponseException.class)
