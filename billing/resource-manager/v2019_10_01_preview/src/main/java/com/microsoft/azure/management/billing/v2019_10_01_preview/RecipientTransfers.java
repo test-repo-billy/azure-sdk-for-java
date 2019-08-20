@@ -26,6 +26,15 @@ public interface RecipientTransfers extends HasInner<RecipientTransfersInner> {
     Observable<RecipientTransferDetails> acceptAsync(String transferName);
 
     /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<ValidateTransferListResponse> validateAsync(String transferName);
+
+    /**
      * Declines the transfer with given transfer Id.
      *
      * @param transferName Transfer Name.
