@@ -65,6 +65,10 @@ public class RecipientTransfersInner {
         @POST("providers/Microsoft.Billing/transfers/{transferName}/acceptTransfer")
         Observable<Response<ResponseBody>> accept(@Path("transferName") String transferName, @Header("accept-language") String acceptLanguage, @Body AcceptTransferRequest parameters, @Header("User-Agent") String userAgent);
 
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.RecipientTransfers validate" })
+        @POST("providers/Microsoft.Billing/transfers/{transferName}/validateTransfer")
+        Observable<Response<ResponseBody>> validate(@Path("transferName") String transferName, @Header("accept-language") String acceptLanguage, @Body AcceptTransferRequest parameters, @Header("User-Agent") String userAgent);
+
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.RecipientTransfers decline" })
         @POST("providers/Microsoft.Billing/transfers/{transferName}/declineTransfer")
         Observable<Response<ResponseBody>> decline(@Path("transferName") String transferName, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
@@ -228,6 +232,155 @@ public class RecipientTransfersInner {
     private ServiceResponse<RecipientTransferDetailsInner> acceptDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
         return this.client.restClient().responseBuilderFactory().<RecipientTransferDetailsInner, ErrorResponseException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<RecipientTransferDetailsInner>() { }.getType())
+                .registerError(ErrorResponseException.class)
+                .build(response);
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws ErrorResponseException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the ValidateTransferListResponseInner object if successful.
+     */
+    public ValidateTransferListResponseInner validate(String transferName) {
+        return validateWithServiceResponseAsync(transferName).toBlocking().single().body();
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<ValidateTransferListResponseInner> validateAsync(String transferName, final ServiceCallback<ValidateTransferListResponseInner> serviceCallback) {
+        return ServiceFuture.fromResponse(validateWithServiceResponseAsync(transferName), serviceCallback);
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the ValidateTransferListResponseInner object
+     */
+    public Observable<ValidateTransferListResponseInner> validateAsync(String transferName) {
+        return validateWithServiceResponseAsync(transferName).map(new Func1<ServiceResponse<ValidateTransferListResponseInner>, ValidateTransferListResponseInner>() {
+            @Override
+            public ValidateTransferListResponseInner call(ServiceResponse<ValidateTransferListResponseInner> response) {
+                return response.body();
+            }
+        });
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the ValidateTransferListResponseInner object
+     */
+    public Observable<ServiceResponse<ValidateTransferListResponseInner>> validateWithServiceResponseAsync(String transferName) {
+        if (transferName == null) {
+            throw new IllegalArgumentException("Parameter transferName is required and cannot be null.");
+        }
+        final List<ProductDetails> productDetails = null;
+        AcceptTransferRequest parameters = new AcceptTransferRequest();
+        parameters.withProductDetails(null);
+        return service.validate(transferName, this.client.acceptLanguage(), parameters, this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ValidateTransferListResponseInner>>>() {
+                @Override
+                public Observable<ServiceResponse<ValidateTransferListResponseInner>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponse<ValidateTransferListResponseInner> clientResponse = validateDelegate(response);
+                        return Observable.just(clientResponse);
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @param productDetails Request parameters to accept transfer.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws ErrorResponseException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the ValidateTransferListResponseInner object if successful.
+     */
+    public ValidateTransferListResponseInner validate(String transferName, List<ProductDetails> productDetails) {
+        return validateWithServiceResponseAsync(transferName, productDetails).toBlocking().single().body();
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @param productDetails Request parameters to accept transfer.
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<ValidateTransferListResponseInner> validateAsync(String transferName, List<ProductDetails> productDetails, final ServiceCallback<ValidateTransferListResponseInner> serviceCallback) {
+        return ServiceFuture.fromResponse(validateWithServiceResponseAsync(transferName, productDetails), serviceCallback);
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @param productDetails Request parameters to accept transfer.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the ValidateTransferListResponseInner object
+     */
+    public Observable<ValidateTransferListResponseInner> validateAsync(String transferName, List<ProductDetails> productDetails) {
+        return validateWithServiceResponseAsync(transferName, productDetails).map(new Func1<ServiceResponse<ValidateTransferListResponseInner>, ValidateTransferListResponseInner>() {
+            @Override
+            public ValidateTransferListResponseInner call(ServiceResponse<ValidateTransferListResponseInner> response) {
+                return response.body();
+            }
+        });
+    }
+
+    /**
+     * Validates if the products can be transferred in the context of the given transfer name.
+     *
+     * @param transferName Transfer Name.
+     * @param productDetails Request parameters to accept transfer.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the ValidateTransferListResponseInner object
+     */
+    public Observable<ServiceResponse<ValidateTransferListResponseInner>> validateWithServiceResponseAsync(String transferName, List<ProductDetails> productDetails) {
+        if (transferName == null) {
+            throw new IllegalArgumentException("Parameter transferName is required and cannot be null.");
+        }
+        Validator.validate(productDetails);
+        AcceptTransferRequest parameters = new AcceptTransferRequest();
+        parameters.withProductDetails(productDetails);
+        return service.validate(transferName, this.client.acceptLanguage(), parameters, this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ValidateTransferListResponseInner>>>() {
+                @Override
+                public Observable<ServiceResponse<ValidateTransferListResponseInner>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponse<ValidateTransferListResponseInner> clientResponse = validateDelegate(response);
+                        return Observable.just(clientResponse);
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    private ServiceResponse<ValidateTransferListResponseInner> validateDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ValidateTransferListResponseInner, ErrorResponseException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<ValidateTransferListResponseInner>() { }.getType())
                 .registerError(ErrorResponseException.class)
                 .build(response);
     }
