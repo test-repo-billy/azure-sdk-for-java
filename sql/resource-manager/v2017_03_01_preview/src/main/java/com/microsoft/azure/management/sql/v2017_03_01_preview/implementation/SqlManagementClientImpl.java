@@ -549,6 +549,19 @@ public class SqlManagementClientImpl extends AzureServiceClient {
     }
 
     /**
+     * The ManagedInstanceAdministratorsInner object to access its operations.
+     */
+    private ManagedInstanceAdministratorsInner managedInstanceAdministrators;
+
+    /**
+     * Gets the ManagedInstanceAdministratorsInner object to access its operations.
+     * @return the ManagedInstanceAdministratorsInner object.
+     */
+    public ManagedInstanceAdministratorsInner managedInstanceAdministrators() {
+        return this.managedInstanceAdministrators;
+    }
+
+    /**
      * Initializes an instance of SqlManagementClient client.
      *
      * @param credentials the management credentials for Azure
@@ -615,6 +628,7 @@ public class SqlManagementClientImpl extends AzureServiceClient {
         this.managedServerSecurityAlertPolicies = new ManagedServerSecurityAlertPoliciesInner(restClient().retrofit(), this);
         this.sensitivityLabels = new SensitivityLabelsInner(restClient().retrofit(), this);
         this.recommendedSensitivityLabels = new RecommendedSensitivityLabelsInner(restClient().retrofit(), this);
+        this.managedInstanceAdministrators = new ManagedInstanceAdministratorsInner(restClient().retrofit(), this);
         this.azureClient = new AzureClient(this);
     }
 
