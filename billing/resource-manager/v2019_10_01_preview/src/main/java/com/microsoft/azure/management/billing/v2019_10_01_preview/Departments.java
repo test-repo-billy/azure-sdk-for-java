@@ -23,7 +23,7 @@ public interface Departments extends HasInner<DepartmentsInner> {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable for the request
      */
-    Observable<DepartmentListResult> listByBillingAccountAsync(String billingAccountName);
+    Observable<DepartmentListResult> listByBillingAccountNameAsync(String billingAccountName);
 
     /**
      * Get the department by id.
