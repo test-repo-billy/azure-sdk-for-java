@@ -26,6 +26,11 @@ class ValidateTransferListResponseImpl extends WrapperImpl<ValidateTransferListR
     }
 
     @Override
+    public String nextLink() {
+        return this.inner().nextLink();
+    }
+
+    @Override
     public List<ValidateTransferResponse> value() {
         return this.inner().value();
     }
