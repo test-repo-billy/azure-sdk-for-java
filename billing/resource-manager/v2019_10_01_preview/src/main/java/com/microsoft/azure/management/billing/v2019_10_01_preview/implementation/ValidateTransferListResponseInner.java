@@ -23,12 +23,27 @@ public class ValidateTransferListResponseInner {
     private List<ValidateTransferResponse> value;
 
     /**
+     * The link (url) to the next page of results.
+     */
+    @JsonProperty(value = "nextLink", access = JsonProperty.Access.WRITE_ONLY)
+    private String nextLink;
+
+    /**
      * Get the list of transfer validation results.
      *
      * @return the value value
      */
     public List<ValidateTransferResponse> value() {
         return this.value;
+    }
+
+    /**
+     * Get the link (url) to the next page of results.
+     *
+     * @return the nextLink value
+     */
+    public String nextLink() {
+        return this.nextLink;
     }
 
 }
