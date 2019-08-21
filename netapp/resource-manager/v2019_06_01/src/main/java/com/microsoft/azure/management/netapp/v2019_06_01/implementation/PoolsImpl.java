@@ -64,14 +64,10 @@ class PoolsImpl extends WrapperImpl<PoolsInner> implements Pools {
     public Observable<CapacityPool> getAsync(String resourceGroupName, String accountName, String poolName) {
         PoolsInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, poolName)
-        .flatMap(new Func1<CapacityPoolInner, Observable<CapacityPool>>() {
+        .map(new Func1<CapacityPoolInner, CapacityPool>() {
             @Override
-            public Observable<CapacityPool> call(CapacityPoolInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((CapacityPool)wrapModel(inner));
-                }
+            public CapacityPool call(CapacityPoolInner inner) {
+                return wrapModel(inner);
             }
        });
     }

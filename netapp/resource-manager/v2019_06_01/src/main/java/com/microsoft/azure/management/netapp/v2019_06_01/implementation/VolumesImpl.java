@@ -64,14 +64,10 @@ class VolumesImpl extends WrapperImpl<VolumesInner> implements Volumes {
     public Observable<Volume> getAsync(String resourceGroupName, String accountName, String poolName, String volumeName) {
         VolumesInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, poolName, volumeName)
-        .flatMap(new Func1<VolumeInner, Observable<Volume>>() {
+        .map(new Func1<VolumeInner, Volume>() {
             @Override
-            public Observable<Volume> call(VolumeInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((Volume)wrapModel(inner));
-                }
+            public Volume call(VolumeInner inner) {
+                return wrapModel(inner);
             }
        });
     }
