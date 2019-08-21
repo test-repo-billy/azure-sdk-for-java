@@ -70,6 +70,12 @@ public class SapMonitorInner extends Resource {
     private String hanaDbCredentialsMsiId;
 
     /**
+     * Key Vault ID containing customer's HANA credentials.
+     */
+    @JsonProperty(value = "properties.keyVaultId")
+    private String keyVaultId;
+
+    /**
      * State of provisioning of the HanaInstance. Possible values include:
      * 'Accepted', 'Creating', 'Updating', 'Failed', 'Succeeded', 'Deleting',
      * 'Migrating'.
@@ -234,6 +240,26 @@ public class SapMonitorInner extends Resource {
      */
     public SapMonitorInner withHanaDbCredentialsMsiId(String hanaDbCredentialsMsiId) {
         this.hanaDbCredentialsMsiId = hanaDbCredentialsMsiId;
+        return this;
+    }
+
+    /**
+     * Get key Vault ID containing customer's HANA credentials.
+     *
+     * @return the keyVaultId value
+     */
+    public String keyVaultId() {
+        return this.keyVaultId;
+    }
+
+    /**
+     * Set key Vault ID containing customer's HANA credentials.
+     *
+     * @param keyVaultId the keyVaultId value to set
+     * @return the SapMonitorInner object itself.
+     */
+    public SapMonitorInner withKeyVaultId(String keyVaultId) {
+        this.keyVaultId = keyVaultId;
         return this;
     }
 
