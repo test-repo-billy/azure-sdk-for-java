@@ -19,11 +19,6 @@ import java.util.List;
  */
 public interface ValidateTransferListResponse extends HasInner<ValidateTransferListResponseInner>, HasManager<BillingManager> {
     /**
-     * @return the nextLink value.
-     */
-    String nextLink();
-
-    /**
      * @return the value value.
      */
     List<ValidateTransferResponse> value();
