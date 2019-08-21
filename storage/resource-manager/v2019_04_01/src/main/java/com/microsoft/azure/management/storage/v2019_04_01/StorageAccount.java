@@ -231,7 +231,7 @@ public interface StorageAccount extends HasInner<StorageAccountInner>, Resource,
         interface WithEncryption {
             /**
              * Specifies encryption.
-             * @param encryption Provides the encryption settings on the account. If left unspecified the account encryption settings will remain the same. The default setting is unencrypted
+             * @param encryption Not applicable. Azure Storage encryption is enabled for all storage accounts and cannot be disabled
              * @return the next definition stage
              */
             WithCreate withEncryption(Encryption encryption);
