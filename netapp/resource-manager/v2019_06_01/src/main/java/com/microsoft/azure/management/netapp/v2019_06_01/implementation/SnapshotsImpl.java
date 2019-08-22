@@ -64,14 +64,10 @@ class SnapshotsImpl extends WrapperImpl<SnapshotsInner> implements Snapshots {
     public Observable<Snapshot> getAsync(String resourceGroupName, String accountName, String poolName, String volumeName, String snapshotName) {
         SnapshotsInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, poolName, volumeName, snapshotName)
-        .flatMap(new Func1<SnapshotInner, Observable<Snapshot>>() {
+        .map(new Func1<SnapshotInner, Snapshot>() {
             @Override
-            public Observable<Snapshot> call(SnapshotInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((Snapshot)wrapModel(inner));
-                }
+            public Snapshot call(SnapshotInner inner) {
+                return wrapModel(inner);
             }
        });
     }
