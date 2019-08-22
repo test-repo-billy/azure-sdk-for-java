@@ -27,17 +27,10 @@ public class Identity {
     private String tenantId;
 
     /**
-     * The identity type.
+     * The identity type. Possible values include: 'SystemAssigned', 'None'.
      */
     @JsonProperty(value = "type", required = true)
-    private String type;
-
-    /**
-     * Creates an instance of Identity class.
-     */
-    public Identity() {
-        type = "SystemAssigned";
-    }
+    private IdentityType type;
 
     /**
      * Get the principal ID of resource identity.
@@ -58,21 +51,21 @@ public class Identity {
     }
 
     /**
-     * Get the identity type.
+     * Get the identity type. Possible values include: 'SystemAssigned', 'None'.
      *
      * @return the type value
      */
-    public String type() {
+    public IdentityType type() {
         return this.type;
     }
 
     /**
-     * Set the identity type.
+     * Set the identity type. Possible values include: 'SystemAssigned', 'None'.
      *
      * @param type the type value to set
      * @return the Identity object itself.
      */
-    public Identity withType(String type) {
+    public Identity withType(IdentityType type) {
         this.type = type;
         return this;
     }
