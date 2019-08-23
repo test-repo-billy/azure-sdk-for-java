@@ -30,17 +30,6 @@ public interface Databases extends SupportsCreating<Database.DefinitionStages.Bl
     Completable upgradeDataWarehouseAsync(String resourceGroupName, String serverName, String databaseName);
 
     /**
-     * Gets a list of databases in an elastic pool.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serverName The name of the server.
-     * @param elasticPoolName The name of the elastic pool.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable for the request
-     */
-    Observable<Database> listByElasticPoolAsync(final String resourceGroupName, final String serverName, final String elasticPoolName);
-
-    /**
      * Pauses a database.
      *
      * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
@@ -52,15 +41,15 @@ public interface Databases extends SupportsCreating<Database.DefinitionStages.Bl
     Observable<Database> pauseAsync(String resourceGroupName, String serverName, String databaseName);
 
     /**
-     * Resumes a database.
+     * Gets a list of databases in an elastic pool.
      *
      * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
      * @param serverName The name of the server.
-     * @param databaseName The name of the database to be resumed.
+     * @param elasticPoolName The name of the elastic pool.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable for the request
      */
-    Observable<Database> resumeAsync(String resourceGroupName, String serverName, String databaseName);
+    Observable<Database> listByElasticPoolAsync(final String resourceGroupName, final String serverName, final String elasticPoolName);
 
     /**
      * Renames a database.
@@ -73,6 +62,17 @@ public interface Databases extends SupportsCreating<Database.DefinitionStages.Bl
      * @return the observable for the request
      */
     Completable renameAsync(String resourceGroupName, String serverName, String databaseName, String id);
+
+    /**
+     * Resumes a database.
+     *
+     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
+     * @param serverName The name of the server.
+     * @param databaseName The name of the database to be resumed.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<Database> resumeAsync(String resourceGroupName, String serverName, String databaseName);
 
     /**
      * Gets a database.

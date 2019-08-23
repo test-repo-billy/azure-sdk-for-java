@@ -233,6 +233,12 @@ public class DatabaseUpdate {
     private DatabaseReadScale readScale;
 
     /**
+     * The number of readonly secondary replicas associated with the database.
+     */
+    @JsonProperty(value = "properties.readReplicaCount")
+    private Integer readReplicaCount;
+
+    /**
      * The name and tier of the SKU.
      */
     @JsonProperty(value = "properties.currentSku", access = JsonProperty.Access.WRITE_ONLY)
@@ -251,6 +257,20 @@ public class DatabaseUpdate {
      */
     @JsonProperty(value = "properties.minCapacity")
     private Double minCapacity;
+
+    /**
+     * The date when database was paused by user configuration or action
+     * (ISO8601 format). Null if the database is ready.
+     */
+    @JsonProperty(value = "properties.pausedDate", access = JsonProperty.Access.WRITE_ONLY)
+    private DateTime pausedDate;
+
+    /**
+     * The date when database was resumed by user action or database login
+     * (ISO8601 format). Null if the database is paused.
+     */
+    @JsonProperty(value = "properties.resumedDate", access = JsonProperty.Access.WRITE_ONLY)
+    private DateTime resumedDate;
 
     /**
      * Resource tags.
@@ -696,6 +716,26 @@ public class DatabaseUpdate {
     }
 
     /**
+     * Get the number of readonly secondary replicas associated with the database.
+     *
+     * @return the readReplicaCount value
+     */
+    public Integer readReplicaCount() {
+        return this.readReplicaCount;
+    }
+
+    /**
+     * Set the number of readonly secondary replicas associated with the database.
+     *
+     * @param readReplicaCount the readReplicaCount value to set
+     * @return the DatabaseUpdate object itself.
+     */
+    public DatabaseUpdate withReadReplicaCount(Integer readReplicaCount) {
+        this.readReplicaCount = readReplicaCount;
+        return this;
+    }
+
+    /**
      * Get the name and tier of the SKU.
      *
      * @return the currentSku value
@@ -742,6 +782,24 @@ public class DatabaseUpdate {
     public DatabaseUpdate withMinCapacity(Double minCapacity) {
         this.minCapacity = minCapacity;
         return this;
+    }
+
+    /**
+     * Get the date when database was paused by user configuration or action (ISO8601 format). Null if the database is ready.
+     *
+     * @return the pausedDate value
+     */
+    public DateTime pausedDate() {
+        return this.pausedDate;
+    }
+
+    /**
+     * Get the date when database was resumed by user action or database login (ISO8601 format). Null if the database is paused.
+     *
+     * @return the resumedDate value
+     */
+    public DateTime resumedDate() {
+        return this.resumedDate;
     }
 
     /**
