@@ -12,6 +12,7 @@ import org.joda.time.DateTime;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.ProductStatusType;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingFrequency;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.Amount;
+import com.microsoft.azure.management.billing.v2019_10_01_preview.Reseller;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.microsoft.rest.serializer.JsonFlatten;
 import com.microsoft.azure.ProxyResource;
@@ -142,6 +143,12 @@ public class ProductInner extends ProxyResource {
      */
     @JsonProperty(value = "properties.customerDisplayName", access = JsonProperty.Access.WRITE_ONLY)
     private String customerDisplayName;
+
+    /**
+     * Reseller for this product.
+     */
+    @JsonProperty(value = "properties.reseller", access = JsonProperty.Access.WRITE_ONLY)
+    private Reseller reseller;
 
     /**
      * Get the display name of the product.
@@ -343,6 +350,15 @@ public class ProductInner extends ProxyResource {
      */
     public String customerDisplayName() {
         return this.customerDisplayName;
+    }
+
+    /**
+     * Get reseller for this product.
+     *
+     * @return the reseller value
+     */
+    public Reseller reseller() {
+        return this.reseller;
     }
 
 }
