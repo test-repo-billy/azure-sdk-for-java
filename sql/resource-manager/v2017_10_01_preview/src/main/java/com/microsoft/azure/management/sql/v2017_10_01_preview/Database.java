@@ -136,6 +136,16 @@ public interface Database extends HasInner<DatabaseInner>, Indexable, Refreshabl
     String name();
 
     /**
+     * @return the pausedDate value.
+     */
+    DateTime pausedDate();
+
+    /**
+     * @return the readReplicaCount value.
+     */
+    Integer readReplicaCount();
+
+    /**
      * @return the readScale value.
      */
     DatabaseReadScale readScale();
@@ -164,6 +174,11 @@ public interface Database extends HasInner<DatabaseInner>, Indexable, Refreshabl
      * @return the restorePointInTime value.
      */
     DateTime restorePointInTime();
+
+    /**
+     * @return the resumedDate value.
+     */
+    DateTime resumedDate();
 
     /**
      * @return the sampleName value.
@@ -363,6 +378,18 @@ public interface Database extends HasInner<DatabaseInner>, Indexable, Refreshabl
         }
 
         /**
+         * The stage of the database definition allowing to specify ReadReplicaCount.
+         */
+        interface WithReadReplicaCount {
+            /**
+             * Specifies readReplicaCount.
+             * @param readReplicaCount The number of readonly secondary replicas associated with the database
+             * @return the next definition stage
+             */
+            WithCreate withReadReplicaCount(Integer readReplicaCount);
+        }
+
+        /**
          * The stage of the database definition allowing to specify ReadScale.
          */
         interface WithReadScale {
@@ -506,13 +533,13 @@ public interface Database extends HasInner<DatabaseInner>, Indexable, Refreshabl
          * the resource to be created (via {@link WithCreate#create()}), but also allows
          * for any other optional settings to be specified.
          */
-        interface WithCreate extends Creatable<Database>, DefinitionStages.WithAutoPauseDelay, DefinitionStages.WithCatalogCollation, DefinitionStages.WithCollation, DefinitionStages.WithCreateMode, DefinitionStages.WithElasticPoolId, DefinitionStages.WithLicenseType, DefinitionStages.WithLongTermRetentionBackupResourceId, DefinitionStages.WithMaxSizeBytes, DefinitionStages.WithMinCapacity, DefinitionStages.WithReadScale, DefinitionStages.WithRecoverableDatabaseId, DefinitionStages.WithRecoveryServicesRecoveryPointId, DefinitionStages.WithRestorableDroppedDatabaseId, DefinitionStages.WithRestorePointInTime, DefinitionStages.WithSampleName, DefinitionStages.WithSku, DefinitionStages.WithSourceDatabaseDeletionDate, DefinitionStages.WithSourceDatabaseId, DefinitionStages.WithTags, DefinitionStages.WithZoneRedundant {
+        interface WithCreate extends Creatable<Database>, DefinitionStages.WithAutoPauseDelay, DefinitionStages.WithCatalogCollation, DefinitionStages.WithCollation, DefinitionStages.WithCreateMode, DefinitionStages.WithElasticPoolId, DefinitionStages.WithLicenseType, DefinitionStages.WithLongTermRetentionBackupResourceId, DefinitionStages.WithMaxSizeBytes, DefinitionStages.WithMinCapacity, DefinitionStages.WithReadReplicaCount, DefinitionStages.WithReadScale, DefinitionStages.WithRecoverableDatabaseId, DefinitionStages.WithRecoveryServicesRecoveryPointId, DefinitionStages.WithRestorableDroppedDatabaseId, DefinitionStages.WithRestorePointInTime, DefinitionStages.WithSampleName, DefinitionStages.WithSku, DefinitionStages.WithSourceDatabaseDeletionDate, DefinitionStages.WithSourceDatabaseId, DefinitionStages.WithTags, DefinitionStages.WithZoneRedundant {
         }
     }
     /**
      * The template for a Database update operation, containing all the settings that can be modified.
      */
-    interface Update extends Appliable<Database>, UpdateStages.WithAutoPauseDelay, UpdateStages.WithCatalogCollation, UpdateStages.WithCollation, UpdateStages.WithCreateMode, UpdateStages.WithElasticPoolId, UpdateStages.WithLicenseType, UpdateStages.WithLongTermRetentionBackupResourceId, UpdateStages.WithMaxSizeBytes, UpdateStages.WithMinCapacity, UpdateStages.WithReadScale, UpdateStages.WithRecoverableDatabaseId, UpdateStages.WithRecoveryServicesRecoveryPointId, UpdateStages.WithRestorableDroppedDatabaseId, UpdateStages.WithRestorePointInTime, UpdateStages.WithSampleName, UpdateStages.WithSku, UpdateStages.WithSourceDatabaseDeletionDate, UpdateStages.WithSourceDatabaseId, UpdateStages.WithTags, UpdateStages.WithZoneRedundant {
+    interface Update extends Appliable<Database>, UpdateStages.WithAutoPauseDelay, UpdateStages.WithCatalogCollation, UpdateStages.WithCollation, UpdateStages.WithCreateMode, UpdateStages.WithElasticPoolId, UpdateStages.WithLicenseType, UpdateStages.WithLongTermRetentionBackupResourceId, UpdateStages.WithMaxSizeBytes, UpdateStages.WithMinCapacity, UpdateStages.WithReadReplicaCount, UpdateStages.WithReadScale, UpdateStages.WithRecoverableDatabaseId, UpdateStages.WithRecoveryServicesRecoveryPointId, UpdateStages.WithRestorableDroppedDatabaseId, UpdateStages.WithRestorePointInTime, UpdateStages.WithSampleName, UpdateStages.WithSku, UpdateStages.WithSourceDatabaseDeletionDate, UpdateStages.WithSourceDatabaseId, UpdateStages.WithTags, UpdateStages.WithZoneRedundant {
     }
 
     /**
@@ -633,6 +660,18 @@ public interface Database extends HasInner<DatabaseInner>, Indexable, Refreshabl
              * @return the next update stage
              */
             Update withMinCapacity(Double minCapacity);
+        }
+
+        /**
+         * The stage of the database update allowing to specify ReadReplicaCount.
+         */
+        interface WithReadReplicaCount {
+            /**
+             * Specifies readReplicaCount.
+             * @param readReplicaCount The number of readonly secondary replicas associated with the database
+             * @return the next update stage
+             */
+            Update withReadReplicaCount(Integer readReplicaCount);
         }
 
         /**

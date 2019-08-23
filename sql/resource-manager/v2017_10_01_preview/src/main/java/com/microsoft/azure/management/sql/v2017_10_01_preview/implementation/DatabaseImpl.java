@@ -212,6 +212,16 @@ class DatabaseImpl extends CreatableUpdatableImpl<Database, DatabaseInner, Datab
     }
 
     @Override
+    public DateTime pausedDate() {
+        return this.inner().pausedDate();
+    }
+
+    @Override
+    public Integer readReplicaCount() {
+        return this.inner().readReplicaCount();
+    }
+
+    @Override
     public DatabaseReadScale readScale() {
         return this.inner().readScale();
     }
@@ -239,6 +249,11 @@ class DatabaseImpl extends CreatableUpdatableImpl<Database, DatabaseInner, Datab
     @Override
     public DateTime restorePointInTime() {
         return this.inner().restorePointInTime();
+    }
+
+    @Override
+    public DateTime resumedDate() {
+        return this.inner().resumedDate();
     }
 
     @Override
@@ -380,6 +395,16 @@ class DatabaseImpl extends CreatableUpdatableImpl<Database, DatabaseInner, Datab
             this.inner().withMinCapacity(minCapacity);
         } else {
             this.updateParameter.withMinCapacity(minCapacity);
+        }
+        return this;
+    }
+
+    @Override
+    public DatabaseImpl withReadReplicaCount(Integer readReplicaCount) {
+        if (isInCreateMode()) {
+            this.inner().withReadReplicaCount(readReplicaCount);
+        } else {
+            this.updateParameter.withReadReplicaCount(readReplicaCount);
         }
         return this;
     }

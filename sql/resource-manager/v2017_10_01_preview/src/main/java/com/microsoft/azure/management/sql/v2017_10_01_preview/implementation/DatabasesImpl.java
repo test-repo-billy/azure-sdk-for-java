@@ -49,6 +49,18 @@ class DatabasesImpl extends WrapperImpl<DatabasesInner> implements Databases {
     }
 
     @Override
+    public Observable<Database> pauseAsync(String resourceGroupName, String serverName, String databaseName) {
+        DatabasesInner client = this.inner();
+        return client.pauseAsync(resourceGroupName, serverName, databaseName)
+        .map(new Func1<DatabaseInner, Database>() {
+            @Override
+            public Database call(DatabaseInner inner) {
+                return new DatabaseImpl(inner, manager());
+            }
+        });
+    }
+
+    @Override
     public Observable<Database> listByElasticPoolAsync(final String resourceGroupName, final String serverName, final String elasticPoolName) {
         DatabasesInner client = this.inner();
         return client.listByElasticPoolAsync(resourceGroupName, serverName, elasticPoolName)
@@ -67,15 +79,9 @@ class DatabasesImpl extends WrapperImpl<DatabasesInner> implements Databases {
     }
 
     @Override
-    public Observable<Database> pauseAsync(String resourceGroupName, String serverName, String databaseName) {
+    public Completable renameAsync(String resourceGroupName, String serverName, String databaseName, String id) {
         DatabasesInner client = this.inner();
-        return client.pauseAsync(resourceGroupName, serverName, databaseName)
-        .map(new Func1<DatabaseInner, Database>() {
-            @Override
-            public Database call(DatabaseInner inner) {
-                return new DatabaseImpl(inner, manager());
-            }
-        });
+        return client.renameAsync(resourceGroupName, serverName, databaseName, id).toCompletable();
     }
 
     @Override
@@ -88,12 +94,6 @@ class DatabasesImpl extends WrapperImpl<DatabasesInner> implements Databases {
                 return new DatabaseImpl(inner, manager());
             }
         });
-    }
-
-    @Override
-    public Completable renameAsync(String resourceGroupName, String serverName, String databaseName, String id) {
-        DatabasesInner client = this.inner();
-        return client.renameAsync(resourceGroupName, serverName, databaseName, id).toCompletable();
     }
 
     @Override
