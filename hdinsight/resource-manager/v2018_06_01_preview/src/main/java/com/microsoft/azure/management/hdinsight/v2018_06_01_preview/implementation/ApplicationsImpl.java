@@ -64,14 +64,10 @@ class ApplicationsImpl extends WrapperImpl<ApplicationsInner> implements Applica
     public Observable<Application> getAsync(String resourceGroupName, String clusterName, String applicationName) {
         ApplicationsInner client = this.inner();
         return client.getAsync(resourceGroupName, clusterName, applicationName)
-        .flatMap(new Func1<ApplicationInner, Observable<Application>>() {
+        .map(new Func1<ApplicationInner, Application>() {
             @Override
-            public Observable<Application> call(ApplicationInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((Application)wrapModel(inner));
-                }
+            public Application call(ApplicationInner inner) {
+                return wrapModel(inner);
             }
        });
     }
