@@ -14,6 +14,7 @@ import rx.Observable;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingFrequency;
 import org.joda.time.DateTime;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.Amount;
+import com.microsoft.azure.management.billing.v2019_10_01_preview.Reseller;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.ProductStatusType;
 
 class ProductImpl extends IndexableRefreshableWrapperImpl<Product, ProductInner> implements Product {
@@ -137,6 +138,11 @@ class ProductImpl extends IndexableRefreshableWrapperImpl<Product, ProductInner>
     @Override
     public Double quantity() {
         return this.inner().quantity();
+    }
+
+    @Override
+    public Reseller reseller() {
+        return this.inner().reseller();
     }
 
     @Override

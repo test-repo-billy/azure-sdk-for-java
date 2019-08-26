@@ -116,6 +116,11 @@ public interface Product extends HasInner<ProductInner>, Indexable, Refreshable<
     Double quantity();
 
     /**
+     * @return the reseller value.
+     */
+    Reseller reseller();
+
+    /**
      * @return the skuDescription value.
      */
     String skuDescription();
