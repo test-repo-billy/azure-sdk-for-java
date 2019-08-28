@@ -48,6 +48,7 @@ import com.microsoft.azure.management.sql.v2017_03_01_preview.ManagedDatabaseSec
 import com.microsoft.azure.management.sql.v2017_03_01_preview.ManagedServerSecurityAlertPolicies;
 import com.microsoft.azure.management.sql.v2017_03_01_preview.SensitivityLabels;
 import com.microsoft.azure.management.sql.v2017_03_01_preview.RecommendedSensitivityLabels;
+import com.microsoft.azure.management.sql.v2017_03_01_preview.ManagedInstanceAdministrators;
 import com.microsoft.azure.arm.resources.implementation.AzureConfigurableCoreImpl;
 import com.microsoft.azure.arm.resources.implementation.ManagerCore;
 
@@ -87,6 +88,7 @@ public final class SqlManager extends ManagerCore<SqlManager, SqlManagementClien
     private ManagedServerSecurityAlertPolicies managedServerSecurityAlertPolicies;
     private SensitivityLabels sensitivityLabels;
     private RecommendedSensitivityLabels recommendedSensitivityLabels;
+    private ManagedInstanceAdministrators managedInstanceAdministrators;
     /**
     * Get a Configurable instance that can be used to create SqlManager with optional configuration.
     *
@@ -452,6 +454,16 @@ public final class SqlManager extends ManagerCore<SqlManager, SqlManagementClien
             this.recommendedSensitivityLabels = new RecommendedSensitivityLabelsImpl(this);
         }
         return this.recommendedSensitivityLabels;
+    }
+
+    /**
+     * @return Entry point to manage ManagedInstanceAdministrators.
+     */
+    public ManagedInstanceAdministrators managedInstanceAdministrators() {
+        if (this.managedInstanceAdministrators == null) {
+            this.managedInstanceAdministrators = new ManagedInstanceAdministratorsImpl(this);
+        }
+        return this.managedInstanceAdministrators;
     }
 
     /**
