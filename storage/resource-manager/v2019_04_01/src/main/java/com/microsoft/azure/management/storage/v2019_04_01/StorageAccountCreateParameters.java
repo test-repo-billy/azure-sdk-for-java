@@ -68,9 +68,8 @@ public class StorageAccountCreateParameters {
     private CustomDomain customDomain;
 
     /**
-     * Provides the encryption settings on the account. If left unspecified the
-     * account encryption settings will remain the same. The default setting is
-     * unencrypted.
+     * Not applicable. Azure Storage encryption is enabled for all storage
+     * accounts and cannot be disabled.
      */
     @JsonProperty(value = "properties.encryption")
     private Encryption encryption;
@@ -228,7 +227,7 @@ public class StorageAccountCreateParameters {
     }
 
     /**
-     * Get provides the encryption settings on the account. If left unspecified the account encryption settings will remain the same. The default setting is unencrypted.
+     * Get not applicable. Azure Storage encryption is enabled for all storage accounts and cannot be disabled.
      *
      * @return the encryption value
      */
@@ -237,7 +236,7 @@ public class StorageAccountCreateParameters {
     }
 
     /**
-     * Set provides the encryption settings on the account. If left unspecified the account encryption settings will remain the same. The default setting is unencrypted.
+     * Set not applicable. Azure Storage encryption is enabled for all storage accounts and cannot be disabled.
      *
      * @param encryption the encryption value to set
      * @return the StorageAccountCreateParameters object itself.
