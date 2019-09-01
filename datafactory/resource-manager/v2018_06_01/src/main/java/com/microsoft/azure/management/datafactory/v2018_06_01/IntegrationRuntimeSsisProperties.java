@@ -9,6 +9,7 @@
 package com.microsoft.azure.management.datafactory.v2018_06_01;
 
 import java.util.Map;
+import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -53,6 +54,12 @@ public class IntegrationRuntimeSsisProperties {
      */
     @JsonProperty(value = "edition")
     private IntegrationRuntimeEdition edition;
+
+    /**
+     * Custom setup without script properties for a SSIS integration runtime.
+     */
+    @JsonProperty(value = "expressCustomSetupProperties")
+    private List<CustomSetupBase> expressCustomSetupProperties;
 
     /**
      * Get unmatched properties from the message are deserialized this collection.
@@ -171,6 +178,26 @@ public class IntegrationRuntimeSsisProperties {
      */
     public IntegrationRuntimeSsisProperties withEdition(IntegrationRuntimeEdition edition) {
         this.edition = edition;
+        return this;
+    }
+
+    /**
+     * Get custom setup without script properties for a SSIS integration runtime.
+     *
+     * @return the expressCustomSetupProperties value
+     */
+    public List<CustomSetupBase> expressCustomSetupProperties() {
+        return this.expressCustomSetupProperties;
+    }
+
+    /**
+     * Set custom setup without script properties for a SSIS integration runtime.
+     *
+     * @param expressCustomSetupProperties the expressCustomSetupProperties value to set
+     * @return the IntegrationRuntimeSsisProperties object itself.
+     */
+    public IntegrationRuntimeSsisProperties withExpressCustomSetupProperties(List<CustomSetupBase> expressCustomSetupProperties) {
+        this.expressCustomSetupProperties = expressCustomSetupProperties;
         return this;
     }
 
