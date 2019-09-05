@@ -302,6 +302,32 @@ public class CosmosDBImpl extends AzureServiceClient {
     }
 
     /**
+     * The PrivateEndpointConnectionsInner object to access its operations.
+     */
+    private PrivateEndpointConnectionsInner privateEndpointConnections;
+
+    /**
+     * Gets the PrivateEndpointConnectionsInner object to access its operations.
+     * @return the PrivateEndpointConnectionsInner object.
+     */
+    public PrivateEndpointConnectionsInner privateEndpointConnections() {
+        return this.privateEndpointConnections;
+    }
+
+    /**
+     * The PrivateLinkResourcesInner object to access its operations.
+     */
+    private PrivateLinkResourcesInner privateLinkResources;
+
+    /**
+     * Gets the PrivateLinkResourcesInner object to access its operations.
+     * @return the PrivateLinkResourcesInner object.
+     */
+    public PrivateLinkResourcesInner privateLinkResources() {
+        return this.privateLinkResources;
+    }
+
+    /**
      * Initializes an instance of CosmosDB client.
      *
      * @param credentials the management credentials for Azure
@@ -349,6 +375,8 @@ public class CosmosDBImpl extends AzureServiceClient {
         this.collectionPartitions = new CollectionPartitionsInner(restClient().retrofit(), this);
         this.partitionKeyRangeIds = new PartitionKeyRangeIdsInner(restClient().retrofit(), this);
         this.partitionKeyRangeIdRegions = new PartitionKeyRangeIdRegionsInner(restClient().retrofit(), this);
+        this.privateEndpointConnections = new PrivateEndpointConnectionsInner(restClient().retrofit(), this);
+        this.privateLinkResources = new PrivateLinkResourcesInner(restClient().retrofit(), this);
         this.azureClient = new AzureClient(this);
     }
 

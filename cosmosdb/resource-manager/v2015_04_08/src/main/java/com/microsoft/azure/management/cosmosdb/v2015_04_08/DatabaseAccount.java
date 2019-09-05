@@ -76,6 +76,11 @@ public interface DatabaseAccount extends HasInner<DatabaseAccountInner>, Resourc
     String ipRangeFilter();
 
     /**
+     * @return the isPrivateEndpointConnectionEnabled value.
+     */
+    Boolean isPrivateEndpointConnectionEnabled();
+
+    /**
      * @return the isVirtualNetworkFilterEnabled value.
      */
     Boolean isVirtualNetworkFilterEnabled();
@@ -84,6 +89,11 @@ public interface DatabaseAccount extends HasInner<DatabaseAccountInner>, Resourc
      * @return the kind value.
      */
     DatabaseAccountKind kind();
+
+    /**
+     * @return the privateEndpointConnections value.
+     */
+    List<PrivateEndpointConnection> privateEndpointConnections();
 
     /**
      * @return the provisioningState value.

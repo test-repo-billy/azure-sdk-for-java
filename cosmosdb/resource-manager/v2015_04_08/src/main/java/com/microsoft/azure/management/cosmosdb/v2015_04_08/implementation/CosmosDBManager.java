@@ -29,6 +29,8 @@ import com.microsoft.azure.management.cosmosdb.v2015_04_08.CollectionPartitionRe
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.CollectionPartitions;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.PartitionKeyRangeIds;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.PartitionKeyRangeIdRegions;
+import com.microsoft.azure.management.cosmosdb.v2015_04_08.PrivateEndpointConnections;
+import com.microsoft.azure.management.cosmosdb.v2015_04_08.PrivateLinkResources;
 import com.microsoft.azure.arm.resources.implementation.AzureConfigurableCoreImpl;
 import com.microsoft.azure.arm.resources.implementation.ManagerCore;
 
@@ -49,6 +51,8 @@ public final class CosmosDBManager extends ManagerCore<CosmosDBManager, CosmosDB
     private CollectionPartitions collectionPartitions;
     private PartitionKeyRangeIds partitionKeyRangeIds;
     private PartitionKeyRangeIdRegions partitionKeyRangeIdRegions;
+    private PrivateEndpointConnections privateEndpointConnections;
+    private PrivateLinkResources privateLinkResources;
     /**
     * Get a Configurable instance that can be used to create CosmosDBManager with optional configuration.
     *
@@ -224,6 +228,26 @@ public final class CosmosDBManager extends ManagerCore<CosmosDBManager, CosmosDB
             this.partitionKeyRangeIdRegions = new PartitionKeyRangeIdRegionsImpl(this);
         }
         return this.partitionKeyRangeIdRegions;
+    }
+
+    /**
+     * @return Entry point to manage PrivateEndpointConnections.
+     */
+    public PrivateEndpointConnections privateEndpointConnections() {
+        if (this.privateEndpointConnections == null) {
+            this.privateEndpointConnections = new PrivateEndpointConnectionsImpl(this);
+        }
+        return this.privateEndpointConnections;
+    }
+
+    /**
+     * @return Entry point to manage PrivateLinkResources.
+     */
+    public PrivateLinkResources privateLinkResources() {
+        if (this.privateLinkResources == null) {
+            this.privateLinkResources = new PrivateLinkResourcesImpl(this);
+        }
+        return this.privateLinkResources;
     }
 
     /**

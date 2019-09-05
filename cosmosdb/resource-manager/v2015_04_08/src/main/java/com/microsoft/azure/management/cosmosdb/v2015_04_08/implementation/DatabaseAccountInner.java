@@ -136,6 +136,19 @@ public class DatabaseAccountInner extends Resource {
     private ConnectorOffer connectorOffer;
 
     /**
+     * Flag to indicate whether to enable/disable private endpoint connections.
+     */
+    @JsonProperty(value = "properties.isPrivateEndpointConnectionEnabled")
+    private Boolean isPrivateEndpointConnectionEnabled;
+
+    /**
+     * List of private endpoint connections configured for the Cosmos DB
+     * account.
+     */
+    @JsonProperty(value = "properties.privateEndpointConnections")
+    private List<PrivateEndpointConnectionInner> privateEndpointConnections;
+
+    /**
      * Get indicates the type of database account. This can only be set at database account creation. Possible values include: 'GlobalDocumentDB', 'MongoDB', 'Parse'.
      *
      * @return the kind value
@@ -397,6 +410,46 @@ public class DatabaseAccountInner extends Resource {
      */
     public DatabaseAccountInner withConnectorOffer(ConnectorOffer connectorOffer) {
         this.connectorOffer = connectorOffer;
+        return this;
+    }
+
+    /**
+     * Get flag to indicate whether to enable/disable private endpoint connections.
+     *
+     * @return the isPrivateEndpointConnectionEnabled value
+     */
+    public Boolean isPrivateEndpointConnectionEnabled() {
+        return this.isPrivateEndpointConnectionEnabled;
+    }
+
+    /**
+     * Set flag to indicate whether to enable/disable private endpoint connections.
+     *
+     * @param isPrivateEndpointConnectionEnabled the isPrivateEndpointConnectionEnabled value to set
+     * @return the DatabaseAccountInner object itself.
+     */
+    public DatabaseAccountInner withIsPrivateEndpointConnectionEnabled(Boolean isPrivateEndpointConnectionEnabled) {
+        this.isPrivateEndpointConnectionEnabled = isPrivateEndpointConnectionEnabled;
+        return this;
+    }
+
+    /**
+     * Get list of private endpoint connections configured for the Cosmos DB account.
+     *
+     * @return the privateEndpointConnections value
+     */
+    public List<PrivateEndpointConnectionInner> privateEndpointConnections() {
+        return this.privateEndpointConnections;
+    }
+
+    /**
+     * Set list of private endpoint connections configured for the Cosmos DB account.
+     *
+     * @param privateEndpointConnections the privateEndpointConnections value to set
+     * @return the DatabaseAccountInner object itself.
+     */
+    public DatabaseAccountInner withPrivateEndpointConnections(List<PrivateEndpointConnectionInner> privateEndpointConnections) {
+        this.privateEndpointConnections = privateEndpointConnections;
         return this;
     }
 

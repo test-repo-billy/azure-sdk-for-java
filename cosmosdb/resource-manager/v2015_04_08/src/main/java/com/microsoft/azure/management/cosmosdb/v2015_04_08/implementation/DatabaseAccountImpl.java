@@ -20,6 +20,8 @@ import com.microsoft.azure.management.cosmosdb.v2015_04_08.ConsistencyPolicy;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.DatabaseAccountOfferType;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.FailoverPolicy;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.DatabaseAccountKind;
+import java.util.ArrayList;
+import com.microsoft.azure.management.cosmosdb.v2015_04_08.PrivateEndpointConnection;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.Location;
 import com.microsoft.azure.management.cosmosdb.v2015_04_08.VirtualNetworkRule;
 import rx.functions.Func1;
@@ -130,6 +132,11 @@ class DatabaseAccountImpl extends GroupableResourceCoreImpl<DatabaseAccount, Dat
     }
 
     @Override
+    public Boolean isPrivateEndpointConnectionEnabled() {
+        return this.inner().isPrivateEndpointConnectionEnabled();
+    }
+
+    @Override
     public Boolean isVirtualNetworkFilterEnabled() {
         return this.inner().isVirtualNetworkFilterEnabled();
     }
@@ -137,6 +144,17 @@ class DatabaseAccountImpl extends GroupableResourceCoreImpl<DatabaseAccount, Dat
     @Override
     public DatabaseAccountKind kind() {
         return this.inner().kind();
+    }
+
+    @Override
+    public List<PrivateEndpointConnection> privateEndpointConnections() {
+        List<PrivateEndpointConnection> lst = new ArrayList<PrivateEndpointConnection>();
+        if (this.inner().privateEndpointConnections() != null) {
+            for (PrivateEndpointConnectionInner inner : this.inner().privateEndpointConnections()) {
+                lst.add( new PrivateEndpointConnectionImpl(inner, manager()));
+            }
+        }
+        return lst;
     }
 
     @Override
