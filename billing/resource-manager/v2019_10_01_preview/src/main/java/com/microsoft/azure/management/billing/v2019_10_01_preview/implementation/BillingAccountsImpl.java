@@ -13,7 +13,9 @@ import com.microsoft.azure.arm.model.implementation.WrapperImpl;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccounts;
 import rx.functions.Func1;
 import rx.Observable;
+import com.microsoft.azure.Page;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccount;
+import com.microsoft.azure.management.billing.v2019_10_01_preview.InvoiceSectionWithCreateSubPermission;
 import com.microsoft.azure.management.billing.v2019_10_01_preview.BillingAccountListResult;
 
 class BillingAccountsImpl extends WrapperImpl<BillingAccountsInner> implements BillingAccounts {
@@ -40,6 +42,24 @@ class BillingAccountsImpl extends WrapperImpl<BillingAccountsInner> implements B
             @Override
             public BillingAccount call(BillingAccountInner inner) {
                 return new BillingAccountImpl(inner, manager());
+            }
+        });
+    }
+
+    @Override
+    public Observable<InvoiceSectionWithCreateSubPermission> listInvoiceSectionsByCreateSubscriptionPermissionAsync(final String billingAccountName) {
+        BillingAccountsInner client = this.inner();
+        return client.listInvoiceSectionsByCreateSubscriptionPermissionAsync(billingAccountName)
+        .flatMapIterable(new Func1<Page<InvoiceSectionWithCreateSubPermissionInner>, Iterable<InvoiceSectionWithCreateSubPermissionInner>>() {
+            @Override
+            public Iterable<InvoiceSectionWithCreateSubPermissionInner> call(Page<InvoiceSectionWithCreateSubPermissionInner> page) {
+                return page.items();
+            }
+        })
+        .map(new Func1<InvoiceSectionWithCreateSubPermissionInner, InvoiceSectionWithCreateSubPermission>() {
+            @Override
+            public InvoiceSectionWithCreateSubPermission call(InvoiceSectionWithCreateSubPermissionInner inner) {
+                return new InvoiceSectionWithCreateSubPermissionImpl(inner, manager());
             }
         });
     }

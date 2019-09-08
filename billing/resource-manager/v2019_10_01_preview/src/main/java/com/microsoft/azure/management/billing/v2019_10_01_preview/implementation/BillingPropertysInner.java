@@ -52,7 +52,7 @@ public class BillingPropertysInner {
      */
     interface BillingPropertysService {
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.billing.v2019_10_01_preview.BillingPropertys get" })
-        @GET("subscriptions/{subscriptionId}/providers/Microsoft.Billing/billingProperty")
+        @GET("subscriptions/{subscriptionId}/providers/Microsoft.Billing/billingProperty/default")
         Observable<Response<ResponseBody>> get(@Path("subscriptionId") String subscriptionId, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
     }
