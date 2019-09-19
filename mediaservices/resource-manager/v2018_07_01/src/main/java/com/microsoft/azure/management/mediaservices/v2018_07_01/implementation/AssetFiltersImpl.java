@@ -64,14 +64,10 @@ class AssetFiltersImpl extends WrapperImpl<AssetFiltersInner> implements AssetFi
     public Observable<AssetFilter> getAsync(String resourceGroupName, String accountName, String assetName, String filterName) {
         AssetFiltersInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, assetName, filterName)
-        .flatMap(new Func1<AssetFilterInner, Observable<AssetFilter>>() {
+        .map(new Func1<AssetFilterInner, AssetFilter>() {
             @Override
-            public Observable<AssetFilter> call(AssetFilterInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((AssetFilter)wrapModel(inner));
-                }
+            public AssetFilter call(AssetFilterInner inner) {
+                return wrapModel(inner);
             }
        });
     }
