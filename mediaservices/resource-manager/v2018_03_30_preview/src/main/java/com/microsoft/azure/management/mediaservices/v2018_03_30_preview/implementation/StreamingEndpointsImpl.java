@@ -82,14 +82,10 @@ class StreamingEndpointsImpl extends WrapperImpl<StreamingEndpointsInner> implem
     public Observable<StreamingEndpoint> getAsync(String resourceGroupName, String accountName, String streamingEndpointName) {
         StreamingEndpointsInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, streamingEndpointName)
-        .flatMap(new Func1<StreamingEndpointInner, Observable<StreamingEndpoint>>() {
+        .map(new Func1<StreamingEndpointInner, StreamingEndpoint>() {
             @Override
-            public Observable<StreamingEndpoint> call(StreamingEndpointInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((StreamingEndpoint)wrapModel(inner));
-                }
+            public StreamingEndpoint call(StreamingEndpointInner inner) {
+                return wrapModel(inner);
             }
        });
     }

@@ -64,14 +64,10 @@ class StreamingPoliciesImpl extends WrapperImpl<StreamingPoliciesInner> implemen
     public Observable<StreamingPolicy> getAsync(String resourceGroupName, String accountName, String streamingPolicyName) {
         StreamingPoliciesInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, streamingPolicyName)
-        .flatMap(new Func1<StreamingPolicyInner, Observable<StreamingPolicy>>() {
+        .map(new Func1<StreamingPolicyInner, StreamingPolicy>() {
             @Override
-            public Observable<StreamingPolicy> call(StreamingPolicyInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((StreamingPolicy)wrapModel(inner));
-                }
+            public StreamingPolicy call(StreamingPolicyInner inner) {
+                return wrapModel(inner);
             }
        });
     }

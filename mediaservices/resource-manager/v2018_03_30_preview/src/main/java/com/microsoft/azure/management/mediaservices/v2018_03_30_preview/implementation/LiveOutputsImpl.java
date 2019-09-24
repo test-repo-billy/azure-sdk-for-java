@@ -64,14 +64,10 @@ class LiveOutputsImpl extends WrapperImpl<LiveOutputsInner> implements LiveOutpu
     public Observable<LiveOutput> getAsync(String resourceGroupName, String accountName, String liveEventName, String liveOutputName) {
         LiveOutputsInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, liveEventName, liveOutputName)
-        .flatMap(new Func1<LiveOutputInner, Observable<LiveOutput>>() {
+        .map(new Func1<LiveOutputInner, LiveOutput>() {
             @Override
-            public Observable<LiveOutput> call(LiveOutputInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((LiveOutput)wrapModel(inner));
-                }
+            public LiveOutput call(LiveOutputInner inner) {
+                return wrapModel(inner);
             }
        });
     }
