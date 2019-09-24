@@ -64,14 +64,10 @@ class TransformsImpl extends WrapperImpl<TransformsInner> implements Transforms 
     public Observable<Transform> getAsync(String resourceGroupName, String accountName, String transformName) {
         TransformsInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, transformName)
-        .flatMap(new Func1<TransformInner, Observable<Transform>>() {
+        .map(new Func1<TransformInner, Transform>() {
             @Override
-            public Observable<Transform> call(TransformInner inner) {
-                if (inner == null) {
-                    return Observable.empty();
-                } else {
-                    return Observable.just((Transform)wrapModel(inner));
-                }
+            public Transform call(TransformInner inner) {
+                return wrapModel(inner);
             }
        });
     }
