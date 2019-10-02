@@ -12,50 +12,41 @@ import org.joda.time.DateTime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * The details of the event associated with a prefix.
+ * The peering service prefix event class.
  */
 public class PeeringServicePrefixEvent {
     /**
-     * The timestamp of the event associated with a prefix.
-     */
-    @JsonProperty(value = "eventTimestamp", access = JsonProperty.Access.WRITE_ONLY)
-    private DateTime eventTimestamp;
-
-    /**
-     * The type of the event associated with a prefix.
+     * The event type of the peering service prefix event.
      */
     @JsonProperty(value = "eventType", access = JsonProperty.Access.WRITE_ONLY)
     private String eventType;
 
     /**
-     * The summary of the event associated with a prefix.
+     * The event timestamp of the peering service prefix event.
      */
-    @JsonProperty(value = "eventSummary", access = JsonProperty.Access.WRITE_ONLY)
-    private String eventSummary;
+    @JsonProperty(value = "eventTimeStamp", access = JsonProperty.Access.WRITE_ONLY)
+    private DateTime eventTimeStamp;
 
     /**
-     * The level of the event associated with a prefix.
+     * The event description of the peering service prefix event.
+     */
+    @JsonProperty(value = "description", access = JsonProperty.Access.WRITE_ONLY)
+    private String description;
+
+    /**
+     * The event level of the peering service prefix event.
      */
     @JsonProperty(value = "eventLevel", access = JsonProperty.Access.WRITE_ONLY)
     private String eventLevel;
 
     /**
-     * The description of the event associated with a prefix.
+     * Additional information for the peering service prefix event.
      */
-    @JsonProperty(value = "eventDescription", access = JsonProperty.Access.WRITE_ONLY)
-    private String eventDescription;
+    @JsonProperty(value = "additionalInfo", access = JsonProperty.Access.WRITE_ONLY)
+    private String additionalInfo;
 
     /**
-     * Get the timestamp of the event associated with a prefix.
-     *
-     * @return the eventTimestamp value
-     */
-    public DateTime eventTimestamp() {
-        return this.eventTimestamp;
-    }
-
-    /**
-     * Get the type of the event associated with a prefix.
+     * Get the event type of the peering service prefix event.
      *
      * @return the eventType value
      */
@@ -64,16 +55,25 @@ public class PeeringServicePrefixEvent {
     }
 
     /**
-     * Get the summary of the event associated with a prefix.
+     * Get the event timestamp of the peering service prefix event.
      *
-     * @return the eventSummary value
+     * @return the eventTimeStamp value
      */
-    public String eventSummary() {
-        return this.eventSummary;
+    public DateTime eventTimeStamp() {
+        return this.eventTimeStamp;
     }
 
     /**
-     * Get the level of the event associated with a prefix.
+     * Get the event description of the peering service prefix event.
+     *
+     * @return the description value
+     */
+    public String description() {
+        return this.description;
+    }
+
+    /**
+     * Get the event level of the peering service prefix event.
      *
      * @return the eventLevel value
      */
@@ -82,12 +82,12 @@ public class PeeringServicePrefixEvent {
     }
 
     /**
-     * Get the description of the event associated with a prefix.
+     * Get additional information for the peering service prefix event.
      *
-     * @return the eventDescription value
+     * @return the additionalInfo value
      */
-    public String eventDescription() {
-        return this.eventDescription;
+    public String additionalInfo() {
+        return this.additionalInfo;
     }
 
 }
