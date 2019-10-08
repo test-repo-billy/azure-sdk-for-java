@@ -23,6 +23,7 @@ import com.microsoft.azure.management.postgresql.v2017_12_01_preview.VirtualNetw
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.Databases;
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.Configurations;
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.LogFiles;
+import com.microsoft.azure.management.postgresql.v2017_12_01_preview.ServerAdministrators;
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.LocationBasedPerformanceTiers;
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.CheckNameAvailabilitys;
 import com.microsoft.azure.management.postgresql.v2017_12_01_preview.ServerSecurityAlertPolicies;
@@ -41,6 +42,7 @@ public final class DBforPostgreSQLManager extends ManagerCore<DBforPostgreSQLMan
     private Databases databases;
     private Configurations configurations;
     private LogFiles logFiles;
+    private ServerAdministrators serverAdministrators;
     private LocationBasedPerformanceTiers locationBasedPerformanceTiers;
     private CheckNameAvailabilitys checkNameAvailabilitys;
     private ServerSecurityAlertPolicies serverSecurityAlertPolicies;
@@ -160,6 +162,16 @@ public final class DBforPostgreSQLManager extends ManagerCore<DBforPostgreSQLMan
             this.logFiles = new LogFilesImpl(this);
         }
         return this.logFiles;
+    }
+
+    /**
+     * @return Entry point to manage ServerAdministrators.
+     */
+    public ServerAdministrators serverAdministrators() {
+        if (this.serverAdministrators == null) {
+            this.serverAdministrators = new ServerAdministratorsImpl(this);
+        }
+        return this.serverAdministrators;
     }
 
     /**
