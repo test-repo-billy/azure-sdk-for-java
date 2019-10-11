@@ -29,7 +29,9 @@ import com.azure.storage.blob.implementation.models.ServicesSubmitBatchResponse;
 import com.azure.storage.blob.models.BlobServiceProperties;
 import com.azure.storage.blob.models.KeyInfo;
 import com.azure.storage.blob.models.ListBlobContainersIncludeType;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.StorageErrorException;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
 import reactor.core.publisher.Flux;
@@ -69,7 +71,7 @@ public final class ServicesImpl {
     private interface ServicesService {
         @Put("")
         @ExpectedResponses({202})
-        @UnexpectedResponseExceptionType(StorageException.class)
+        @UnexpectedResponseExceptionType(StorageErrorException.class)
         Mono<ServicesSetPropertiesResponse> setProperties(@HostParam("url") String url, @BodyParam("application/xml; charset=utf-8") BlobServiceProperties blobServiceProperties, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId, @QueryParam("restype") String restype, @QueryParam("comp") String comp, Context context);
 
         @Get("")
@@ -84,7 +86,7 @@ public final class ServicesImpl {
 
         @Get("")
         @ExpectedResponses({200})
-        @UnexpectedResponseExceptionType(StorageException.class)
+        @UnexpectedResponseExceptionType(StorageErrorException.class)
         Mono<ServicesListBlobContainersSegmentResponse> listBlobContainersSegment(@HostParam("url") String url, @QueryParam("prefix") String prefix, @QueryParam("marker") String marker1, @QueryParam("maxresults") Integer maxresults, @QueryParam("include") ListBlobContainersIncludeType include, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId, @QueryParam("comp") String comp, Context context);
 
         @Post("")
