@@ -87,7 +87,7 @@ public final class BlobServiceProperties {
      * @param logging the logging value to set.
      * @return the BlobServiceProperties object itself.
      */
-    public BlobServiceProperties setLogging(BlobAnalyticsLogging logging) {
+    public BlobServiceProperties setLogging(Logging logging) {
         this.logging = logging;
         return this;
     }
@@ -107,7 +107,7 @@ public final class BlobServiceProperties {
      * @param hourMetrics the hourMetrics value to set.
      * @return the BlobServiceProperties object itself.
      */
-    public BlobServiceProperties setHourMetrics(BlobMetrics hourMetrics) {
+    public BlobServiceProperties setHourMetrics(Metrics hourMetrics) {
         this.hourMetrics = hourMetrics;
         return this;
     }
@@ -127,7 +127,7 @@ public final class BlobServiceProperties {
      * @param minuteMetrics the minuteMetrics value to set.
      * @return the BlobServiceProperties object itself.
      */
-    public BlobServiceProperties setMinuteMetrics(BlobMetrics minuteMetrics) {
+    public BlobServiceProperties setMinuteMetrics(Metrics minuteMetrics) {
         this.minuteMetrics = minuteMetrics;
         return this;
     }
@@ -150,7 +150,7 @@ public final class BlobServiceProperties {
      * @param cors the cors value to set.
      * @return the BlobServiceProperties object itself.
      */
-    public BlobServiceProperties setCors(List<BlobCorsRule> cors) {
+    public BlobServiceProperties setCors(List<CorsRule> cors) {
         this.cors = new CorsWrapper(cors);
         return this;
     }
@@ -198,7 +198,7 @@ public final class BlobServiceProperties {
      * @param deleteRetentionPolicy the deleteRetentionPolicy value to set.
      * @return the BlobServiceProperties object itself.
      */
-    public BlobServiceProperties setDeleteRetentionPolicy(BlobRetentionPolicy deleteRetentionPolicy) {
+    public BlobServiceProperties setDeleteRetentionPolicy(RetentionPolicy deleteRetentionPolicy) {
         this.deleteRetentionPolicy = deleteRetentionPolicy;
         return this;
     }
