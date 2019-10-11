@@ -54,7 +54,7 @@ public class EHNamespaceInner extends Resource {
     private String serviceBusEndpoint;
 
     /**
-     * Cluster ARM ID of the Namspace.
+     * Cluster ARM ID of the Namespace.
      */
     @JsonProperty(value = "properties.clusterArmId")
     private String clusterArmId;
@@ -162,7 +162,7 @@ public class EHNamespaceInner extends Resource {
     }
 
     /**
-     * Get cluster ARM ID of the Namspace.
+     * Get cluster ARM ID of the Namespace.
      *
      * @return the clusterArmId value
      */
@@ -171,7 +171,7 @@ public class EHNamespaceInner extends Resource {
     }
 
     /**
-     * Set cluster ARM ID of the Namspace.
+     * Set cluster ARM ID of the Namespace.
      *
      * @param clusterArmId the clusterArmId value to set
      * @return the EHNamespaceInner object itself.

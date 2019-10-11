@@ -15,13 +15,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class Identity {
     /**
-     * ObjectId from the Keyvalut.
+     * ObjectId from the KeyVault.
      */
     @JsonProperty(value = "principalId")
     private String principalId;
 
     /**
-     * TenantId from the Keyvalut.
+     * TenantId from the KeyVault.
      */
     @JsonProperty(value = "tenantId")
     private String tenantId;
@@ -34,7 +34,7 @@ public class Identity {
     private IdentityType type;
 
     /**
-     * Get objectId from the Keyvalut.
+     * Get objectId from the KeyVault.
      *
      * @return the principalId value
      */
@@ -43,7 +43,7 @@ public class Identity {
     }
 
     /**
-     * Set objectId from the Keyvalut.
+     * Set objectId from the KeyVault.
      *
      * @param principalId the principalId value to set
      * @return the Identity object itself.
@@ -54,7 +54,7 @@ public class Identity {
     }
 
     /**
-     * Get tenantId from the Keyvalut.
+     * Get tenantId from the KeyVault.
      *
      * @return the tenantId value
      */
@@ -63,7 +63,7 @@ public class Identity {
     }
 
     /**
-     * Set tenantId from the Keyvalut.
+     * Set tenantId from the KeyVault.
      *
      * @param tenantId the tenantId value to set
      * @return the Identity object itself.

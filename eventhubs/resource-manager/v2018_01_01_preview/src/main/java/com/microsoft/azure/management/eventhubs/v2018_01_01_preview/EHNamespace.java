@@ -118,7 +118,7 @@ public interface EHNamespace extends HasInner<EHNamespaceInner>, Resource, Group
         interface WithClusterArmId {
             /**
              * Specifies clusterArmId.
-             * @param clusterArmId Cluster ARM ID of the Namspace
+             * @param clusterArmId Cluster ARM ID of the Namespace
              * @return the next definition stage
              */
             WithCreate withClusterArmId(String clusterArmId);
@@ -232,7 +232,7 @@ public interface EHNamespace extends HasInner<EHNamespaceInner>, Resource, Group
         interface WithClusterArmId {
             /**
              * Specifies clusterArmId.
-             * @param clusterArmId Cluster ARM ID of the Namspace
+             * @param clusterArmId Cluster ARM ID of the Namespace
              * @return the next update stage
              */
             Update withClusterArmId(String clusterArmId);
