@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.azure.core.implementation.util.FluxUtil.withContext;
+import static com.azure.storage.blob.implementation.PostProcessor.postProcessResponse;
 
 /**
  * Client to a storage account. It may only be instantiated through a {@link BlobServiceClientBuilder}. This class does
@@ -245,10 +246,10 @@ public final class BlobServiceAsyncClient {
         ListBlobContainersOptions options, Duration timeout) {
         options = options == null ? new ListBlobContainersOptions() : options;
 
-        return Utility.applyOptionalTimeout(
+        return postProcessResponse(Utility.applyOptionalTimeout(
             this.azureBlobStorage.services().listBlobContainersSegmentWithRestResponseAsync(
-                options.getPrefix(), marker, options.getMaxResultsPerPage(), options.getDetails().toIncludeType(), null,
-                null, Context.NONE), timeout);
+                options.getPrefix(), marker, options.getMaxResults(), options.getDetails().toIncludeType(), null,
+                null, Context.NONE), timeout));
     }
 
     /**
@@ -281,7 +282,8 @@ public final class BlobServiceAsyncClient {
     }
 
     Mono<Response<BlobServiceProperties>> getPropertiesWithResponse(Context context) {
-        return this.azureBlobStorage.services().getPropertiesWithRestResponseAsync(null, null, context)
+        return postProcessResponse(
+            this.azureBlobStorage.services().getPropertiesWithRestResponseAsync(null, null, context))
             .map(rb -> new SimpleResponse<>(rb, rb.getValue()));
     }
 
@@ -319,7 +321,8 @@ public final class BlobServiceAsyncClient {
     }
 
     Mono<Response<Void>> setPropertiesWithResponse(BlobServiceProperties properties, Context context) {
-        return this.azureBlobStorage.services().setPropertiesWithRestResponseAsync(properties, null, null, context)
+        return postProcessResponse(
+            this.azureBlobStorage.services().setPropertiesWithRestResponseAsync(properties, null, null, context))
             .map(response -> new SimpleResponse<>(response, null));
     }
 
