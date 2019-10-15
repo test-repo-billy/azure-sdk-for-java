@@ -1,16 +1,16 @@
 package com.azure.storage.file
 
-import com.azure.storage.common.StorageSharedKeyCredential
-import com.azure.storage.common.implementation.Constants
-import com.azure.storage.common.sas.AccountSasPermission
-import com.azure.storage.common.sas.AccountSasResourceType
-import com.azure.storage.common.sas.AccountSasService
-import com.azure.storage.common.sas.AccountSasSignatureValues
-import com.azure.storage.common.sas.SasIpRange
-import com.azure.storage.common.sas.SasProtocol
-import com.azure.storage.file.models.FileAccessPolicy
-import com.azure.storage.file.models.FileSignedIdentifier
-import com.azure.storage.file.models.FileStorageException
+import com.azure.storage.common.AccountSasPermission
+import com.azure.storage.common.AccountSasResourceType
+import com.azure.storage.common.AccountSasService
+import com.azure.storage.common.AccountSasSignatureValues
+import com.azure.storage.common.Constants
+import com.azure.storage.common.IpRange
+import com.azure.storage.common.SasProtocol
+import com.azure.storage.common.credentials.SharedKeyCredential
+import com.azure.storage.file.models.AccessPolicy
+import com.azure.storage.file.models.SignedIdentifier
+import com.azure.storage.file.models.StorageException
 import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
@@ -148,7 +148,7 @@ class FileSASTests extends APISpec {
             .setDeletePermission(true)
         def startTime = getUTCNow().minusDays(1)
         def expiryTime = getUTCNow().plusDays(1)
-        def ipRange = new SasIpRange()
+        def ipRange = new IpRange()
             .setIpMin("0.0.0.0")
             .setIpMax("255.255.255.255")
         def sasProtocol = SasProtocol.HTTPS_HTTP
@@ -165,7 +165,7 @@ class FileSASTests extends APISpec {
             .setExpiryTime(expiryTime)
             .setStartTime(startTime)
             .setProtocol(sasProtocol)
-            .setSasIpRange(ipRange)
+            .setIpRange(ipRange)
             .setCacheControl(cacheControl)
             .setContentDisposition(contentDisposition)
             .setContentEncoding(contentEncoding)
@@ -191,7 +191,7 @@ class FileSASTests extends APISpec {
         client.upload(getInputStream(data.getBytes(StandardCharsets.UTF_8)), (long) data.length())
 
         then:
-        notThrown(FileStorageException)
+        notThrown(StorageException)
         Arrays.copyOfRange(stream.toByteArray(), 0, data.length()) == data.getBytes(StandardCharsets.UTF_8)
     }
 
@@ -207,7 +207,7 @@ class FileSASTests extends APISpec {
             .setDeletePermission(true)
         def startTime = getUTCNow().minusDays(1)
         def expiryTime = getUTCNow().plusDays(1)
-        def ipRange = new SasIpRange()
+        def ipRange = new IpRange()
             .setIpMin("0.0.0.0")
             .setIpMax("255.255.255.255")
         def sasProtocol = SasProtocol.HTTPS_HTTP
@@ -224,7 +224,7 @@ class FileSASTests extends APISpec {
             .setExpiryTime(expiryTime)
             .setStartTime(startTime)
             .setProtocol(sasProtocol)
-            .setSasIpRange(ipRange)
+            .setIpRange(ipRange)
             .setCacheControl(cacheControl)
             .setContentDisposition(contentDisposition)
             .setContentEncoding(contentEncoding)
@@ -243,21 +243,21 @@ class FileSASTests extends APISpec {
         client.upload(getInputStream(data.getBytes()), (long) data.length())
 
         then:
-        thrown(FileStorageException)
+        thrown(StorageException)
 
         when:
         client.delete()
 
         then:
-        notThrown(FileStorageException)
+        notThrown(StorageException)
     }
 
     def "ShareSAS network test identifier permissions create delete"() {
         setup:
-        FileSignedIdentifier identifier = new FileSignedIdentifier()
+        SignedIdentifier identifier = new SignedIdentifier()
             .setId("0000")
-            .setAccessPolicy(new FileAccessPolicy().setPermissions("rcwdl")
-                .setExpiresOn(getUTCNow().plusDays(1)))
+            .setAccessPolicy(new AccessPolicy().setPermission("rcwdl")
+                .setExpiry(getUTCNow().plusDays(1)))
 
         primaryShareClient.setAccessPolicy(Arrays.asList(identifier))
 
@@ -303,7 +303,7 @@ class FileSASTests extends APISpec {
         client2.deleteDirectory("dir")
 
         then:
-        notThrown(FileStorageException)
+        notThrown(StorageException)
     }
 
     def "AccountSAS FileService network test create delete share succeeds"() {
@@ -342,7 +342,7 @@ class FileSASTests extends APISpec {
         sc.deleteShare("create")
 
         then:
-        notThrown(FileStorageException)
+        notThrown(StorageException)
     }
 
 
