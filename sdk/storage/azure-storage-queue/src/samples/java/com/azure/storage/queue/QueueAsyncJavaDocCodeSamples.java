@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
 package com.azure.storage.queue;
 
 import com.azure.storage.common.credentials.SharedKeyCredential;
@@ -124,106 +123,106 @@ public class QueueAsyncJavaDocCodeSamples {
 
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#sendMessage(String)}
+     * Generates a code sample for using {@link QueueAsyncClient#enqueueMessage(String)}
      */
     public void enqueueMessageAsync() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.sendMessage#string
-        client.sendMessage("Hello, Azure").subscribe(
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.enqueueMessage#string
+        client.enqueueMessage("Hello, Azure").subscribe(
             response -> {
             },
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete enqueuing the message!")
         );
-        // END: com.azure.storage.queue.queueAsyncClient.sendMessage#string
+        // END: com.azure.storage.queue.queueAsyncClient.enqueueMessage#string
     }
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#sendMessageWithResponse(String, Duration,
+     * Generates a code sample for using {@link QueueAsyncClient#enqueueMessageWithResponse(String, Duration,
      * Duration)}
      */
     public void enqueueMessageAsyncWithTimeoutOverload() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.sendMessageWithResponse#string-duration-duration
-        client.sendMessageWithResponse("Hello, Azure",
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.enqueueMessageWithResponse#string-duration-duration
+        client.enqueueMessageWithResponse("Hello, Azure",
             Duration.ofSeconds(5), null).subscribe(
                 response -> System.out.printf("Message %s expires at %s", response.getValue().getMessageId(),
                     response.getValue().getExpirationTime()),
                 error -> System.err.print(error.toString()),
                 () -> System.out.println("Complete enqueuing the message!")
         );
-        // END: com.azure.storage.queue.queueAsyncClient.sendMessageWithResponse#string-duration-duration
+        // END: com.azure.storage.queue.queueAsyncClient.enqueueMessageWithResponse#string-duration-duration
     }
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#sendMessageWithResponse(String, Duration,
+     * Generates a code sample for using {@link QueueAsyncClient#enqueueMessageWithResponse(String, Duration,
      * Duration)}
      */
     public void enqueueMessageAsyncWithLiveTimeOverload() {
-        // BEGIN: com.azure.storage.queue.QueueAsyncClient.sendMessageWithResponse-liveTime#String-Duration-Duration
-        client.sendMessageWithResponse("Goodbye, Azure",
+        // BEGIN: com.azure.storage.queue.QueueAsyncClient.enqueueMessageWithResponse-liveTime#String-Duration-Duration
+        client.enqueueMessageWithResponse("Goodbye, Azure",
             null, Duration.ofSeconds(5)).subscribe(
                 response -> System.out.printf("Message %s expires at %s", response.getValue().getMessageId(),
                     response.getValue().getExpirationTime()),
                 error -> System.err.print(error.toString()),
                 () -> System.out.println("Complete enqueuing the message!")
         );
-        // END: com.azure.storage.queue.QueueAsyncClient.sendMessageWithResponse-liveTime#String-Duration-Duration
+        // END: com.azure.storage.queue.QueueAsyncClient.enqueueMessageWithResponse-liveTime#String-Duration-Duration
     }
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#receiveMessage()}
+     * Generates a code sample for using {@link QueueAsyncClient#getMessages()}
      */
     public void getMessageAsync() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.receiveMessage
-        client.receiveMessage().subscribe(
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.getMessages
+        client.getMessages().subscribe(
             message -> System.out.println("The message got from getMessages operation: "
                 + message.getMessageText()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete receiving the message!")
         );
-        // END: com.azure.storage.queue.queueAsyncClient.receiveMessage
+        // END: com.azure.storage.queue.queueAsyncClient.getMessages
     }
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#receiveMessages(Integer)}
+     * Generates a code sample for using {@link QueueAsyncClient#getMessages(Integer)}
      */
     public void getMessageAsyncWithOverload() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.receiveMessages#integer
-        client.receiveMessages(5).subscribe(
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.getMessages#integer
+        client.getMessages(5).subscribe(
             message -> System.out.println("The message got from getMessages operation: "
                 + message.getMessageText()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete receiving the message!")
         );
-        // END: com.azure.storage.queue.queueAsyncClient.receiveMessages#integer
+        // END: com.azure.storage.queue.queueAsyncClient.getMessages#integer
     }
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#receiveMessages(Integer, Duration)}
+     * Generates a code sample for using {@link QueueAsyncClient#getMessages(Integer, Duration)}
      */
     public void getMessageAsyncMaxOverload() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.receiveMessages#integer-duration
-        client.receiveMessages(5, Duration.ofSeconds(60))
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.getMessages#integer-duration
+        client.getMessages(5, Duration.ofSeconds(60))
             .subscribe(
                 message -> System.out.println("The message got from getMessages operation: "
                     + message.getMessageText()),
                 error -> System.err.print(error.toString()),
                 () -> System.out.println("Complete receiving the message!")
             );
-        // END: com.azure.storage.queue.queueAsyncClient.receiveMessages#integer-duration
+        // END: com.azure.storage.queue.queueAsyncClient.getMessages#integer-duration
     }
 
 
     /**
-     * Generates a code sample for using {@link QueueAsyncClient#peekMessage()}
+     * Generates a code sample for using {@link QueueAsyncClient#peekMessages()}
      */
     public void peekMessageAsync() {
-        // BEGIN: com.azure.storage.queue.queueAsyncClient.peekMessage
-        client.peekMessage().subscribe(
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.peekMessages
+        client.peekMessages().subscribe(
             peekMessages -> System.out.println("The message got from peek operation: " + peekMessages.getMessageText()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete peeking the message!")
         );
-        // END: com.azure.storage.queue.queueAsyncClient.peekMessage
+        // END: com.azure.storage.queue.queueAsyncClient.peekMessages
     }
 
     /**
@@ -245,7 +244,7 @@ public class QueueAsyncJavaDocCodeSamples {
      */
     public void updateMessageAsync() {
         // BEGIN: com.azure.storage.queue.QueueAsyncClient.updateMessage#String-String-String-Duration
-        client.receiveMessage().subscribe(
+        client.getMessages().subscribe(
             message -> {
                 client.updateMessage("newText", message.getMessageId(),
                     message.getPopReceipt(), null).subscribe(
@@ -267,7 +266,7 @@ public class QueueAsyncJavaDocCodeSamples {
      */
     public void updateMessageWithResponse() {
         // BEGIN: com.azure.storage.queue.QueueAsyncClient.updateMessageWithResponse#String-String-String-Duration
-        client.receiveMessage().subscribe(
+        client.getMessages().subscribe(
             message -> {
                 client.updateMessageWithResponse("newText", message.getMessageId(),
                     message.getPopReceipt(), null).subscribe(
@@ -288,7 +287,7 @@ public class QueueAsyncJavaDocCodeSamples {
      */
     public void deleteMessageAsync() {
         // BEGIN: com.azure.storage.queue.QueueAsyncClient.deleteMessage#String-String
-        client.receiveMessage().subscribe(
+        client.getMessages().subscribe(
             message -> {
                 client.deleteMessage(message.getMessageId(), message.getPopReceipt()).subscribe(
                     response -> {
@@ -308,7 +307,7 @@ public class QueueAsyncJavaDocCodeSamples {
      */
     public void deleteMessageWithResponse() {
         // BEGIN: com.azure.storage.queue.QueueAsyncClient.deleteMessageWithResponse#String-String
-        client.receiveMessage().subscribe(
+        client.getMessages().subscribe(
             message -> {
                 client.deleteMessageWithResponse(message.getMessageId(), message.getPopReceipt())
                     .subscribe(
