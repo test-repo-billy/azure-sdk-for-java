@@ -16,6 +16,7 @@ import com.google.common.reflect.TypeToken;
 import com.microsoft.azure.AzureServiceFuture;
 import com.microsoft.azure.CloudException;
 import com.microsoft.azure.ListOperationCallback;
+import com.microsoft.azure.management.appplatform.v2019_05_01_preview.NameAvailabilityParameters;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.RegenerateTestKeyRequestPayload;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.TestKeyType;
 import com.microsoft.azure.Page;
@@ -111,6 +112,10 @@ public class ServicesInner implements InnerSupportsGet<ServiceResourceInner>, In
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services enableTestEndpoint" })
         @POST("subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.AppPlatform/Spring/{serviceName}/enableTestEndpoint")
         Observable<Response<ResponseBody>> enableTestEndpoint(@Path("subscriptionId") String subscriptionId, @Path("resourceGroupName") String resourceGroupName, @Path("serviceName") String serviceName, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
+
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services checkNameAvailability" })
+        @POST("subscriptions/{subscriptionId}/providers/Microsoft.AppPlatform/locations/{location}/checkNameAvailability")
+        Observable<Response<ResponseBody>> checkNameAvailability(@Path("location") String location, @Path("subscriptionId") String subscriptionId, @Body NameAvailabilityParameters availabilityParameters, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services list" })
         @GET("subscriptions/{subscriptionId}/providers/Microsoft.AppPlatform/Spring")
@@ -1295,6 +1300,90 @@ public class ServicesInner implements InnerSupportsGet<ServiceResourceInner>, In
     private ServiceResponse<TestKeysInner> enableTestEndpointDelegate(Response<ResponseBody> response) throws CloudException, IOException, IllegalArgumentException {
         return this.client.restClient().responseBuilderFactory().<TestKeysInner, CloudException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<TestKeysInner>() { }.getType())
+                .registerError(CloudException.class)
+                .build(response);
+    }
+
+    /**
+     * Checks that the resource name is valid and is not already in use.
+     *
+     * @param location the region
+     * @param availabilityParameters Parameters supplied to the operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws CloudException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the NameAvailabilityInner object if successful.
+     */
+    public NameAvailabilityInner checkNameAvailability(String location, NameAvailabilityParameters availabilityParameters) {
+        return checkNameAvailabilityWithServiceResponseAsync(location, availabilityParameters).toBlocking().single().body();
+    }
+
+    /**
+     * Checks that the resource name is valid and is not already in use.
+     *
+     * @param location the region
+     * @param availabilityParameters Parameters supplied to the operation.
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<NameAvailabilityInner> checkNameAvailabilityAsync(String location, NameAvailabilityParameters availabilityParameters, final ServiceCallback<NameAvailabilityInner> serviceCallback) {
+        return ServiceFuture.fromResponse(checkNameAvailabilityWithServiceResponseAsync(location, availabilityParameters), serviceCallback);
+    }
+
+    /**
+     * Checks that the resource name is valid and is not already in use.
+     *
+     * @param location the region
+     * @param availabilityParameters Parameters supplied to the operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the NameAvailabilityInner object
+     */
+    public Observable<NameAvailabilityInner> checkNameAvailabilityAsync(String location, NameAvailabilityParameters availabilityParameters) {
+        return checkNameAvailabilityWithServiceResponseAsync(location, availabilityParameters).map(new Func1<ServiceResponse<NameAvailabilityInner>, NameAvailabilityInner>() {
+            @Override
+            public NameAvailabilityInner call(ServiceResponse<NameAvailabilityInner> response) {
+                return response.body();
+            }
+        });
+    }
+
+    /**
+     * Checks that the resource name is valid and is not already in use.
+     *
+     * @param location the region
+     * @param availabilityParameters Parameters supplied to the operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the NameAvailabilityInner object
+     */
+    public Observable<ServiceResponse<NameAvailabilityInner>> checkNameAvailabilityWithServiceResponseAsync(String location, NameAvailabilityParameters availabilityParameters) {
+        if (location == null) {
+            throw new IllegalArgumentException("Parameter location is required and cannot be null.");
+        }
+        if (this.client.subscriptionId() == null) {
+            throw new IllegalArgumentException("Parameter this.client.subscriptionId() is required and cannot be null.");
+        }
+        if (availabilityParameters == null) {
+            throw new IllegalArgumentException("Parameter availabilityParameters is required and cannot be null.");
+        }
+        Validator.validate(availabilityParameters);
+        return service.checkNameAvailability(location, this.client.subscriptionId(), availabilityParameters, this.client.apiVersion(), this.client.acceptLanguage(), this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<NameAvailabilityInner>>>() {
+                @Override
+                public Observable<ServiceResponse<NameAvailabilityInner>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponse<NameAvailabilityInner> clientResponse = checkNameAvailabilityDelegate(response);
+                        return Observable.just(clientResponse);
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    private ServiceResponse<NameAvailabilityInner> checkNameAvailabilityDelegate(Response<ResponseBody> response) throws CloudException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<NameAvailabilityInner, CloudException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<NameAvailabilityInner>() { }.getType())
                 .registerError(CloudException.class)
                 .build(response);
     }
