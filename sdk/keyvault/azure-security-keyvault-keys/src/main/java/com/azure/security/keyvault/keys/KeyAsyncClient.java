@@ -43,7 +43,6 @@ import java.util.function.Supplier;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.azure.core.implementation.util.FluxUtil.monoError;
 import static com.azure.core.implementation.util.FluxUtil.withContext;
 
 /**
@@ -115,12 +114,8 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> createKey(String name, KeyType keyType) {
-        try {
-            return withContext(context -> createKeyWithResponse(name, keyType, context)).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> createKey(String name, KeyType keyType) {
+        return withContext(context -> createKeyWithResponse(name, keyType, context)).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -145,12 +140,8 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> createKeyWithResponse(CreateKeyOptions createKeyOptions) {
-        try {
-            return withContext(context -> createKeyWithResponse(createKeyOptions, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> createKeyWithResponse(KeyCreateOptions keyCreateOptions) {
+        return withContext(context -> createKeyWithResponse(keyCreateOptions, context));
     }
 
     Mono<Response<KeyVaultKey>> createKeyWithResponse(String name, KeyType keyType, Context context) {
@@ -187,12 +178,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException if {@code keyCreateOptions} is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> createKey(CreateKeyOptions createKeyOptions) {
-        try {
-            return createKeyWithResponse(createKeyOptions).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> createKey(KeyCreateOptions keyCreateOptions) {
+        return createKeyWithResponse(keyCreateOptions).flatMap(FluxUtil::toMono);
     }
 
     Mono<Response<KeyVaultKey>> createKeyWithResponse(CreateKeyOptions createKeyOptions, Context context) {
@@ -234,12 +221,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException if {@code rsaKeyCreateOptions} is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> createRsaKey(CreateRsaKeyOptions createRsaKeyOptions) {
-        try {
-            return createRsaKeyWithResponse(createRsaKeyOptions).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> createRsaKey(RsaKeyCreateOptions rsaKeyCreateOptions) {
+        return createRsaKeyWithResponse(rsaKeyCreateOptions).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -265,12 +248,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException if {@code rsaKeyCreateOptions} is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> createRsaKeyWithResponse(CreateRsaKeyOptions createRsaKeyOptions) {
-        try {
-            return withContext(context -> createRsaKeyWithResponse(createRsaKeyOptions, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> createRsaKeyWithResponse(RsaKeyCreateOptions rsaKeyCreateOptions) {
+        return withContext(context -> createRsaKeyWithResponse(rsaKeyCreateOptions, context));
     }
 
     Mono<Response<KeyVaultKey>> createRsaKeyWithResponse(CreateRsaKeyOptions createRsaKeyOptions, Context context) {
@@ -314,12 +293,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException if {@code ecKeyCreateOptions} is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> createEcKey(CreateEcKeyOptions createEcKeyOptions) {
-        try {
-            return createEcKeyWithResponse(createEcKeyOptions).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> createEcKey(EcKeyCreateOptions ecKeyCreateOptions) {
+        return createEcKeyWithResponse(ecKeyCreateOptions).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -350,12 +325,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException if {@code ecKeyCreateOptions} is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> createEcKeyWithResponse(CreateEcKeyOptions createEcKeyOptions) {
-        try {
-            return withContext(context -> createEcKeyWithResponse(createEcKeyOptions, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> createEcKeyWithResponse(EcKeyCreateOptions ecKeyCreateOptions) {
+        return withContext(context -> createEcKeyWithResponse(ecKeyCreateOptions, context));
     }
 
     Mono<Response<KeyVaultKey>> createEcKeyWithResponse(CreateEcKeyOptions createEcKeyOptions, Context context) {
@@ -394,12 +365,8 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> importKey(String name, JsonWebKey keyMaterial) {
-        try {
-            return withContext(context -> importKeyWithResponse(name, keyMaterial, context)).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> importKey(String name, JsonWebKey keyMaterial) {
+        return withContext(context -> importKeyWithResponse(name, keyMaterial, context)).flatMap(FluxUtil::toMono);
     }
 
     Mono<Response<KeyVaultKey>> importKeyWithResponse(String name, JsonWebKey keyMaterial, Context context) {
@@ -441,12 +408,8 @@ public final class KeyAsyncClient {
      * @throws NullPointerException if {@code keyImportOptions} is {@code null}.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> importKey(ImportKeyOptions importKeyOptions) {
-        try {
-            return importKeyWithResponse(importKeyOptions).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> importKey(KeyImportOptions keyImportOptions) {
+        return importKeyWithResponse(keyImportOptions).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -482,12 +445,8 @@ public final class KeyAsyncClient {
      * @throws NullPointerException if {@code keyImportOptions} is {@code null}.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> importKeyWithResponse(ImportKeyOptions importKeyOptions) {
-        try {
-            return withContext(context -> importKeyWithResponse(importKeyOptions, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> importKeyWithResponse(KeyImportOptions keyImportOptions) {
+        return withContext(context -> importKeyWithResponse(keyImportOptions, context));
     }
 
     Mono<Response<KeyVaultKey>> importKeyWithResponse(ImportKeyOptions importKeyOptions, Context context) {
@@ -522,12 +481,8 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} or {@code version} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> getKey(String name, String version) {
-        try {
-            return getKeyWithResponse(name, version).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> getKey(String name, String version) {
+        return getKeyWithResponse(name, version).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -550,12 +505,8 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} or {@code version} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> getKeyWithResponse(String name, String version) {
-        try {
-            return withContext(context -> getKeyWithResponse(name, version == null ? "" : version, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> getKeyWithResponse(String name, String version) {
+        return withContext(context -> getKeyWithResponse(name, version == null ? "" : version, context));
     }
 
     Mono<Response<KeyVaultKey>> getKeyWithResponse(String name, String version, Context context) {
@@ -581,12 +532,55 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException if {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> getKey(String name) {
-        try {
-            return getKeyWithResponse(name, "").flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> getKey(String name) {
+        return getKeyWithResponse(name, "").flatMap(FluxUtil::toMono);
+    }
+
+    /**
+     * Get public part of the key which represents {@link KeyProperties keyProperties} from the key vault. The get key operation is
+     * applicable to all key types and it requires the {@code keys/get} permission.
+     *
+     * <p>The list operations {@link KeyAsyncClient#listKeys()} and {@link KeyAsyncClient#listKeyVersions(String)}
+     * return the {@link Flux} containing {@link KeyProperties key properties} as output excluding the key material of the key.
+     * This operation can then be used to get the full key with its key material from {@code keyProperties}.</p>
+     *
+     * {@codesnippet com.azure.security.keyvault.keys.async.keyclient.getKey#KeyProperties}
+     *
+     * @param keyProperties The {@link KeyProperties key properties} holding attributes of the key being requested.
+     * @return A {@link Mono} containing the requested {@link Key key}.
+     * @throws ResourceNotFoundException when a key with {@link KeyProperties#getName() name} and {@link KeyProperties#getVersion()
+     *     version} doesn't exist in the key vault.
+     * @throws HttpRequestException if {@link KeyProperties#getName()}  name} or {@link KeyProperties#getVersion() version} is empty
+     *     string.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Key> getKey(KeyProperties keyProperties) {
+        return getKeyWithResponse(keyProperties).flatMap(FluxUtil::toMono);
+    }
+
+    /**
+     * Get public part of the key which represents {@link KeyProperties keyProperties} from the key vault. The get key operation is
+     * applicable to all key types and it requires the {@code keys/get} permission.
+     *
+     * <p>The list operations {@link KeyAsyncClient#listKeys()} and {@link KeyAsyncClient#listKeyVersions(String)}
+     * return the {@link Flux} containing {@link KeyProperties key properties} as output excluding the key material of the key.
+     * This operation can then be used to get the full key with its key material from {@code keyProperties}.</p>
+     *
+     * {@codesnippet com.azure.security.keyvault.keys.async.keyclient.getKeyWithResponse#KeyProperties}
+     *
+     * @param keyProperties The {@link KeyProperties key properties} holding attributes of the key being requested.
+     * @return A {@link Mono} containing a {@link Response} whose {@link Response#getValue() value} contains the requested
+     *     {@link Key key}.
+     * @throws ResourceNotFoundException when a key with {@link KeyProperties#getName() name} and {@link KeyProperties#getVersion()
+     *     version} doesn't exist in the key vault.
+     * @throws HttpRequestException if {@link KeyProperties#getName()}  name} or {@link KeyProperties#getVersion() version} is empty
+     *     string.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Response<Key>> getKeyWithResponse(KeyProperties keyProperties) {
+        Objects.requireNonNull(keyProperties, "The Key Properties parameter cannot be null.");
+        return withContext(context -> getKeyWithResponse(keyProperties.getName(), keyProperties.getVersion() == null ? ""
+            : keyProperties.getVersion(), context));
     }
 
     /**
@@ -613,12 +607,8 @@ public final class KeyAsyncClient {
      *     string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> updateKeyPropertiesWithResponse(KeyProperties keyProperties, KeyOperation... keyOperations) {
-        try {
-            return withContext(context -> updateKeyPropertiesWithResponse(keyProperties, context, keyOperations));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> updateKeyPropertiesWithResponse(KeyProperties keyProperties, KeyOperation... keyOperations) {
+        return withContext(context -> updateKeyPropertiesWithResponse(keyProperties, context, keyOperations));
     }
 
     /**
@@ -644,12 +634,8 @@ public final class KeyAsyncClient {
      *     string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> updateKeyProperties(KeyProperties keyProperties, KeyOperation... keyOperations) {
-        try {
-            return updateKeyPropertiesWithResponse(keyProperties, keyOperations).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> updateKeyProperties(KeyProperties keyProperties, KeyOperation... keyOperations) {
+        return updateKeyPropertiesWithResponse(keyProperties, keyOperations).flatMap(FluxUtil::toMono);
     }
 
     Mono<Response<KeyVaultKey>> updateKeyPropertiesWithResponse(KeyProperties keyProperties, Context context, KeyOperation... keyOperations) {
@@ -687,30 +673,33 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException when a key with {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Poller<DeletedKey, Void> beginDeleteKey(String name) {
-        return new Poller<>(Duration.ofSeconds(1), createPollOperation(name), () -> Mono.empty(), activationOperation(name), null);
+    public Mono<DeletedKey> deleteKey(String name) {
+        return deleteKeyWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
-    private Supplier<Mono<DeletedKey>> activationOperation(String name) {
-        return () -> withContext(context -> deleteKeyWithResponse(name, context)
-            .flatMap(deletedKeyResponse -> Mono.just(deletedKeyResponse.getValue())));
-    }
-
-    /*
-    Polling operation to poll on create delete key operation status.
-    */
-    private Function<PollResponse<DeletedKey>, Mono<PollResponse<DeletedKey>>> createPollOperation(String keyName) {
-        return prePollResponse ->
-            withContext(context -> service.getDeletedKeyPoller(vaultUrl, keyName, API_VERSION, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .flatMap(deletedKeyResponse -> {
-                    if (deletedKeyResponse.getStatusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                        return Mono.defer(() -> Mono.just(new PollResponse<>(PollResponse.OperationStatus.IN_PROGRESS, prePollResponse.getValue())));
-                    }
-                    return Mono.defer(() -> Mono.just(new PollResponse<>(PollResponse.OperationStatus.SUCCESSFULLY_COMPLETED, deletedKeyResponse.getValue())));
-                }))
-                // This means either vault has soft-delete disabled or permission is not granted for the get deleted key operation.
-                // In both cases deletion operation was successful when activation operation succeeded before reaching here.
-                .onErrorReturn(new PollResponse<>(PollResponse.OperationStatus.SUCCESSFULLY_COMPLETED, prePollResponse.getValue()));
+    /**
+     * Deletes a key of any type from the key vault. If soft-delete is enabled on the key vault then the key is placed
+     * in the deleted state and requires to be purged for permanent deletion else the key is permanently deleted. The
+     * delete operation applies to any key stored in Azure Key Vault but it cannot be applied to an individual version
+     * of a key. This operation removes the cryptographic material associated with the key, which means the key is not
+     * usable for Sign/Verify, Wrap/Unwrap or Encrypt/Decrypt operations. This operation requires the
+     * {@code keys/delete} permission.
+     *
+     * <p><strong>Code Samples</strong></p>
+     * <p>Deletes the key in the Azure Key Vault. Subscribes to the call asynchronously and prints out the deleted key
+     * details when a response has been received.</p>
+     *
+     * {@codesnippet com.azure.security.keyvault.keys.async.keyclient.deleteKeyWithResponse#string}
+     *
+     * @param name The name of the key to be deleted.
+     * @return A {@link Mono} containing a {@link Response} whose {@link Response#getValue() value} contains the {@link
+     *     DeletedKey deleted key}.
+     * @throws ResourceNotFoundException when a key with {@code name} doesn't exist in the key vault.
+     * @throws HttpRequestException when a key with {@code name} is empty string.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Response<DeletedKey>> deleteKeyWithResponse(String name) {
+        return withContext(context -> deleteKeyWithResponse(name, context));
     }
 
     Mono<Response<DeletedKey>> deleteKeyWithResponse(String name, Context context) {
@@ -738,11 +727,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<DeletedKey> getDeletedKey(String name) {
-        try {
-            return getDeletedKeyWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getDeletedKeyWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -764,11 +749,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<DeletedKey>> getDeletedKeyWithResponse(String name) {
-        try {
-            return withContext(context -> getDeletedKeyWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> getDeletedKeyWithResponse(name, context));
     }
 
     Mono<Response<DeletedKey>> getDeletedKeyWithResponse(String name, Context context) {
@@ -796,11 +777,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Void> purgeDeletedKey(String name) {
-        try {
-            return purgeDeletedKeyWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return purgeDeletedKeyWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -821,11 +798,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> purgeDeletedKeyWithResponse(String name) {
-        try {
-            return withContext(context -> purgeDeletedKeyWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> purgeDeletedKeyWithResponse(name, context));
     }
 
     Mono<Response<Void>> purgeDeletedKeyWithResponse(String name, Context context) {
@@ -852,30 +825,30 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException when a key with {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Poller<KeyVaultKey, Void> beginRecoverDeletedKey(String name) {
-        return new Poller<>(Duration.ofSeconds(1), createRecoverPollOperation(name), () -> Mono.empty(), recoverActivationOperation(name), null);
+    public Mono<Key> recoverDeletedKey(String name) {
+        return recoverDeletedKeyWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
-    private Supplier<Mono<KeyVaultKey>> recoverActivationOperation(String name) {
-        return () -> withContext(context -> recoverDeletedKeyWithResponse(name, context)
-            .flatMap(keyResponse -> Mono.just(keyResponse.getValue())));
-    }
-
-    /*
-    Polling operation to poll on create delete key operation status.
-    */
-    private Function<PollResponse<KeyVaultKey>, Mono<PollResponse<KeyVaultKey>>> createRecoverPollOperation(String keyName) {
-        return prePollResponse ->
-            withContext(context -> service.getKeyPoller(vaultUrl, keyName, "", API_VERSION, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .flatMap(keyResponse -> {
-                    if (keyResponse.getStatusCode() == 404) {
-                        return Mono.defer(() -> Mono.just(new PollResponse<>(PollResponse.OperationStatus.IN_PROGRESS, prePollResponse.getValue())));
-                    }
-                    return Mono.defer(() -> Mono.just(new PollResponse<>(PollResponse.OperationStatus.SUCCESSFULLY_COMPLETED, keyResponse.getValue())));
-                }))
-                // This means permission is not granted for the get deleted key operation.
-                // In both cases deletion operation was successful when activation operation succeeded before reaching here.
-                .onErrorReturn(new PollResponse<>(PollResponse.OperationStatus.SUCCESSFULLY_COMPLETED, prePollResponse.getValue()));
+    /**
+     * Recovers the deleted key in the key vault to its latest version and can only be performed on a soft-delete
+     * enabled vault. An attempt to recover an non-deleted key will return an error. Consider this the inverse of the
+     * delete operation on soft-delete enabled vaults. This operation requires the {@code keys/recover} permission.
+     *
+     * <p><strong>Code Samples</strong></p>
+     * <p>Recovers the deleted key from the key vault enabled for soft-delete. Subscribes to the call asynchronously and
+     * prints out the recovered key details when a response has been received.</p>
+     * //Assuming key is deleted on a soft-delete enabled vault.
+     * {@codesnippet com.azure.security.keyvault.keys.async.keyclient.recoverDeletedKeyWithResponse#string}
+     *
+     * @param name The name of the deleted key to be recovered.
+     * @return A {@link Mono} containing a {@link Response} whose {@link Response#getValue() value} contains the {@link Key
+     *     recovered key}.
+     * @throws ResourceNotFoundException when a key with {@code name} doesn't exist in the key vault.
+     * @throws HttpRequestException when a key with {@code name} is empty string.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Response<Key>> recoverDeletedKeyWithResponse(String name) {
+        return withContext(context -> recoverDeletedKeyWithResponse(name, context));
     }
 
     Mono<Response<KeyVaultKey>> recoverDeletedKeyWithResponse(String name, Context context) {
@@ -911,11 +884,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<byte[]> backupKey(String name) {
-        try {
-            return backupKeyWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return backupKeyWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -944,11 +913,7 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<byte[]>> backupKeyWithResponse(String name) {
-        try {
-            return withContext(context -> backupKeyWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> backupKeyWithResponse(name, context));
     }
 
     Mono<Response<byte[]>> backupKeyWithResponse(String name, Context context) {
@@ -983,12 +948,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException when {@code backup} blob is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<KeyVaultKey> restoreKeyBackup(byte[] backup) {
-        try {
-            return restoreKeyBackupWithResponse(backup).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Key> restoreKey(byte[] backup) {
+        return restoreKeyWithResponse(backup).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -1015,12 +976,8 @@ public final class KeyAsyncClient {
      * @throws ResourceModifiedException when {@code backup} blob is malformed.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<Response<KeyVaultKey>> restoreKeyBackupWithResponse(byte[] backup) {
-        try {
-            return withContext(context -> restoreKeyBackupWithResponse(backup, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+    public Mono<Response<Key>> restoreKeyWithResponse(byte[] backup) {
+        return withContext(context -> restoreKeyWithResponse(backup, context));
     }
 
     Mono<Response<KeyVaultKey>> restoreKeyBackupWithResponse(byte[] backup, Context context) {
@@ -1048,14 +1005,10 @@ public final class KeyAsyncClient {
      * @return A {@link PagedFlux} containing {@link KeyProperties key} of all the keys in the vault.
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
-    public PagedFlux<KeyProperties> listPropertiesOfKeys() {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listKeysFirstPage(context)),
-                continuationToken -> withContext(context -> listKeysNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+    public PagedFlux<KeyProperties> listKeys() {
+        return new PagedFlux<>(
+            () -> withContext(context -> listKeysFirstPage(context)),
+            continuationToken -> withContext(context -> listKeysNextPage(continuationToken, context)));
     }
 
     PagedFlux<KeyProperties> listPropertiesOfKeys(Context context) {
@@ -1073,14 +1026,10 @@ public final class KeyAsyncClient {
      * @return A {@link Mono} of {@link PagedResponse<KeyProperties>} from the next page of results.
      */
     private Mono<PagedResponse<KeyProperties>> listKeysNextPage(String continuationToken, Context context) {
-        try {
-            return service.getKeys(vaultUrl, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing next keys page - Page {} ", continuationToken))
-                .doOnSuccess(response -> logger.info("Listed next keys page - Page {} ", continuationToken))
-                .doOnError(error -> logger.warning("Failed to list next keys page - Page {} ", continuationToken, error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getKeys(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing next keys page - Page {} ", continuationToken))
+            .doOnSuccess(response -> logger.info("Listed next keys page - Page {} ", continuationToken))
+            .doOnError(error -> logger.warning("Failed to list next keys page - Page {} ", continuationToken, error));
     }
 
     /*
@@ -1088,15 +1037,11 @@ public final class KeyAsyncClient {
      * DEFAULT_MAX_PAGE_RESULTS} values.
      */
     private Mono<PagedResponse<KeyProperties>> listKeysFirstPage(Context context) {
-        try {
-            return service.getKeys(vaultUrl, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing keys"))
-                .doOnSuccess(response -> logger.info("Listed keys"))
-                .doOnError(error -> logger.warning("Failed to list keys", error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getKeys(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing keys"))
+            .doOnSuccess(response -> logger.info("Listed keys"))
+            .doOnError(error -> logger.warning("Failed to list keys", error));
     }
 
     /**
@@ -1114,13 +1059,9 @@ public final class KeyAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     public PagedFlux<DeletedKey> listDeletedKeys() {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listDeletedKeysFirstPage(context)),
-                continuationToken -> withContext(context -> listDeletedKeysNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+        return new PagedFlux<>(
+            () -> withContext(context -> listDeletedKeysFirstPage(context)),
+            continuationToken -> withContext(context -> listDeletedKeysNextPage(continuationToken, context)));
     }
 
     PagedFlux<DeletedKey> listDeletedKeys(Context context) {
@@ -1138,15 +1079,11 @@ public final class KeyAsyncClient {
      * @return A {@link Mono} of {@link PagedResponse<DeletedKey>} from the next page of results.
      */
     private Mono<PagedResponse<DeletedKey>> listDeletedKeysNextPage(String continuationToken, Context context) {
-        try {
-            return service.getDeletedKeys(vaultUrl, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing next deleted keys page - Page {} ", continuationToken))
-                .doOnSuccess(response -> logger.info("Listed next deleted keys page - Page {} ", continuationToken))
-                .doOnError(error -> logger.warning("Failed to list next deleted keys page - Page {} ", continuationToken,
-                    error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getDeletedKeys(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing next deleted keys page - Page {} ", continuationToken))
+            .doOnSuccess(response -> logger.info("Listed next deleted keys page - Page {} ", continuationToken))
+            .doOnError(error -> logger.warning("Failed to list next deleted keys page - Page {} ", continuationToken,
+                error));
     }
 
     /*
@@ -1154,15 +1091,11 @@ public final class KeyAsyncClient {
      * DEFAULT_MAX_PAGE_RESULTS} values.
      */
     private Mono<PagedResponse<DeletedKey>> listDeletedKeysFirstPage(Context context) {
-        try {
-            return service.getDeletedKeys(vaultUrl, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing deleted keys"))
-                .doOnSuccess(response -> logger.info("Listed deleted keys"))
-                .doOnError(error -> logger.warning("Failed to list deleted keys", error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getDeletedKeys(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing deleted keys"))
+            .doOnSuccess(response -> logger.info("Listed deleted keys"))
+            .doOnError(error -> logger.warning("Failed to list deleted keys", error));
     }
 
     /**
@@ -1183,14 +1116,10 @@ public final class KeyAsyncClient {
      * @throws HttpRequestException when a key with {@code name} is empty string.
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
-    public PagedFlux<KeyProperties> listPropertiesOfKeyVersions(String name) {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listKeyVersionsFirstPage(name, context)),
-                continuationToken -> withContext(context -> listKeyVersionsNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+    public PagedFlux<KeyProperties> listKeyVersions(String name) {
+        return new PagedFlux<>(
+            () -> withContext(context -> listKeyVersionsFirstPage(name, context)),
+            continuationToken -> withContext(context -> listKeyVersionsNextPage(continuationToken, context)));
     }
 
     PagedFlux<KeyProperties> listPropertiesOfKeyVersions(String name, Context context) {
@@ -1200,15 +1129,11 @@ public final class KeyAsyncClient {
     }
 
     private Mono<PagedResponse<KeyProperties>> listKeyVersionsFirstPage(String name, Context context) {
-        try {
-            return service.getKeyVersions(vaultUrl, name, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing key versions - {}", name))
-                .doOnSuccess(response -> logger.info("Listed key versions - {}", name))
-                .doOnError(error -> logger.warning(String.format("Failed to list key versions - {}", name), error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getKeyVersions(endpoint, name, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing key versions - {}", name))
+            .doOnSuccess(response -> logger.info("Listed key versions - {}", name))
+            .doOnError(error -> logger.warning(String.format("Failed to list key versions - {}", name), error));
     }
 
     /*
@@ -1220,15 +1145,11 @@ public final class KeyAsyncClient {
      * @return A {@link Mono} of {@link PagedResponse<KeyProperties>} from the next page of results.
      */
     private Mono<PagedResponse<KeyProperties>> listKeyVersionsNextPage(String continuationToken, Context context) {
-        try {
-            return service.getKeys(vaultUrl, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing next key versions page - Page {} ", continuationToken))
-                .doOnSuccess(response -> logger.info("Listed next key versions page - Page {} ", continuationToken))
-                .doOnError(error -> logger.warning("Failed to list next key versions page - Page {} ", continuationToken,
-                    error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getKeys(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing next key versions page - Page {} ", continuationToken))
+            .doOnSuccess(response -> logger.info("Listed next key versions page - Page {} ", continuationToken))
+            .doOnError(error -> logger.warning("Failed to list next key versions page - Page {} ", continuationToken,
+                error));
     }
 }
 
