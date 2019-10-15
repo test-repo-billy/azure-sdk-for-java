@@ -20,6 +20,7 @@ import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.tcp.ProxyProvider;
 
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.function.BiFunction;

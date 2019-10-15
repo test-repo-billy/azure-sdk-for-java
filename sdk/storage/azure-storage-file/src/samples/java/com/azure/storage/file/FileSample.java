@@ -7,7 +7,7 @@ import com.azure.core.util.polling.Poller;
 import com.azure.storage.file.models.CopyStatusType;
 import com.azure.storage.file.models.FileCopyInfo;
 import com.azure.storage.file.models.FileProperties;
-import com.azure.storage.file.models.FileStorageException;
+import com.azure.storage.file.models.StorageException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -50,7 +50,7 @@ public class FileSample {
         // Create a source file
         try {
             srcFileClient.create(1024);
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to create source client. Reasons: " + e.getMessage());
         }
 
@@ -59,7 +59,7 @@ public class FileSample {
         InputStream uploadData = new ByteArrayInputStream(data);
         try {
             srcFileClient.upload(uploadData, data.length);
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to upload the data. Reasons: " + e.getMessage());
         }
         // Create a destination file client.
@@ -72,19 +72,20 @@ public class FileSample {
         String clientURL = srcFileClient.getFileUrl();
 
         String sourceURL = clientURL + "/" + shareName + "/" + parentDirName + "/" + srcFileName;
-        Duration pollInterval = Duration.ofSeconds(2);
-        Poller<FileCopyInfo, Void> poller = destFileClient.beginCopy(sourceURL, null, pollInterval);
 
-        poller.getObserver().subscribe(pollResponse -> {
-            final FileCopyInfo copyInfo = pollResponse.getValue();
+        FileCopyInfo copyResponse;
+        try {
+            copyResponse = destFileClient.startCopy(sourceURL, null);
+        } catch (StorageException e) {
+            throw new RuntimeException("Failed to start the copy of source file. Reasons: " + e.getMessage());
+        }
 
-            // Abort the copy if the status is pending.
-            if (copyInfo.getCopyStatus() == CopyStatusType.PENDING) {
-                try {
-                    destFileClient.abortCopy(copyInfo.getCopyId());
-                } catch (FileStorageException e) {
-                    System.out.println("Failed to abort the copy. Reasons: " + e.getMessage());
-                }
+        // Abort the copy if the status is pending.
+        if (copyResponse.getCopyStatus() == CopyStatusType.PENDING) {
+            try {
+                destFileClient.abortCopy(copyResponse.getCopyId());
+            } catch (StorageException e) {
+                System.out.println("Failed to abort the copy. Reasons: " + e.getMessage());
             }
         });
 
@@ -94,7 +95,7 @@ public class FileSample {
 
         try {
             srcFileClient.uploadFromFile(uploadPath);
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to upload file to storage. Reasons: " + e.getMessage());
         }
 
@@ -110,7 +111,7 @@ public class FileSample {
         }
         try {
             srcFileClient.downloadToFile(downloadPath);
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to download file from storage. Reasons: " + e.getMessage());
         }
 
@@ -122,14 +123,14 @@ public class FileSample {
         try {
             FileProperties propertiesResponse = srcFileClient.getProperties();
             System.out.printf("This is the eTag: %s of the file. File type is : %s.", propertiesResponse.getETag(), propertiesResponse.getFileType());
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to get file properties. Reasons: " + e.getMessage());
         }
 
         // Delete the source file.
         try {
             srcFileClient.delete();
-        } catch (FileStorageException e) {
+        } catch (StorageException e) {
             System.out.println("Failed to delete the src file. Reasons: " + e.getMessage());
         }
 
