@@ -1,7 +1,5 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
 package com.azure.storage.queue
+
 
 import com.azure.storage.common.AccountSasPermission
 import com.azure.storage.common.AccountSasResourceType
@@ -10,11 +8,10 @@ import com.azure.storage.common.AccountSasSignatureValues
 import com.azure.storage.common.SasProtocol
 import com.azure.storage.common.credentials.SharedKeyCredential
 import com.azure.storage.common.sas.SasIpRange
-
+import com.azure.storage.queue.models.EnqueuedMessage
 import com.azure.storage.queue.models.QueueAccessPolicy
 import com.azure.storage.queue.models.QueueSignedIdentifier
 import com.azure.storage.queue.models.QueueStorageException
-import com.azure.storage.queue.models.SendMessageResult
 import org.junit.Test
 import spock.lang.Unroll
 
@@ -99,7 +96,7 @@ class QueueSASTests extends APISpec {
     def "Test QueueSAS enqueue dequeue with permissions"() {
         setup:
         queueClient.create()
-        SendMessageResult resp = queueClient.sendMessage("test")
+        EnqueuedMessage resp = queueClient.enqueueMessage("test")
 
         def permissions = new QueueSasPermission()
             .setReadPermission(true)
@@ -129,8 +126,8 @@ class QueueSASTests extends APISpec {
             .queueName(queueClient.getQueueName())
             .sasToken(sasPermissions)
             .buildClient()
-        clientPermissions.sendMessage("sastest")
-        def dequeueMsgIterPermissions = clientPermissions.receiveMessages(2).iterator()
+        clientPermissions.enqueueMessage("sastest")
+        def dequeueMsgIterPermissions = clientPermissions.getMessages(2).iterator()
 
         then:
         notThrown(QueueStorageException)
@@ -138,7 +135,7 @@ class QueueSASTests extends APISpec {
         "sastest" == dequeueMsgIterPermissions.next().getMessageText()
 
         when:
-        clientPermissions.updateMessage(resp.getMessageId(), resp.getPopReceipt(), "testing", Duration.ofHours(1))
+        clientPermissions.updateMessage("testing", resp.getMessageId(), resp.getPopReceipt(), Duration.ofHours(1))
 
         then:
         thrown(QueueStorageException)
@@ -148,7 +145,7 @@ class QueueSASTests extends APISpec {
     def "Test QueueSAS update delete with permissions"() {
         setup:
         queueClient.create()
-        SendMessageResult resp = queueClient.sendMessage("test")
+        EnqueuedMessage resp = queueClient.enqueueMessage("test")
 
         def permissions = new QueueSasPermission()
             .setReadPermission(true)
@@ -179,8 +176,8 @@ class QueueSASTests extends APISpec {
             .queueName(queueClient.getQueueName())
             .sasToken(sasPermissions)
             .buildClient()
-        clientPermissions.updateMessage(resp.getMessageId(), resp.getPopReceipt(), "testing", Duration.ZERO)
-        def dequeueMsgIterPermissions = clientPermissions.receiveMessages(1).iterator()
+        clientPermissions.updateMessage("testing", resp.getMessageId(), resp.getPopReceipt(), Duration.ZERO)
+        def dequeueMsgIterPermissions = clientPermissions.getMessages(1).iterator()
 
         then:
         notThrown(QueueStorageException)
@@ -198,7 +195,7 @@ class QueueSASTests extends APISpec {
     def "Test QueueSAS enqueue dequeue with identifier"() {
         setup:
         queueClient.create()
-        queueClient.sendMessage("test")
+        queueClient.enqueueMessage("test")
 
         def permissions = new QueueSasPermission()
             .setReadPermission(true)
@@ -228,8 +225,8 @@ class QueueSASTests extends APISpec {
             .queueName(queueClient.getQueueName())
             .sasToken(sasIdentifier)
             .buildClient()
-        clientIdentifier.sendMessage("sastest")
-        def dequeueMsgIterIdentifier = clientIdentifier.receiveMessages(2).iterator()
+        clientIdentifier.enqueueMessage("sastest")
+        def dequeueMsgIterIdentifier = clientIdentifier.getMessages(2).iterator()
 
         then:
         notThrown(QueueStorageException)
