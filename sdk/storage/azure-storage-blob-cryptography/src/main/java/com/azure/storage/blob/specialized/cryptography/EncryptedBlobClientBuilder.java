@@ -36,8 +36,7 @@ import com.azure.storage.common.implementation.policy.SasTokenCredentialPolicy;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RequestRetryPolicy;
 import com.azure.storage.common.policy.ResponseValidationPolicyBuilder;
-import com.azure.storage.common.policy.StorageSharedKeyCredentialPolicy;
-import com.azure.storage.common.policy.ScrubEtagPolicy;
+import com.azure.storage.common.policy.SharedKeyCredentialPolicy;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -185,9 +184,7 @@ public final class EncryptedBlobClientBuilder {
 
         policies.add(new HttpLoggingPolicy(logOptions));
 
-        policies.add(new ScrubEtagPolicy());
-
-        return new HttpPipelineBuilder()
+        HttpPipeline pipeline = new HttpPipelineBuilder()
             .policies(policies.toArray(new HttpPipelinePolicy[0]))
             .httpClient(httpClient)
             .build();
