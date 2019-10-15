@@ -29,7 +29,6 @@ import com.azure.core.exception.ResourceNotFoundException;
 import com.azure.core.exception.ResourceModifiedException;
 import com.azure.core.exception.HttpRequestException;
 
-import static com.azure.core.implementation.util.FluxUtil.monoError;
 import static com.azure.core.implementation.util.FluxUtil.withContext;
 
 /**
@@ -93,11 +92,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> setSecret(Secret secret) {
-        try {
-            return setSecretWithResponse(secret).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return setSecretWithResponse(secret).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -124,11 +119,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Secret>> setSecretWithResponse(Secret secret) {
-        try {
-            return withContext(context -> setSecretWithResponse(secret, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> setSecretWithResponse(secret, context));
     }
 
     Mono<Response<Secret>> setSecretWithResponse(Secret secret, Context context) {
@@ -164,11 +155,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> setSecret(String name, String value) {
-        try {
-            return withContext(context -> setSecretWithResponse(name, value, context)).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> setSecretWithResponse(name, value, context)).flatMap(FluxUtil::toMono);
     }
 
     Mono<Response<Secret>> setSecretWithResponse(String name, String value, Context context) {
@@ -201,11 +188,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> getSecret(String name, String version) {
-        try {
-            return getSecretWithResponse(name, version).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getSecretWithResponse(name, version).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -228,11 +211,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Secret>> getSecretWithResponse(String name, String version) {
-        try {
-            return withContext(context -> getSecretWithResponse(name, version, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> getSecretWithResponse(name, version, context));
     }
 
     Mono<Response<Secret>> getSecretWithResponse(String name, String version, Context context) {
@@ -265,11 +244,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> getSecret(SecretProperties secretProperties) {
-        try {
-            return getSecretWithResponse(secretProperties).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getSecretWithResponse(secretProperties).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -294,11 +269,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Secret>> getSecretWithResponse(SecretProperties secretProperties) {
-        try {
-            return withContext(context -> getSecretWithResponse(secretProperties, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> getSecretWithResponse(secretProperties, context));
     }
 
     Mono<Response<Secret>> getSecretWithResponse(SecretProperties secretProperties, Context context) {
@@ -324,11 +295,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> getSecret(String name) {
-        try {
-            return getSecretWithResponse(name, "").flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getSecretWithResponse(name, "").flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -355,11 +322,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<SecretProperties> updateSecretProperties(SecretProperties secretProperties) {
-        try {
-            return updateSecretPropertiesWithResponse(secretProperties).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return updateSecretPropertiesWithResponse(secretProperties).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -387,11 +350,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<SecretProperties>> updateSecretPropertiesWithResponse(SecretProperties secretProperties) {
-        try {
-            return withContext(context -> updateSecretPropertiesWithResponse(secretProperties, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> updateSecretPropertiesWithResponse(secretProperties, context));
     }
 
     Mono<Response<SecretProperties>> updateSecretPropertiesWithResponse(SecretProperties secretProperties, Context context) {
@@ -426,11 +385,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<DeletedSecret> deleteSecret(String name) {
-        try {
-            return deleteSecretWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return deleteSecretWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -452,11 +407,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<DeletedSecret>> deleteSecretWithResponse(String name) {
-        try {
-            return withContext(context -> deleteSecretWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> deleteSecretWithResponse(name, context));
     }
 
     Mono<Response<DeletedSecret>> deleteSecretWithResponse(String name, Context context) {
@@ -484,11 +435,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<DeletedSecret> getDeletedSecret(String name) {
-        try {
-            return getDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -510,11 +457,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<DeletedSecret>> getDeletedSecretWithResponse(String name) {
-        try {
-            return withContext(context -> getDeletedSecretWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> getDeletedSecretWithResponse(name, context));
     }
 
     Mono<Response<DeletedSecret>> getDeletedSecretWithResponse(String name, Context context) {
@@ -544,11 +487,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Void> purgeDeletedSecret(String name) {
-        try {
-            return purgeDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return purgeDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -570,11 +509,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> purgeDeletedSecretWithResponse(String name) {
-        try {
-            return withContext(context -> purgeDeletedSecretWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> purgeDeletedSecretWithResponse(name, context));
     }
 
     Mono<Response<Void>> purgeDeletedSecretWithResponse(String name, Context context) {
@@ -604,11 +539,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> recoverDeletedSecret(String name) {
-        try {
-            return recoverDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return recoverDeletedSecretWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -631,11 +562,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Secret>> recoverDeletedSecretWithResponse(String name) {
-        try {
-            return withContext(context -> recoverDeletedSecretWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> recoverDeletedSecretWithResponse(name, context));
     }
 
     Mono<Response<Secret>> recoverDeletedSecretWithResponse(String name, Context context) {
@@ -663,11 +590,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<byte[]> backupSecret(String name) {
-        try {
-            return backupSecretWithResponse(name).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return backupSecretWithResponse(name).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -688,11 +611,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<byte[]>> backupSecretWithResponse(String name) {
-        try {
-            return withContext(context -> backupSecretWithResponse(name, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> backupSecretWithResponse(name, context));
     }
 
     Mono<Response<byte[]>> backupSecretWithResponse(String name, Context context) {
@@ -721,11 +640,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Secret> restoreSecret(byte[] backup) {
-        try {
-            return restoreSecretWithResponse(backup).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return restoreSecretWithResponse(backup).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -746,11 +661,7 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Secret>> restoreSecretWithResponse(byte[] backup) {
-        try {
-            return withContext(context -> restoreSecretWithResponse(backup, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> restoreSecretWithResponse(backup, context));
     }
 
     Mono<Response<Secret>> restoreSecretWithResponse(byte[] backup, Context context) {
@@ -779,13 +690,9 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     public PagedFlux<SecretProperties> listSecrets() {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listSecretsFirstPage(context)),
-                continuationToken -> withContext(context -> listSecretsNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+        return new PagedFlux<>(
+            () -> withContext(context -> listSecretsFirstPage(context)),
+            continuationToken -> withContext(context -> listSecretsNextPage(continuationToken, context)));
     }
 
     PagedFlux<SecretProperties> listSecrets(Context context) {
@@ -803,15 +710,11 @@ public final class SecretAsyncClient {
      * @return A {@link Mono} of {@link PagedResponse<SecretProperties>} from the next page of results.
      */
     private Mono<PagedResponse<SecretProperties>> listSecretsNextPage(String continuationToken, Context context) {
-        try {
-            return service.getSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignoredValue -> logger.info("Retrieving the next secrets page - Page {}", continuationToken))
-                .doOnSuccess(response -> logger.info("Retrieved the next secrets page - Page {}", continuationToken))
-                .doOnError(error -> logger.warning("Failed to retrieve the next secrets page - Page {}",
-                    continuationToken, error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignoredValue -> logger.info("Retrieving the next secrets page - Page {}", continuationToken))
+            .doOnSuccess(response -> logger.info("Retrieved the next secrets page - Page {}", continuationToken))
+            .doOnError(error -> logger.warning("Failed to retrieve the next secrets page - Page {}",
+                continuationToken, error));
     }
 
     /*
@@ -819,15 +722,11 @@ public final class SecretAsyncClient {
      * DEFAULT_MAX_PAGE_RESULTS} values.
      */
     private Mono<PagedResponse<SecretProperties>> listSecretsFirstPage(Context context) {
-        try {
-            return service.getSecrets(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing secrets"))
-                .doOnSuccess(response -> logger.info("Listed secrets"))
-                .doOnError(error -> logger.warning("Failed to list secrets", error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getSecrets(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing secrets"))
+            .doOnSuccess(response -> logger.info("Listed secrets"))
+            .doOnError(error -> logger.warning("Failed to list secrets", error));
     }
 
     /**
@@ -844,13 +743,9 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     public PagedFlux<DeletedSecret> listDeletedSecrets() {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listDeletedSecretsFirstPage(context)),
-                continuationToken -> withContext(context -> listDeletedSecretsNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+        return new PagedFlux<>(
+            () -> withContext(context -> listDeletedSecretsFirstPage(context)),
+            continuationToken -> withContext(context -> listDeletedSecretsNextPage(continuationToken, context)));
     }
 
     PagedFlux<DeletedSecret> listDeletedSecrets(Context context) {
@@ -870,18 +765,14 @@ public final class SecretAsyncClient {
      * results.
      */
     private Mono<PagedResponse<DeletedSecret>> listDeletedSecretsNextPage(String continuationToken, Context context) {
-        try {
-            return service.getDeletedSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE,
-                context)
-                .doOnRequest(ignoredValue -> logger.info("Retrieving the next deleted secrets page - Page {}",
-                    continuationToken))
-                .doOnSuccess(response -> logger.info("Retrieved the next deleted secrets page - Page {}",
-                    continuationToken))
-                .doOnError(error -> logger.warning("Failed to retrieve the next deleted secrets page - Page {}",
-                    continuationToken, error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getDeletedSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE,
+            context)
+            .doOnRequest(ignoredValue -> logger.info("Retrieving the next deleted secrets page - Page {}",
+                continuationToken))
+            .doOnSuccess(response -> logger.info("Retrieved the next deleted secrets page - Page {}",
+                continuationToken))
+            .doOnError(error -> logger.warning("Failed to retrieve the next deleted secrets page - Page {}",
+                continuationToken, error));
     }
 
     /*
@@ -889,15 +780,11 @@ public final class SecretAsyncClient {
      * DEFAULT_MAX_PAGE_RESULTS} values.
      */
     private Mono<PagedResponse<DeletedSecret>> listDeletedSecretsFirstPage(Context context) {
-        try {
-            return service.getDeletedSecrets(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing deleted secrets"))
-                .doOnSuccess(response -> logger.info("Listed deleted secrets"))
-                .doOnError(error -> logger.warning("Failed to list deleted secrets", error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getDeletedSecrets(endpoint, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing deleted secrets"))
+            .doOnSuccess(response -> logger.info("Listed deleted secrets"))
+            .doOnError(error -> logger.warning("Failed to list deleted secrets", error));
     }
 
     /**
@@ -919,13 +806,9 @@ public final class SecretAsyncClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     public PagedFlux<SecretProperties> listSecretVersions(String name) {
-        try {
-            return new PagedFlux<>(
-                () -> withContext(context -> listSecretVersionsFirstPage(name, context)),
-                continuationToken -> withContext(context -> listSecretVersionsNextPage(continuationToken, context)));
-        } catch (RuntimeException ex) {
-            return new PagedFlux<>(() -> monoError(logger, ex));
-        }
+        return new PagedFlux<>(
+            () -> withContext(context -> listSecretVersionsFirstPage(name, context)),
+            continuationToken -> withContext(context -> listSecretVersionsNextPage(continuationToken, context)));
     }
 
     PagedFlux<SecretProperties> listSecretVersions(String name, Context context) {
@@ -944,17 +827,13 @@ public final class SecretAsyncClient {
      * @return A {@link Mono} of {@link PagedResponse<SecretProperties>} from the next page of results.
      */
     private Mono<PagedResponse<SecretProperties>> listSecretVersionsNextPage(String continuationToken, Context context) {
-        try {
-            return service.getSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignoredValue -> logger.info("Retrieving the next secrets versions page - Page {}",
-                    continuationToken))
-                .doOnSuccess(response -> logger.info("Retrieved the next secrets versions page - Page {}",
-                    continuationToken))
-                .doOnError(error -> logger.warning("Failed to retrieve the next secrets versions page - Page {}",
-                    continuationToken, error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getSecrets(endpoint, continuationToken, ACCEPT_LANGUAGE, CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignoredValue -> logger.info("Retrieving the next secrets versions page - Page {}",
+                continuationToken))
+            .doOnSuccess(response -> logger.info("Retrieved the next secrets versions page - Page {}",
+                continuationToken))
+            .doOnError(error -> logger.warning("Failed to retrieve the next secrets versions page - Page {}",
+                continuationToken, error));
     }
 
     /*
@@ -962,14 +841,10 @@ public final class SecretAsyncClient {
      * DEFAULT_MAX_PAGE_RESULTS} values.
      */
     private Mono<PagedResponse<SecretProperties>> listSecretVersionsFirstPage(String name, Context context) {
-        try {
-            return service.getSecretVersions(endpoint, name, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
-                CONTENT_TYPE_HEADER_VALUE, context)
-                .doOnRequest(ignored -> logger.info("Listing secret versions - {}", name))
-                .doOnSuccess(response -> logger.info("Listed secret versions - {}", name))
-                .doOnError(error -> logger.warning(String.format("Failed to list secret versions - {}", name), error));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return service.getSecretVersions(endpoint, name, DEFAULT_MAX_PAGE_RESULTS, API_VERSION, ACCEPT_LANGUAGE,
+            CONTENT_TYPE_HEADER_VALUE, context)
+            .doOnRequest(ignored -> logger.info("Listing secret versions - {}", name))
+            .doOnSuccess(response -> logger.info("Listed secret versions - {}", name))
+            .doOnError(error -> logger.warning(String.format("Failed to list secret versions - {}", name), error));
     }
 }
