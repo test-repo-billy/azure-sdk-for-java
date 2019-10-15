@@ -19,6 +19,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -334,27 +336,31 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#uploadRangeFromUrl(long, long, long, String)}
+     * Generates a code sample for using {@link FileClient#uploadRangeFromUrl(long, long, long, URI)}
+     *
+     * @throws URISyntaxException when the URI is invalid
      */
-    public void uploadFileFromURLAsync() {
+    public void uploadFileFromURLAsync() throws URISyntaxException {
         FileClient fileClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.FileClient.uploadRangeFromUrl#long-long-long-String
-        FileUploadRangeFromUrlInfo response = fileClient.uploadRangeFromUrl(6, 8, 0, "sourceUrl");
+        // BEGIN: com.azure.storage.file.fileClient.uploadRangeFromUrl#long-long-long-uri
+        FileUploadRangeFromUrlInfo response = fileClient.uploadRangeFromUrl(6, 8, 0, new URI("filewithSAStoken"));
         System.out.println("Completed upload range from url!");
-        // END: com.azure.storage.file.FileClient.uploadRangeFromUrl#long-long-long-String
+        // END: com.azure.storage.file.fileClient.uploadRangeFromUrl#long-long-long-uri
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#uploadRangeFromUrlWithResponse(long, long, long, String,
+     * Generates a code sample for using {@link FileClient#uploadRangeFromUrlWithResponse(long, long, long, URI,
      * Duration, Context)}
+     *
+     * @throws URISyntaxException when the URI is invalid
      */
-    public void uploadFileFromURLWithResponseAsync() {
+    public void uploadFileFromURLWithResponseAsync() throws URISyntaxException {
         FileClient fileClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.FileClient.uploadRangeFromUrlWithResponse#long-long-long-String-Duration-Context
-        Response<FileUploadRangeFromUrlInfo> response = fileClient.uploadRangeFromUrlWithResponse(6, 8, 0, "sourceUrl",
-            Duration.ofSeconds(1), Context.NONE);
+        // BEGIN: com.azure.storage.file.fileClient.uploadRangeFromUrlWithResponse#long-long-long-uri-duration-context
+        Response<FileUploadRangeFromUrlInfo> response = fileClient.uploadRangeFromUrlWithResponse(6,
+            8, 0, new URI("filewithSAStoken"), Duration.ofSeconds(1), Context.NONE);
         System.out.println("Completed upload range from url!");
-        // END: com.azure.storage.file.FileClient.uploadRangeFromUrlWithResponse#long-long-long-String-Duration-Context
+        // END: com.azure.storage.file.fileClient.uploadRangeFromUrlWithResponse#long-long-long-uri-duration-context
     }
 
     /**
@@ -575,42 +581,18 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Code snippet for {@link FileClient#forceCloseHandle(String)}.
+     * Generates a code sample for using {@link FileClient#forceCloseHandles(String, Duration, Context)}
      */
-    public void forceCloseHandle() {
-        FileClient fileClient = createClientWithCredential();
-        // BEGIN: com.azure.storage.file.FileClient.forceCloseHandle#String
-        fileClient.listHandles().forEach(handleItem -> {
-            fileClient.forceCloseHandle(handleItem.getHandleId());
-            System.out.printf("Closed handle %s on resource %s%n", handleItem.getHandleId(), handleItem.getPath());
-        });
-        // END: com.azure.storage.file.FileClient.forceCloseHandle#String
-    }
-
-    /**
-     * Code snippet for {@link FileClient#forceCloseHandleWithResponse(String, Duration, Context)}.
-     */
-    public void forceCloseHandleWithResponse() {
-        FileClient fileClient = createClientWithCredential();
-        // BEGIN: com.azure.storage.file.FileClient.forceCloseHandleWithResponse#String
-        fileClient.listHandles().forEach(handleItem -> {
-            Response<Void> closeResponse = fileClient
-                .forceCloseHandleWithResponse(handleItem.getHandleId(), Duration.ofSeconds(30), Context.NONE);
-            System.out.printf("Closing handle %s on resource %s completed with status code %d%n",
-                handleItem.getHandleId(), handleItem.getPath(), closeResponse.getStatusCode());
-        });
-        // END: com.azure.storage.file.FileClient.forceCloseHandleWithResponse#String
-    }
-
-    /**
-     * Code snippet for {@link FileClient#forceCloseAllHandles(Duration, Context)}.
-     */
-    public void forceCloseAllHandles() {
-        FileClient fileClient = createClientWithCredential();
-        // BEGIN: com.azure.storage.file.FileClient.forceCloseAllHandles#Duration-Context
-        int closedHandleCount = fileClient.forceCloseAllHandles(Duration.ofSeconds(30), Context.NONE);
-        System.out.printf("Closed %d open handles on the file%n", closedHandleCount);
-        // END: com.azure.storage.file.FileClient.forceCloseAllHandles#Duration-Context
+    public void forceCloseHandles() {
+        FileClient fileClient = createClientWithSASToken();
+        // BEGIN: com.azure.storage.file.fileClient.forceCloseHandles#string-duration-context
+        fileClient.listHandles(10, Duration.ofSeconds(1), new Context(key1, value1))
+            .forEach(result ->
+                fileClient.forceCloseHandles(result.getHandleId(), Duration.ofSeconds(1),
+                    new Context(key1, value1)).forEach(numOfClosedHandles ->
+                    System.out.printf("Close %d handles.", numOfClosedHandles)
+                ));
+        // END: com.azure.storage.file.fileClient.forceCloseHandles#string-duration-context
     }
 
     /**

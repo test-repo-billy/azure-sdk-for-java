@@ -3,13 +3,14 @@
 
 package com.azure.storage.file
 
-import com.azure.storage.common.implementation.Constants
+import com.azure.storage.common.Constants
 import com.azure.storage.common.credentials.SharedKeyCredential
 import com.azure.storage.file.models.FileErrorCode
 import com.azure.storage.file.models.FileHttpHeaders
-import com.azure.storage.file.models.FileStorageException
 import com.azure.storage.file.models.NtfsFileAttributes
 import com.azure.storage.file.models.ShareSnapshotInfo
+import com.azure.storage.file.models.FileStorageException
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 import java.time.LocalDateTime
@@ -377,38 +378,21 @@ class DirectoryAPITests extends APISpec {
         FileTestHelper.assertExceptionStatusCodeAndMessage(e, 404, FileErrorCode.RESOURCE_NOT_FOUND)
     }
 
-    def "Force close handle min"() {
-        given:
-        primaryDirectoryClient.create()
-
-        when:
-        primaryDirectoryClient.forceCloseHandle("1")
-
-        then:
-        notThrown(FileStorageException)
+    @Ignore
+    def "Force close handles"() {
+        // TODO: Need to find a way of mocking handles.
     }
 
-    def "Force close handle invalid handle ID"() {
+    def "Force close handles error"() {
         given:
         primaryDirectoryClient.create()
 
         when:
-        primaryDirectoryClient.forceCloseHandle("invalidHandleId")
+        primaryDirectoryClient.forceCloseHandles("handleId", true, null, null).iterator().hasNext()
 
         then:
-        thrown(FileStorageException)
-    }
-
-    def "Force close all handles min"() {
-        given:
-        primaryDirectoryClient.create()
-
-        when:
-        def numberOfHandlesClosed = primaryDirectoryClient.forceCloseAllHandles(false, null, null)
-
-        then:
-        notThrown(FileStorageException)
-        numberOfHandlesClosed == 0
+        def e = thrown(FileStorageException)
+        FileTestHelper.assertExceptionStatusCodeAndMessage(e, 400, FileErrorCode.INVALID_HEADER_VALUE)
     }
 
     def "Create sub directory"() {
