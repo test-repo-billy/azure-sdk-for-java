@@ -18,8 +18,6 @@ import com.microsoft.azure.Page;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.ServiceResource;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.TestKeys;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.TestKeyType;
-import com.microsoft.azure.management.appplatform.v2019_05_01_preview.NameAvailability;
-import com.microsoft.azure.management.appplatform.v2019_05_01_preview.NameAvailabilityParameters;
 
 class ServicesImpl extends WrapperImpl<ServicesInner> implements Services {
     private final AppPlatformManager manager;
@@ -149,18 +147,6 @@ class ServicesImpl extends WrapperImpl<ServicesInner> implements Services {
             @Override
             public TestKeys call(TestKeysInner inner) {
                 return new TestKeysImpl(inner, manager());
-            }
-        });
-    }
-
-    @Override
-    public Observable<NameAvailability> checkNameAvailabilityAsync(String location, NameAvailabilityParameters availabilityParameters) {
-        ServicesInner client = this.inner();
-        return client.checkNameAvailabilityAsync(location, availabilityParameters)
-        .map(new Func1<NameAvailabilityInner, NameAvailability>() {
-            @Override
-            public NameAvailability call(NameAvailabilityInner inner) {
-                return new NameAvailabilityImpl(inner, manager());
             }
         });
     }
