@@ -18,10 +18,10 @@ import com.azure.storage.file.models.FileInfo;
 import com.azure.storage.file.models.FileMetadataInfo;
 import com.azure.storage.file.models.FileProperties;
 import com.azure.storage.file.models.FileRange;
-import com.azure.storage.file.models.FileStorageException;
 import com.azure.storage.file.models.FileUploadInfo;
 import com.azure.storage.file.models.FileUploadRangeFromUrlInfo;
 import com.azure.storage.file.models.HandleItem;
+import com.azure.storage.file.models.FileStorageException;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.FileAlreadyExistsException;
 import java.time.Duration;
 import java.util.Map;
@@ -70,15 +71,6 @@ public class FileClient {
      */
     public String getFileUrl() {
         return fileAsyncClient.getFileUrl();
-    }
-
-    /**
-     * Gets the service version the client is using.
-     *
-     * @return the service version the client is using.
-     */
-    public String getServiceVersion() {
-        return fileAsyncClient.getServiceVersion();
     }
 
     /**
@@ -657,7 +649,7 @@ public class FileClient {
      *
      * <p>Upload a number of bytes from a file at defined source and destination offsets </p>
      *
-     * {@codesnippet com.azure.storage.file.FileClient.uploadRangeFromUrl#long-long-long-String}
+     * {@codesnippet com.azure.storage.file.fileClient.uploadRangeFromUrl#long-long-long-uri}
      *
      * <p>For more information, see the
      * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/put-range">Azure Docs</a>.</p>
@@ -665,13 +657,13 @@ public class FileClient {
      * @param length Specifies the number of bytes being transmitted in the request body.
      * @param destinationOffset Starting point of the upload range on the destination.
      * @param sourceOffset Starting point of the upload range on the source.
-     * @param sourceUrl Specifies the URL of the source file.
+     * @param sourceURI Specifies the URL of the source file.
      * @return The {@link FileUploadRangeFromUrlInfo file upload range from url info}
      */
     // TODO: (gapra) Fix put range from URL link. Service docs have not been updated to show this API
     public FileUploadRangeFromUrlInfo uploadRangeFromUrl(long length, long destinationOffset, long sourceOffset,
-        String sourceUrl) {
-        return uploadRangeFromUrlWithResponse(length, destinationOffset, sourceOffset, sourceUrl, null, Context.NONE)
+        URI sourceURI) {
+        return uploadRangeFromUrlWithResponse(length, destinationOffset, sourceOffset, sourceURI, null, Context.NONE)
             .getValue();
     }
 
@@ -682,7 +674,7 @@ public class FileClient {
      *
      * <p>Upload a number of bytes from a file at defined source and destination offsets </p>
      *
-     * {@codesnippet com.azure.storage.file.FileClient.uploadRangeFromUrlWithResponse#long-long-long-String-Duration-Context}
+     * {@codesnippet com.azure.storage.file.fileClient.uploadRangeFromUrlWithResponse#long-long-long-uri-duration-context}
      *
      * <p>For more information, see the
      * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/put-range">Azure Docs</a>.</p>
@@ -690,7 +682,7 @@ public class FileClient {
      * @param length Specifies the number of bytes being transmitted in the request body.
      * @param destinationOffset Starting point of the upload range on the destination.
      * @param sourceOffset Starting point of the upload range on the source.
-     * @param sourceUrl Specifies the URL of the source file.
+     * @param sourceURI Specifies the URL of the source file.
      * @param timeout An optional timeout applied to the operation. If a response is not returned before the timeout
      * concludes a {@link RuntimeException} will be thrown.
      * @param context Additional context that is passed through the Http pipeline during the service call.
@@ -700,9 +692,9 @@ public class FileClient {
      */
     // TODO: (gapra) Fix put range from URL link. Service docs have not been updated to show this API
     public Response<FileUploadRangeFromUrlInfo> uploadRangeFromUrlWithResponse(long length, long destinationOffset,
-        long sourceOffset, String sourceUrl, Duration timeout, Context context) {
+        long sourceOffset, URI sourceURI, Duration timeout, Context context) {
         Mono<Response<FileUploadRangeFromUrlInfo>> response = fileAsyncClient.uploadRangeFromUrlWithResponse(length,
-            destinationOffset, sourceOffset, sourceUrl, context);
+            destinationOffset, sourceOffset, sourceURI, context);
         return Utility.blockWithOptionalTimeout(response, timeout);
     }
 
@@ -856,66 +848,28 @@ public class FileClient {
     }
 
     /**
-     * Closes a handle on the file at the service. This is intended to be used alongside {@link #listHandles()}.
+     * Closes a handle or handles opened on a file at the service. It is intended to be used alongside {@link
+     * FileClient#listHandles()} (Integer)} .
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <p>Force close handles returned by list handles.</p>
+     * <p>Force close handles with handles returned by list handles in recursive.</p>
      *
-     * {@codesnippet com.azure.storage.file.FileClient.forceCloseHandle#String}
+     * {@codesnippet com.azure.storage.file.fileClient.forceCloseHandles#string-duration-context}
      *
      * <p>For more information, see the
      * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/force-close-handles">Azure Docs</a>.</p>
      *
-     * @param handleId Handle ID to be closed.
-     */
-    public void forceCloseHandle(String handleId) {
-        forceCloseHandleWithResponse(handleId, null, Context.NONE);
-    }
-
-    /**
-     * Closes a handle on the file at the service. This is intended to be used alongside {@link #listHandles()}.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <p>Force close handles returned by list handles.</p>
-     *
-     * {@codesnippet com.azure.storage.file.FileClient.forceCloseHandleWithResponse#String}
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/force-close-handles">Azure Docs</a>.</p>
-     *
-     * @param handleId Handle ID to be clsoed.
+     * @param handleId Specifies the handle ID to be closed. Use an asterisk ('*') as a wildcard string to specify all
+     * handles.
      * @param timeout An optional timeout applied to the operation. If a response is not returned before the timeout
      * concludes a {@link RuntimeException} will be thrown.
      * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return A response that only contains headers and response status code.
+     * @return The counts of number of handles closed
+     * @throws RuntimeException if the operation doesn't complete before the timeout concludes.
      */
-    public Response<Void> forceCloseHandleWithResponse(String handleId, Duration timeout, Context context) {
-        return Utility.blockWithOptionalTimeout(fileAsyncClient
-            .forceCloseHandleWithResponse(handleId, context), timeout);
-    }
-
-    /**
-     * Closes all handles opened on the file at the service.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <p>Force close all handles.</p>
-     *
-     * {@codesnippet com.azure.storage.file.FileClient.forceCloseAllHandles#Duration-Context}
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/force-close-handles">Azure Docs</a>.</p>
-     *
-     * @param timeout An optional timeout applied to the operation. If a response is not returned before the timeout
-     * concludes a {@link RuntimeException} will be thrown.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return The number of handles closed.
-     */
-    public int forceCloseAllHandles(Duration timeout, Context context) {
-        return new PagedIterable<>(fileAsyncClient.forceCloseAllHandlesWithOptionalTimeout(timeout, context))
-            .stream().reduce(0, Integer::sum);
+    public PagedIterable<Integer> forceCloseHandles(String handleId, Duration timeout, Context context) {
+        return new PagedIterable<>(fileAsyncClient.forceCloseHandlesWithOptionalTimeout(handleId, timeout, context));
     }
 
     /**
