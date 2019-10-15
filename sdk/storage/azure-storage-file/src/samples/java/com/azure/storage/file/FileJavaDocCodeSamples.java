@@ -7,7 +7,7 @@ import com.azure.core.util.Context;
 import com.azure.core.util.polling.Poller;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.models.FileCopyInfo;
-import com.azure.storage.file.models.FileHttpHeaders;
+import com.azure.storage.file.models.FileHTTPHeaders;
 import com.azure.storage.file.models.FileInfo;
 import com.azure.storage.file.models.FileMetadataInfo;
 import com.azure.storage.file.models.FileProperties;
@@ -115,18 +115,18 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#createWithResponse(long, FileHttpHeaders, FileSmbProperties,
+     * Generates a code sample for using {@link FileClient#createWithResponse(long, FileHTTPHeaders, FileSmbProperties,
      * String, Map, Duration, Context)}
      */
     public void createWithResponse() {
         FileClient fileClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.fileClient.createWithResponse#long-filehttpheaders-filesmbproperties-string-map-duration-context
-        FileHttpHeaders httpHeaders = new FileHttpHeaders()
-            .setContentType("text/html")
-            .setContentEncoding("gzip")
-            .setContentLanguage("en")
-            .setCacheControl("no-transform")
-            .setContentDisposition("attachment");
+        FileHTTPHeaders httpHeaders = new FileHTTPHeaders()
+            .setFileContentType("text/html")
+            .setFileContentEncoding("gzip")
+            .setFileContentLanguage("en")
+            .setFileCacheControl("no-transform")
+            .setFileContentDisposition("attachment");
         FileSmbProperties smbProperties = new FileSmbProperties()
             .setNtfsFileAttributes(EnumSet.of(NtfsFileAttributes.READ_ONLY))
             .setFileCreationTime(OffsetDateTime.now())
@@ -441,18 +441,18 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#setProperties(long, FileHttpHeaders, FileSmbProperties,
+     * Generates a code sample for using {@link FileClient#setProperties(long, FileHTTPHeaders, FileSmbProperties,
      * String)}
      */
     public void setHTTPHeaders() {
         FileClient fileClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.fileClient.setProperties#long-filehttpheaders-filesmbproperties-string
-        FileHttpHeaders httpHeaders = new FileHttpHeaders()
-            .setContentType("text/html")
-            .setContentEncoding("gzip")
-            .setContentLanguage("en")
-            .setCacheControl("no-transform")
-            .setContentDisposition("attachment");
+        FileHTTPHeaders httpHeaders = new FileHTTPHeaders()
+            .setFileContentType("text/html")
+            .setFileContentEncoding("gzip")
+            .setFileContentLanguage("en")
+            .setFileCacheControl("no-transform")
+            .setFileContentDisposition("attachment");
         FileSmbProperties smbProperties = new FileSmbProperties()
             .setNtfsFileAttributes(EnumSet.of(NtfsFileAttributes.READ_ONLY))
             .setFileCreationTime(OffsetDateTime.now())
@@ -466,7 +466,7 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#setProperties(long, FileHttpHeaders, FileSmbProperties,
+     * Generates a code sample for using {@link FileClient#setProperties(long, FileHTTPHeaders, FileSmbProperties,
      * String)} to clear httpHeaders and preserve SMB properties.
      */
     public void clearSyncHTTPHeaders() {
@@ -478,18 +478,18 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#setPropertiesWithResponse(long, FileHttpHeaders,
+     * Generates a code sample for using {@link FileClient#setPropertiesWithResponse(long, FileHTTPHeaders,
      * FileSmbProperties, String, Duration, Context)}
      */
     public void setHttpHeadersWithResponse() {
         FileClient fileClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.fileClient.setPropertiesWithResponse#long-filehttpheaders-filesmbproperties-string-duration-Context
-        FileHttpHeaders httpHeaders = new FileHttpHeaders()
-            .setContentType("text/html")
-            .setContentEncoding("gzip")
-            .setContentLanguage("en")
-            .setCacheControl("no-transform")
-            .setContentDisposition("attachment");
+        FileHTTPHeaders httpHeaders = new FileHTTPHeaders()
+            .setFileContentType("text/html")
+            .setFileContentEncoding("gzip")
+            .setFileContentLanguage("en")
+            .setFileCacheControl("no-transform")
+            .setFileContentDisposition("attachment");
         FileSmbProperties smbProperties = new FileSmbProperties()
             .setNtfsFileAttributes(EnumSet.of(NtfsFileAttributes.READ_ONLY))
             .setFileCreationTime(OffsetDateTime.now())
@@ -504,7 +504,7 @@ public class FileJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link FileClient#setPropertiesWithResponse(long, FileHttpHeaders,
+     * Generates a code sample for using {@link FileClient#setPropertiesWithResponse(long, FileHTTPHeaders,
      * FileSmbProperties, String, Duration, Context)} (long, FileHTTPHeaders)} to clear httpHeaders.
      */
     public void clearHTTPHeaders() {
