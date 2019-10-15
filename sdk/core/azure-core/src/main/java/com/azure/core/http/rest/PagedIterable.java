@@ -24,11 +24,11 @@ import java.util.stream.Stream;
  *
  * {@codesnippet com.azure.core.http.rest.pagedIterable.iterableByPage.while}
  *
- * @param <T> The type of value contained in this {@link IterableStream}.
+ * @param  <T> The type of value contained in this {@link IterableStream}.
  * @see PagedResponse
  * @see IterableStream
  */
-public class PagedIterable<T> extends PagedIterableBase<T, PagedResponse<T>> {
+public class PagedIterable<T> extends IterableStream<T> {
     private final PagedFlux<T> pagedFlux;
 
     /**
@@ -41,13 +41,45 @@ public class PagedIterable<T> extends PagedIterableBase<T, PagedResponse<T>> {
     }
 
     /**
-     * Maps this PagedIterable instance of T to a PagedIterable instance of type S as per the provided mapper function.
-     *
-     * @param mapper The mapper function to convert from type T to type S.
-     * @param <S> The mapped type.
-     * @return A PagedIterable of type S.
+     * Retrieve the {@link Stream}, one page at a time.
+     * It will provide same {@link Stream} of T values from starting if called multiple times.
+     * @return {@link Stream} of {@link PagedResponse}
      */
-    public <S> PagedIterable<S> mapPage(Function<T, S> mapper) {
-        return new PagedIterable<>(pagedFlux.mapPage(mapper));
+    public Stream<PagedResponse<T>> streamByPage() {
+        return pagedFlux.byPage().toStream();
+    }
+
+    /**
+     * Retrieve the {@link Stream}, one page at a time, starting from the next page associated with the given
+     * continuation token. To start from first page, use {@link #streamByPage()} instead.
+     *
+     * @param continuationToken The continuation token used to fetch the next page
+     *
+     * @return {@link Stream} of {@link PagedResponse}, starting from the page associated with the continuation token
+     */
+    public Stream<PagedResponse<T>> streamByPage(String continuationToken) {
+        return pagedFlux.byPage(continuationToken).toStream();
+    }
+
+    /**
+     * Provides {@link Iterable} API for {@link PagedResponse}
+     * It will provide same collection of {@code T} values from starting if called multiple times.
+     * @return {@link Iterable} interface
+     */
+    public Iterable<PagedResponse<T>> iterableByPage() {
+        return pagedFlux.byPage().toIterable();
+    }
+
+    /**
+     * Provides {@link Iterable} API for {@link PagedResponse}, starting from the next page associated with the given
+     * continuation token. To start from first page, use {@link #streamByPage()} instead.
+     * It will provide same collection of T values from starting if called multiple times.
+     *
+     * @param continuationToken The continuation token used to fetch the next page
+     *
+     * @return {@link Iterable} interface
+     */
+    public Iterable<PagedResponse<T>> iterableByPage(String continuationToken) {
+        return pagedFlux.byPage(continuationToken).toIterable();
     }
 }
