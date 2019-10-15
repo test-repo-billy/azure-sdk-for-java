@@ -111,4 +111,14 @@ public interface Services {
      */
     Observable<TestKeys> listTestKeysAsync(String resourceGroupName, String serviceName);
 
+    /**
+     * Checks that the resource name is valid and is not already in use.
+     *
+     * @param location the region
+     * @param availabilityParameters Parameters supplied to the operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable for the request
+     */
+    Observable<NameAvailability> checkNameAvailabilityAsync(String location, NameAvailabilityParameters availabilityParameters);
+
 }
