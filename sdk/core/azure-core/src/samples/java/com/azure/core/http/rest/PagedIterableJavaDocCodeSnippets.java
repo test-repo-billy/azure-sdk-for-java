@@ -14,13 +14,11 @@ import java.util.function.Supplier;
  */
 public class PagedIterableJavaDocCodeSnippets {
 
-
-    /**
-     * Provides an example for iterate over each response using streamByPage function.
-     **/
+    /**Provides an example for iterate over each response using streamByPage function.**/
     public void streamByPageSnippet() {
+
         PagedFlux<Integer> pagedFlux = createAnInstance();
-        PagedIterable<Integer> pagedIterableResponse = new PagedIterable<>(pagedFlux);
+        PagedIterable<Integer> pagedIterableResponse =  new PagedIterable<>(pagedFlux);
 
         // BEGIN: com.azure.core.http.rest.pagedIterable.streamByPage
         // process the streamByPage
@@ -31,7 +29,6 @@ public class PagedIterableJavaDocCodeSnippets {
                 System.out.printf("Response value is %d %n", value);
             });
         });
-
         // END: com.azure.core.http.rest.pagedIterable.streamByPage
     }
 
@@ -41,7 +38,7 @@ public class PagedIterableJavaDocCodeSnippets {
     public void iterateByPageSnippet() {
 
         PagedFlux<Integer> pagedFlux = createAnInstance();
-        PagedIterable<Integer> pagedIterableResponse = new PagedIterable<>(pagedFlux);
+        PagedIterable<Integer> pagedIterableResponse =  new PagedIterable<>(pagedFlux);
 
         // BEGIN: com.azure.core.http.rest.pagedIterable.iterableByPage
         // process the iterableByPage
@@ -61,7 +58,7 @@ public class PagedIterableJavaDocCodeSnippets {
     public void iterableByPageWhileSnippet() {
 
         PagedFlux<Integer> pagedFlux = createAnInstance();
-        PagedIterable<Integer> pagedIterableResponse = new PagedIterable<>(pagedFlux);
+        PagedIterable<Integer> pagedIterableResponse =  new PagedIterable<>(pagedFlux);
 
         // BEGIN: com.azure.core.http.rest.pagedIterable.iterableByPage.while
         // iterate over each page
@@ -95,7 +92,6 @@ public class PagedIterableJavaDocCodeSnippets {
             nextPageRetriever);
         return pagedFlux;
     }
-
 
     /**
      * Implementation not provided
