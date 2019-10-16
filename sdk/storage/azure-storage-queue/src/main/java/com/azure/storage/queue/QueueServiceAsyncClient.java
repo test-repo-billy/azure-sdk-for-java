@@ -2,10 +2,6 @@
 // Licensed under the MIT License.
 package com.azure.storage.queue;
 
-import static com.azure.core.implementation.util.FluxUtil.monoError;
-import static com.azure.core.implementation.util.FluxUtil.pagedFluxError;
-import static com.azure.core.implementation.util.FluxUtil.withContext;
-
 import com.azure.core.annotation.ServiceClient;
 import com.azure.core.http.rest.PagedFlux;
 import com.azure.core.http.rest.PagedResponse;
@@ -23,8 +19,8 @@ import com.azure.storage.queue.models.QueueCorsRule;
 import com.azure.storage.queue.models.QueueItem;
 import com.azure.storage.queue.models.QueueServiceProperties;
 import com.azure.storage.queue.models.QueueServiceStatistics;
-import com.azure.storage.queue.models.QueueStorageException;
 import com.azure.storage.queue.models.QueuesSegmentOptions;
+import com.azure.storage.queue.models.QueueStorageException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -33,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+
+import static com.azure.core.implementation.util.FluxUtil.withContext;
 
 /**
  * This class provides a client that contains all the operations for interacting with a queue account in Azure Storage.
@@ -99,11 +97,7 @@ public final class QueueServiceAsyncClient {
      * @throws QueueStorageException If a queue with the same name and different metadata already exists
      */
     public Mono<QueueAsyncClient> createQueue(String queueName) {
-        try {
-            return createQueueWithResponse(queueName, null).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return createQueueWithResponse(queueName, null).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -122,12 +116,8 @@ public final class QueueServiceAsyncClient {
      * @throws QueueStorageException If a queue with the same name and different metadata already exists
      */
     public Mono<Response<QueueAsyncClient>> createQueueWithResponse(String queueName, Map<String, String> metadata) {
-        try {
-            Objects.requireNonNull(queueName, "'queueName' cannot be null.");
-            return withContext(context -> createQueueWithResponse(queueName, metadata, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        Objects.requireNonNull(queueName, "'queueName' cannot be null.");
+        return withContext(context -> createQueueWithResponse(queueName, metadata, context));
     }
 
     Mono<Response<QueueAsyncClient>> createQueueWithResponse(String queueName, Map<String, String> metadata,
@@ -152,11 +142,7 @@ public final class QueueServiceAsyncClient {
      * @throws QueueStorageException If the queue doesn't exist
      */
     public Mono<Void> deleteQueue(String queueName) {
-        try {
-            return deleteQueueWithResponse(queueName).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return deleteQueueWithResponse(queueName).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -173,11 +159,7 @@ public final class QueueServiceAsyncClient {
      * @throws QueueStorageException If the queue doesn't exist
      */
     public Mono<Response<Void>> deleteQueueWithResponse(String queueName) {
-        try {
-            return withContext(context -> deleteQueueWithResponse(queueName, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> deleteQueueWithResponse(queueName, context));
     }
 
     Mono<Response<Void>> deleteQueueWithResponse(String queueName, Context context) {
@@ -199,11 +181,7 @@ public final class QueueServiceAsyncClient {
      * @return {@link QueueItem Queues} in the storage account
      */
     public PagedFlux<QueueItem> listQueues() {
-        try {
-            return listQueuesWithOptionalTimeout(null, null, null, Context.NONE);
-        } catch (RuntimeException ex) {
-            return pagedFluxError(logger, ex);
-        }
+        return listQueuesWithOptionalTimeout(null, null, null, Context.NONE);
     }
 
     /**
@@ -225,11 +203,7 @@ public final class QueueServiceAsyncClient {
      * @return {@link QueueItem Queues} in the storage account that satisfy the filter requirements
      */
     public PagedFlux<QueueItem> listQueues(QueuesSegmentOptions options) {
-        try {
-            return listQueuesWithOptionalTimeout(null, options, null, Context.NONE);
-        } catch (RuntimeException ex) {
-            return pagedFluxError(logger, ex);
-        }
+        return listQueuesWithOptionalTimeout(null, options, null, Context.NONE);
     }
 
     /**
@@ -288,11 +262,7 @@ public final class QueueServiceAsyncClient {
      * @return Storage account {@link QueueServiceProperties Queue service properties}
      */
     public Mono<QueueServiceProperties> getProperties() {
-        try {
-            return getPropertiesWithResponse().flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getPropertiesWithResponse().flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -312,11 +282,7 @@ public final class QueueServiceAsyncClient {
      * @return A response containing the Storage account {@link QueueServiceProperties Queue service properties}
      */
     public Mono<Response<QueueServiceProperties>> getPropertiesWithResponse() {
-        try {
-            return withContext(this::getPropertiesWithResponse);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(this::getPropertiesWithResponse);
     }
 
     Mono<Response<QueueServiceProperties>> getPropertiesWithResponse(Context context) {
@@ -362,11 +328,7 @@ public final class QueueServiceAsyncClient {
      * </ul>
      */
     public Mono<Void> setProperties(QueueServiceProperties properties) {
-        try {
-            return setPropertiesWithResponse(properties).flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return setPropertiesWithResponse(properties).flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -407,11 +369,7 @@ public final class QueueServiceAsyncClient {
      * </ul>
      */
     public Mono<Response<Void>> setPropertiesWithResponse(QueueServiceProperties properties) {
-        try {
-            return withContext(context -> setPropertiesWithResponse(properties, context));
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(context -> setPropertiesWithResponse(properties, context));
     }
 
     Mono<Response<Void>> setPropertiesWithResponse(QueueServiceProperties properties, Context context) {
@@ -434,11 +392,7 @@ public final class QueueServiceAsyncClient {
      * @return The geo replication information about the Queue service
      */
     public Mono<QueueServiceStatistics> getStatistics() {
-        try {
-            return getStatisticsWithResponse().flatMap(FluxUtil::toMono);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return getStatisticsWithResponse().flatMap(FluxUtil::toMono);
     }
 
     /**
@@ -456,11 +410,7 @@ public final class QueueServiceAsyncClient {
      * @return A response containing the geo replication information about the Queue service
      */
     public Mono<Response<QueueServiceStatistics>> getStatisticsWithResponse() {
-        try {
-            return withContext(this::getStatisticsWithResponse);
-        } catch (RuntimeException ex) {
-            return monoError(logger, ex);
-        }
+        return withContext(this::getStatisticsWithResponse);
     }
 
     Mono<Response<QueueServiceStatistics>> getStatisticsWithResponse(Context context) {
