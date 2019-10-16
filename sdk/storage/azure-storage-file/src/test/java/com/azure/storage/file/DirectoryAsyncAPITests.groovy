@@ -3,13 +3,13 @@
 
 package com.azure.storage.file
 
-import com.azure.storage.common.implementation.Constants
+import com.azure.storage.common.Constants
 import com.azure.storage.common.credentials.SharedKeyCredential
 import com.azure.storage.file.models.FileErrorCode
 import com.azure.storage.file.models.FileHttpHeaders
-import com.azure.storage.file.models.FileStorageException
 import com.azure.storage.file.models.NtfsFileAttributes
 import reactor.test.StepVerifier
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 import java.time.LocalDateTime
@@ -360,32 +360,20 @@ class DirectoryAsyncAPITests extends APISpec {
         }
     }
 
-    def "Force close handle min"() {
-        given:
-        primaryDirectoryAsyncClient.create().block()
-
-        expect:
-        StepVerifier.create(primaryDirectoryAsyncClient.forceCloseHandle("1"))
-            .verifyComplete()
+    @Ignore
+    def "Force close handles"() {
+        // TODO: Need to find a way of mocking handles.
     }
 
-    def "Force close handle invalid handle ID"() {
+    def "Force close handles error"() {
         given:
         primaryDirectoryAsyncClient.create().block()
-
-        expect:
-        StepVerifier.create(primaryDirectoryAsyncClient.forceCloseHandle("invalidHandleId"))
-            .verifyErrorSatisfies({ it instanceof  FileStorageException })
-    }
-
-    def "Force close all handles min"() {
-        given:
-        primaryDirectoryAsyncClient.create().block()
-
-        expect:
-        StepVerifier.create(primaryDirectoryAsyncClient.forceCloseAllHandles(false))
-            .assertNext({ it == 0 })
-            .verifyComplete()
+        when:
+        def forceCloseHandlesErrorVerifier = StepVerifier.create(primaryDirectoryAsyncClient.forceCloseHandles("handleId", true))
+        then:
+        forceCloseHandlesErrorVerifier.verifyErrorSatisfies {
+            assert FileTestHelper.assertExceptionStatusCodeAndMessage(it, 400, FileErrorCode.INVALID_HEADER_VALUE)
+        }
     }
 
     def "Create sub directory"() {
