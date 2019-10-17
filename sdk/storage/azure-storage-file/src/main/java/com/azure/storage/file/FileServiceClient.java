@@ -9,7 +9,7 @@ import com.azure.core.http.rest.Response;
 import com.azure.core.http.rest.SimpleResponse;
 import com.azure.core.util.Context;
 import com.azure.storage.common.Utility;
-import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.credentials.SharedKeyCredential;
 import com.azure.storage.file.models.FileCorsRule;
 import com.azure.storage.file.models.FileServiceProperties;
 import com.azure.storage.file.models.ListSharesOptions;
@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * @see FileServiceClientBuilder
  * @see FileServiceAsyncClient
- * @see StorageSharedKeyCredential
+ * @see SharedKeyCredential
  */
 @ServiceClient(builder = FileServiceClientBuilder.class)
 public final class FileServiceClient {
@@ -55,15 +55,6 @@ public final class FileServiceClient {
      */
     public String getFileServiceUrl() {
         return fileServiceAsyncClient.getFileServiceUrl();
-    }
-
-    /**
-     * Gets the service version the client is using.
-     *
-     * @return the service version the client is using.
-     */
-    public String getServiceVersion() {
-        return fileServiceAsyncClient.getServiceVersion();
     }
 
     /**

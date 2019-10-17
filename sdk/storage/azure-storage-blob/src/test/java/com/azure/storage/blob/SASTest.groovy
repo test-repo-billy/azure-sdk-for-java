@@ -11,15 +11,14 @@ import com.azure.storage.blob.models.BlobStorageException
 import com.azure.storage.blob.models.UserDelegationKey
 import com.azure.storage.blob.specialized.BlobServiceSasSignatureValues
 import com.azure.storage.blob.specialized.SpecializedBlobClientBuilder
-import com.azure.storage.common.sas.AccountSasResourceType
-import com.azure.storage.common.sas.AccountSasService
-import com.azure.storage.common.sas.AccountSasPermission
-import com.azure.storage.common.sas.AccountSasSignatureValues
-import com.azure.storage.common.sas.SasProtocol
-import com.azure.storage.common.StorageSharedKeyCredential
-
+import com.azure.storage.common.AccountSasPermission
+import com.azure.storage.common.AccountSasResourceType
+import com.azure.storage.common.AccountSasService
+import com.azure.storage.common.AccountSasSignatureValues
 import com.azure.storage.common.implementation.Constants
+import com.azure.storage.common.SasProtocol
 import com.azure.storage.common.Utility
+import com.azure.storage.common.credentials.SharedKeyCredential
 import com.azure.storage.common.sas.SasIpRange
 import spock.lang.Ignore
 import spock.lang.Unroll
@@ -738,7 +737,7 @@ class SASTest extends APISpec {
             .setVersion(version)
 
         when:
-        v.generateSasQueryParameters((StorageSharedKeyCredential) creds)
+        v.generateSasQueryParameters((SharedKeyCredential) creds)
 
         then:
         def e = thrown(NullPointerException)
@@ -747,7 +746,7 @@ class SASTest extends APISpec {
         where:
         version | creds             || parameter
         null    | primaryCredential || "version"
-        "v"     | null              || "storageSharedKeyCredential"
+        "v"     | null              || "sharedKeyCredentials"
     }
 
     @Unroll
@@ -924,7 +923,7 @@ class SASTest extends APISpec {
         if (usingUserDelegation) {
             serviceSASSignatureValues.generateSasQueryParameters(new UserDelegationKey())
         } else {
-            serviceSASSignatureValues.generateSasQueryParameters(new StorageSharedKeyCredential("", ""))
+            serviceSASSignatureValues.generateSasQueryParameters(new SharedKeyCredential("", ""))
         }
 
         then:
@@ -1001,7 +1000,7 @@ class SASTest extends APISpec {
         "c"         | "b"     | null         | OffsetDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC) | "v"     | primaryCredential || "resourceTypes"
         "c"         | "b"     | "c"          | null                                                      | "v"     | primaryCredential || "expiryTime"
         "c"         | "b"     | "c"          | OffsetDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC) | null    | primaryCredential || "version"
-        "c"         | "b"     | "c"          | OffsetDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC) | "v"     | null              || "storageSharedKeyCredentials"
+        "c"         | "b"     | "c"          | OffsetDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC) | "v"     | null              || "sharedKeyCredentials"
     }
 
     @Unroll
