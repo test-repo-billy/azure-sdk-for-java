@@ -16,14 +16,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class NetworkRuleSet {
     /**
-     * Tells what traffic can bypass network rules. This can be 'AzureServices'
-     * or 'None'.  If not specified the default is 'AzureServices'. Possible
-     * values include: 'AzureServices', 'None'.
-     */
-    @JsonProperty(value = "bypass")
-    private NetworkRuleBypassOptions bypass;
-
-    /**
      * The default action when no rule from ipRules and from
      * virtualNetworkRules match. This is only used after the bypass property
      * has been evaluated. Possible values include: 'Allow', 'Deny'.
@@ -42,26 +34,6 @@ public class NetworkRuleSet {
      */
     @JsonProperty(value = "virtualNetworkRules")
     private List<VirtualNetworkRule> virtualNetworkRules;
-
-    /**
-     * Get tells what traffic can bypass network rules. This can be 'AzureServices' or 'None'.  If not specified the default is 'AzureServices'. Possible values include: 'AzureServices', 'None'.
-     *
-     * @return the bypass value
-     */
-    public NetworkRuleBypassOptions bypass() {
-        return this.bypass;
-    }
-
-    /**
-     * Set tells what traffic can bypass network rules. This can be 'AzureServices' or 'None'.  If not specified the default is 'AzureServices'. Possible values include: 'AzureServices', 'None'.
-     *
-     * @param bypass the bypass value to set
-     * @return the NetworkRuleSet object itself.
-     */
-    public NetworkRuleSet withBypass(NetworkRuleBypassOptions bypass) {
-        this.bypass = bypass;
-        return this;
-    }
 
     /**
      * Get the default action when no rule from ipRules and from virtualNetworkRules match. This is only used after the bypass property has been evaluated. Possible values include: 'Allow', 'Deny'.

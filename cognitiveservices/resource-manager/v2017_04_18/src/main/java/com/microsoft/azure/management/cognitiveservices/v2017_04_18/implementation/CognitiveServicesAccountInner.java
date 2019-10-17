@@ -8,50 +8,33 @@
 
 package com.microsoft.azure.management.cognitiveservices.v2017_04_18.implementation;
 
-import com.microsoft.azure.management.cognitiveservices.v2017_04_18.ProvisioningState;
-import com.microsoft.azure.management.cognitiveservices.v2017_04_18.NetworkRuleSet;
+import com.microsoft.azure.management.cognitiveservices.v2017_04_18.CognitiveServicesAccountProperties;
 import com.microsoft.azure.management.cognitiveservices.v2017_04_18.Sku;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.microsoft.rest.serializer.JsonFlatten;
 import com.microsoft.azure.Resource;
 
 /**
  * Cognitive Services Account is an Azure resource representing the provisioned
  * account, its type, location and SKU.
  */
-@JsonFlatten
 public class CognitiveServicesAccountInner extends Resource {
     /**
      * Entity Tag.
      */
-    @JsonProperty(value = "etag")
+    @JsonProperty(value = "etag", access = JsonProperty.Access.WRITE_ONLY)
     private String etag;
 
     /**
-     * Type of cognitive service account.
+     * The Kind of the resource.
      */
     @JsonProperty(value = "kind")
     private String kind;
 
     /**
-     * Gets the status of the cognitive services account at the time the
-     * operation was called. Possible values include: 'Creating',
-     * 'ResolvingDNS', 'Moving', 'Deleting', 'Succeeded', 'Failed'.
+     * Properties of Cognitive Services account.
      */
-    @JsonProperty(value = "properties.provisioningState", access = JsonProperty.Access.WRITE_ONLY)
-    private ProvisioningState provisioningState;
-
-    /**
-     * Endpoint of the created account.
-     */
-    @JsonProperty(value = "properties.endpoint")
-    private String endpoint;
-
-    /**
-     * The internal identifier.
-     */
-    @JsonProperty(value = "properties.internalId")
-    private String internalId;
+    @JsonProperty(value = "properties")
+    private CognitiveServicesAccountProperties properties;
 
     /**
      * Optional subdomain name used for token-based authentication.
@@ -82,18 +65,7 @@ public class CognitiveServicesAccountInner extends Resource {
     }
 
     /**
-     * Set entity Tag.
-     *
-     * @param etag the etag value to set
-     * @return the CognitiveServicesAccountInner object itself.
-     */
-    public CognitiveServicesAccountInner withEtag(String etag) {
-        this.etag = etag;
-        return this;
-    }
-
-    /**
-     * Get type of cognitive service account.
+     * Get the Kind of the resource.
      *
      * @return the kind value
      */
@@ -102,7 +74,7 @@ public class CognitiveServicesAccountInner extends Resource {
     }
 
     /**
-     * Set type of cognitive service account.
+     * Set the Kind of the resource.
      *
      * @param kind the kind value to set
      * @return the CognitiveServicesAccountInner object itself.
@@ -113,91 +85,22 @@ public class CognitiveServicesAccountInner extends Resource {
     }
 
     /**
-     * Get gets the status of the cognitive services account at the time the operation was called. Possible values include: 'Creating', 'ResolvingDNS', 'Moving', 'Deleting', 'Succeeded', 'Failed'.
+     * Get properties of Cognitive Services account.
      *
-     * @return the provisioningState value
+     * @return the properties value
      */
-    public ProvisioningState provisioningState() {
-        return this.provisioningState;
+    public CognitiveServicesAccountProperties properties() {
+        return this.properties;
     }
 
     /**
-     * Get endpoint of the created account.
+     * Set properties of Cognitive Services account.
      *
-     * @return the endpoint value
-     */
-    public String endpoint() {
-        return this.endpoint;
-    }
-
-    /**
-     * Set endpoint of the created account.
-     *
-     * @param endpoint the endpoint value to set
+     * @param properties the properties value to set
      * @return the CognitiveServicesAccountInner object itself.
      */
-    public CognitiveServicesAccountInner withEndpoint(String endpoint) {
-        this.endpoint = endpoint;
-        return this;
-    }
-
-    /**
-     * Get the internal identifier.
-     *
-     * @return the internalId value
-     */
-    public String internalId() {
-        return this.internalId;
-    }
-
-    /**
-     * Set the internal identifier.
-     *
-     * @param internalId the internalId value to set
-     * @return the CognitiveServicesAccountInner object itself.
-     */
-    public CognitiveServicesAccountInner withInternalId(String internalId) {
-        this.internalId = internalId;
-        return this;
-    }
-
-    /**
-     * Get optional subdomain name used for token-based authentication.
-     *
-     * @return the customSubDomainName value
-     */
-    public String customSubDomainName() {
-        return this.customSubDomainName;
-    }
-
-    /**
-     * Set optional subdomain name used for token-based authentication.
-     *
-     * @param customSubDomainName the customSubDomainName value to set
-     * @return the CognitiveServicesAccountInner object itself.
-     */
-    public CognitiveServicesAccountInner withCustomSubDomainName(String customSubDomainName) {
-        this.customSubDomainName = customSubDomainName;
-        return this;
-    }
-
-    /**
-     * Get a collection of rules governing the accessibility from specific network locations.
-     *
-     * @return the networkAcls value
-     */
-    public NetworkRuleSet networkAcls() {
-        return this.networkAcls;
-    }
-
-    /**
-     * Set a collection of rules governing the accessibility from specific network locations.
-     *
-     * @param networkAcls the networkAcls value to set
-     * @return the CognitiveServicesAccountInner object itself.
-     */
-    public CognitiveServicesAccountInner withNetworkAcls(NetworkRuleSet networkAcls) {
-        this.networkAcls = networkAcls;
+    public CognitiveServicesAccountInner withProperties(CognitiveServicesAccountProperties properties) {
+        this.properties = properties;
         return this;
     }
 
