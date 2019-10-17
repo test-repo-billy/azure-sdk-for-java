@@ -7,13 +7,14 @@ package com.azure.storage.blob
 import com.azure.storage.blob.models.BlobAnalyticsLogging
 import com.azure.storage.blob.models.BlobContainerItem
 import com.azure.storage.blob.models.BlobContainerListDetails
-import com.azure.storage.blob.models.BlobCorsRule
-import com.azure.storage.blob.models.BlobMetrics
-import com.azure.storage.blob.models.BlobRetentionPolicy
 import com.azure.storage.blob.models.BlobServiceProperties
+import com.azure.storage.blob.models.CorsRule
 import com.azure.storage.blob.models.ListBlobContainersOptions
 import com.azure.storage.blob.models.StaticWebsite
-import com.azure.storage.blob.models.BlobStorageException
+import com.azure.storage.blob.models.StorageAccountInfo
+import com.azure.storage.blob.models.StorageException
+import com.azure.storage.blob.models.StorageServiceStats
+import com.azure.storage.blob.models.UserDelegationKey
 import com.azure.storage.common.credentials.SharedKeyCredential
 import com.azure.storage.common.policy.RequestRetryOptions
 import com.azure.storage.common.policy.RequestRetryPolicy
@@ -23,7 +24,7 @@ import java.time.OffsetDateTime
 
 class ServiceAPITest extends APISpec {
     def setup() {
-        def disabled = new BlobRetentionPolicy().setEnabled(false)
+        RetentionPolicy disabled = new RetentionPolicy().setEnabled(false)
         primaryBlobServiceClient.setProperties(new BlobServiceProperties()
             .setStaticWebsite(new StaticWebsite().setEnabled(false))
             .setDeleteRetentionPolicy(disabled)
@@ -38,7 +39,7 @@ class ServiceAPITest extends APISpec {
     }
 
     def cleanup() {
-        def disabled = new BlobRetentionPolicy().setEnabled(false)
+        RetentionPolicy disabled = new RetentionPolicy().setEnabled(false)
         primaryBlobServiceClient.setProperties(new BlobServiceProperties()
             .setStaticWebsite(new StaticWebsite().setEnabled(false))
             .setDeleteRetentionPolicy(disabled)
@@ -216,7 +217,7 @@ class ServiceAPITest extends APISpec {
             .setIndexDocument("myIndex.html")
             .setErrorDocument404Path("custom/error/path.html")
 
-        def sentProperties = new BlobServiceProperties()
+        BlobServiceProperties sentProperties = new BlobServiceProperties()
             .setLogging(logging).setCors(corsRules).setDefaultServiceVersion(defaultServiceVersion)
             .setMinuteMetrics(minuteMetrics).setHourMetrics(hourMetrics)
             .setDeleteRetentionPolicy(retentionPolicy)
@@ -227,7 +228,7 @@ class ServiceAPITest extends APISpec {
         // Service properties may take up to 30s to take effect. If they weren't already in place, wait.
         sleepIfRecord(30 * 1000)
 
-        def receivedProperties = primaryBlobServiceClient.getProperties()
+        BlobServiceProperties receivedProperties = primaryBlobServiceClient.getProperties()
 
         then:
         headers.getValue("x-ms-request-id") != null
@@ -257,7 +258,7 @@ class ServiceAPITest extends APISpec {
             .setIndexDocument("myIndex.html")
             .setErrorDocument404Path("custom/error/path.html")
 
-        def sentProperties = new BlobServiceProperties()
+        BlobServiceProperties sentProperties = new BlobServiceProperties()
             .setLogging(logging).setCors(corsRules).setDefaultServiceVersion(defaultServiceVersion)
             .setMinuteMetrics(minuteMetrics).setHourMetrics(hourMetrics)
             .setDeleteRetentionPolicy(retentionPolicy)
