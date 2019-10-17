@@ -15,6 +15,8 @@ import com.azure.storage.blob.models.SourceModifiedAccessConditions;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -33,9 +35,15 @@ public class AppendBlobClientJavaDocCodeSnippets {
     private long length = 4L;
     private static final Long POSITION = null;
     private Long maxSize = length;
-    private String sourceUrl = "https://example.com";
+    private URL sourceUrl = new URL("https://example.com");
     private long offset = 1024;
     private long count = 1024;
+
+    /**
+     * @throws MalformedURLException Ignore
+     */
+    public AppendBlobClientJavaDocCodeSnippets() throws MalformedURLException {
+    }
 
     /**
      * Code snippet for {@link AppendBlobClient#create()}
@@ -96,21 +104,21 @@ public class AppendBlobClientJavaDocCodeSnippets {
     }
 
     /**
-     * Code snippet for {@link AppendBlobClient#appendBlockFromUrl(String, BlobRange)}
+     * Code snippet for {@link AppendBlobClient#appendBlockFromUrl(URL, BlobRange)}
      */
     public void appendBlockFromUrl() {
-        // BEGIN: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrl#String-BlobRange
+        // BEGIN: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrl#URL-BlobRange
         System.out.printf("AppendBlob has %d committed blocks%n",
             client.appendBlockFromUrl(sourceUrl, new BlobRange(offset, count)).getBlobCommittedBlockCount());
-        // END: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrl#String-BlobRange
+        // END: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrl#URL-BlobRange
     }
 
     /**
-     * Code snippet for {@link AppendBlobClient#appendBlockFromUrlWithResponse(String, BlobRange, byte[],
+     * Code snippet for {@link AppendBlobClient#appendBlockFromUrlWithResponse(URL, BlobRange, byte[],
      * AppendBlobAccessConditions, SourceModifiedAccessConditions, Duration, Context)}
      */
     public void appendBlockFromUrlWithResponse() {
-        // BEGIN: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrlWithResponse#String-BlobRange-byte-AppendBlobAccessConditions-SourceModifiedAccessConditions-Duration-Context
+        // BEGIN: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrlWithResponse#URL-BlobRange-byte-AppendBlobAccessConditions-SourceModifiedAccessConditions-Duration-Context
         AppendBlobAccessConditions appendBlobAccessConditions = new AppendBlobAccessConditions()
             .setAppendPositionAccessConditions(new AppendPositionAccessConditions()
                 .setAppendPosition(POSITION)
@@ -125,6 +133,6 @@ public class AppendBlobClientJavaDocCodeSnippets {
             client.appendBlockFromUrlWithResponse(sourceUrl, new BlobRange(offset, count), null,
                 appendBlobAccessConditions, modifiedAccessConditions, timeout,
                 context).getValue().getBlobCommittedBlockCount());
-        // END: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrlWithResponse#String-BlobRange-byte-AppendBlobAccessConditions-SourceModifiedAccessConditions-Duration-Context
+        // END: com.azure.storage.blob.specialized.AppendBlobClient.appendBlockFromUrlWithResponse#URL-BlobRange-byte-AppendBlobAccessConditions-SourceModifiedAccessConditions-Duration-Context
     }
 }

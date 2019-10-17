@@ -3,10 +3,10 @@
 
 package com.azure.storage.queue;
 
-import com.azure.storage.common.sas.BaseSasQueryParameters;
-import com.azure.storage.common.sas.SasProtocol;
+import com.azure.storage.common.BaseSasQueryParameters;
 import com.azure.storage.common.implementation.Constants;
 import com.azure.storage.common.sas.SasIpRange;
+import com.azure.storage.common.SasProtocol;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -26,16 +26,15 @@ public final class QueueServiceSasQueryParameters extends BaseSasQueryParameters
     /**
      * Creates a new {@link QueueServiceSasQueryParameters} object.
      *
-     * @param queryParametersMap All query parameters for the request as key-value pairs
-     * @param removeSasParametersFromMap When {@code true}, the SAS query parameters will be removed from
-     * {@code queryParametersMap}
+     * @param queryParamsMap All query parameters for the request as key-value pairs
+     * @param removeSASParametersFromMap When {@code true}, the SAS query parameters will be removed from
+     * queryParamsMap
      */
-    public QueueServiceSasQueryParameters(Map<String, String[]> queryParametersMap,
-           boolean removeSasParametersFromMap) {
-        super(queryParametersMap, removeSasParametersFromMap);
+    public QueueServiceSasQueryParameters(Map<String, String[]> queryParamsMap, boolean removeSASParametersFromMap) {
+        super(queryParamsMap, removeSASParametersFromMap);
 
-        this.identifier = getQueryParameter(queryParametersMap, Constants.UrlConstants.SAS_SIGNED_IDENTIFIER,
-            removeSasParametersFromMap);
+        this.identifier = getQueryParameter(queryParamsMap, Constants.UrlConstants.SAS_SIGNED_IDENTIFIER,
+            removeSASParametersFromMap);
     }
 
 

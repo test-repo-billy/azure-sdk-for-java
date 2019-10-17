@@ -4,7 +4,7 @@
 package com.azure.security.keyvault.certificates;
 
 import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenRequestContext;
+import com.azure.core.credential.TokenRequest;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
@@ -22,20 +22,20 @@ class ScopeTokenCache {
     private AccessToken cache;
     private final ReplayProcessor<AccessToken> emitterProcessor = ReplayProcessor.create(1);
     private final FluxSink<AccessToken> sink = emitterProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
-    private final Function<TokenRequestContext, Mono<AccessToken>> getNew;
-    private TokenRequestContext request;
+    private final Function<TokenRequest, Mono<AccessToken>> getNew;
+    private TokenRequest request;
 
     /**
      * Creates an instance of RefreshableTokenCredential with default scheme "Bearer".
      *
      * @param getNew a method to get a new token
      */
-    ScopeTokenCache(Function<TokenRequestContext, Mono<AccessToken>> getNew) {
+    ScopeTokenCache(Function<TokenRequest, Mono<AccessToken>> getNew) {
         this.wip = new AtomicBoolean(false);
         this.getNew = getNew;
     }
 
-    void setRequest(TokenRequestContext request) {
+    void setRequest(TokenRequest request) {
         this.request = request;
     }
 

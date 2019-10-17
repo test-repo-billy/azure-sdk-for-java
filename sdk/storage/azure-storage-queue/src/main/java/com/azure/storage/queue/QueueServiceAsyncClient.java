@@ -2,6 +2,10 @@
 // Licensed under the MIT License.
 package com.azure.storage.queue;
 
+import static com.azure.core.implementation.util.FluxUtil.monoError;
+import static com.azure.core.implementation.util.FluxUtil.pagedFluxError;
+import static com.azure.core.implementation.util.FluxUtil.withContext;
+
 import com.azure.core.annotation.ServiceClient;
 import com.azure.core.http.rest.PagedFlux;
 import com.azure.core.http.rest.PagedResponse;
@@ -12,7 +16,7 @@ import com.azure.core.implementation.util.FluxUtil;
 import com.azure.core.util.Context;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.common.Utility;
-import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.credentials.SharedKeyCredential;
 import com.azure.storage.queue.implementation.AzureQueueStorageImpl;
 import com.azure.storage.queue.implementation.models.ListQueuesIncludeType;
 import com.azure.storage.queue.models.QueueCorsRule;
@@ -30,10 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static com.azure.core.implementation.util.FluxUtil.monoError;
-import static com.azure.core.implementation.util.FluxUtil.pagedFluxError;
-import static com.azure.core.implementation.util.FluxUtil.withContext;
-
 /**
  * This class provides a client that contains all the operations for interacting with a queue account in Azure Storage.
  * Operations allowed by the client are creating, listing, and deleting queues, retrieving and updating properties of
@@ -47,7 +47,7 @@ import static com.azure.core.implementation.util.FluxUtil.withContext;
  *
  * @see QueueServiceClientBuilder
  * @see QueueServiceClient
- * @see StorageSharedKeyCredential
+ * @see SharedKeyCredential
  */
 @ServiceClient(builder = QueueServiceClientBuilder.class, isAsync = true)
 public final class QueueServiceAsyncClient {
@@ -70,15 +70,6 @@ public final class QueueServiceAsyncClient {
      */
     public String getQueueServiceUrl() {
         return client.getUrl();
-    }
-
-    /**
-     * Gets the service version the client is using.
-     *
-     * @return the service version the client is using.
-     */
-    public String getServiceVersion() {
-        return client.getVersion();
     }
 
     /**
