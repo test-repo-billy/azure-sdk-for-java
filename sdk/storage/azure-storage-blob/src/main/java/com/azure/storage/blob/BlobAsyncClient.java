@@ -34,12 +34,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -98,8 +96,7 @@ public class BlobAsyncClient extends BlobAsyncClientBase {
     public BlobAsyncClient getSnapshotClient(String snapshot) {
         return new BlobAsyncClient(new AzureBlobStorageBuilder()
             .url(getBlobUrl())
-            .pipeline(getHttpPipeline())
-            .version(getServiceVersion())
+            .pipeline(azureBlobStorage.getHttpPipeline())
             .build(), getSnapshotId(), getCustomerProvidedKey(), accountName);
     }
 
@@ -135,11 +132,6 @@ public class BlobAsyncClient extends BlobAsyncClientBase {
             .pipeline(getHttpPipeline())
             .endpoint(getBlobUrl())
             .snapshot(getSnapshotId());
-
-        Optional<BlobServiceVersion> version = Arrays.stream(BlobServiceVersion.values())
-            .filter(en -> Objects.equals(en.getVersion(), azureBlobStorage.getVersion()))
-            .findFirst();
-        builder.serviceVersion(version.orElseGet(BlobServiceVersion::getLatest));
 
         CpkInfo cpk = getCustomerProvidedKey();
         if (cpk != null) {

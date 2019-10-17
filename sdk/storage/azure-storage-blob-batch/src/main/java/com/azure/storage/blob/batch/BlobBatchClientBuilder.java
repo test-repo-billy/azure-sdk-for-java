@@ -18,7 +18,7 @@ import com.azure.storage.blob.BlobServiceVersion;
 public final class BlobBatchClientBuilder {
     private final String accountUrl;
     private final HttpPipeline pipeline;
-    private String version;
+    private BlobServiceVersion version;
 
     /**
      * Constructs the {@link BlobBatchClientBuilder} using the {@link BlobServiceClient#getAccountUrl() account URL} and
@@ -29,7 +29,6 @@ public final class BlobBatchClientBuilder {
     public BlobBatchClientBuilder(BlobServiceClient client) {
         this.accountUrl = client.getAccountUrl();
         this.pipeline = client.getHttpPipeline();
-        this.version = client.getServiceVersion();
     }
 
     /**
@@ -42,7 +41,6 @@ public final class BlobBatchClientBuilder {
     public BlobBatchClientBuilder(BlobServiceAsyncClient client) {
         this.accountUrl = client.getAccountUrl();
         this.pipeline = client.getHttpPipeline();
-        this.version = client.getServiceVersion();
     }
 
     /**
@@ -68,7 +66,7 @@ public final class BlobBatchClientBuilder {
      * @return a {@link BlobBatchAsyncClient} created from the configurations in this builder.
      */
     public BlobBatchAsyncClient buildAsyncClient() {
-        String serviceVersion = version != null ? version : BlobServiceVersion.getLatest().getVersion();
+        BlobServiceVersion serviceVersion = version != null ? version : BlobServiceVersion.getLatest();
         return new BlobBatchAsyncClient(accountUrl, pipeline, serviceVersion);
     }
 
@@ -83,7 +81,7 @@ public final class BlobBatchClientBuilder {
      * @return the updated BlobClientBuilder object
      */
     public BlobBatchClientBuilder serviceVersion(BlobServiceVersion version) {
-        this.version = version.getVersion();
+        this.version = version;
         return this;
     }
 }
