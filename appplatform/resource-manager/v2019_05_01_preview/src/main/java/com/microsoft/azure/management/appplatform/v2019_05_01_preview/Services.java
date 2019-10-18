@@ -16,16 +16,6 @@ import rx.Observable;
  */
 public interface Services {
     /**
-     * Get a Service and its properties.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serviceName The name of the Service resource.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable for the request
-     */
-    Observable<ServiceResource> getByResourceGroupAsync(String resourceGroupName, String serviceName);
-
-    /**
      * Create a new Service or update an exiting Service.
      *
      * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
