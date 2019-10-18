@@ -16,6 +16,7 @@ import com.microsoft.azure.management.apigeneration.Beta.SinceVersion;
 import com.microsoft.azure.arm.resources.AzureConfigurable;
 import com.microsoft.azure.serializer.AzureJacksonAdapter;
 import com.microsoft.rest.RestClient;
+import com.microsoft.azure.management.appplatform.v2019_05_01_preview.ServicesTests;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.Apps;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.Bindings;
@@ -28,6 +29,7 @@ import com.microsoft.azure.arm.resources.implementation.ManagerCore;
  * Entry point to Azure AppPlatform resource management.
  */
 public final class AppPlatformManager extends ManagerCore<AppPlatformManager, AppPlatformManagementClientImpl> {
+    private ServicesTests servicesTests;
     private Services services;
     private Apps apps;
     private Bindings bindings;
@@ -78,6 +80,16 @@ public final class AppPlatformManager extends ManagerCore<AppPlatformManager, Ap
         * @return the interface exposing AppPlatform management API entry points that work across subscriptions
         */
         AppPlatformManager authenticate(AzureTokenCredentials credentials, String subscriptionId);
+    }
+
+    /**
+     * @return Entry point to manage ServicesTests.
+     */
+    public ServicesTests servicesTests() {
+        if (this.servicesTests == null) {
+            this.servicesTests = new ServicesTestsImpl(this);
+        }
+        return this.servicesTests;
     }
 
     /**

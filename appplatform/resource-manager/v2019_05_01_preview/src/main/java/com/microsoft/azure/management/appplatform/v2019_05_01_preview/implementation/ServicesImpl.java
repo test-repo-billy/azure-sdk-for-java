@@ -34,18 +34,6 @@ class ServicesImpl extends WrapperImpl<ServicesInner> implements Services {
     }
 
     @Override
-    public Observable<ServiceResource> getByResourceGroupAsync(String resourceGroupName, String serviceName) {
-        ServicesInner client = this.inner();
-        return client.getByResourceGroupAsync(resourceGroupName, serviceName)
-        .map(new Func1<ServiceResourceInner, ServiceResource>() {
-            @Override
-            public ServiceResource call(ServiceResourceInner inner) {
-                return new ServiceResourceImpl(inner, manager());
-            }
-        });
-    }
-
-    @Override
     public Observable<ServiceResource> createOrUpdateAsync(String resourceGroupName, String serviceName) {
         ServicesInner client = this.inner();
         return client.createOrUpdateAsync(resourceGroupName, serviceName)
