@@ -133,6 +133,19 @@ public class AppPlatformManagementClientImpl extends AzureServiceClient {
     }
 
     /**
+     * The ServicesTestsInner object to access its operations.
+     */
+    private ServicesTestsInner servicesTests;
+
+    /**
+     * Gets the ServicesTestsInner object to access its operations.
+     * @return the ServicesTestsInner object.
+     */
+    public ServicesTestsInner servicesTests() {
+        return this.servicesTests;
+    }
+
+    /**
      * The ServicesInner object to access its operations.
      */
     private ServicesInner services;
@@ -232,6 +245,7 @@ public class AppPlatformManagementClientImpl extends AzureServiceClient {
         this.acceptLanguage = "en-US";
         this.longRunningOperationRetryTimeout = 30;
         this.generateClientRequestId = true;
+        this.servicesTests = new ServicesTestsInner(restClient().retrofit(), this);
         this.services = new ServicesInner(restClient().retrofit(), this);
         this.apps = new AppsInner(restClient().retrofit(), this);
         this.bindings = new BindingsInner(restClient().retrofit(), this);

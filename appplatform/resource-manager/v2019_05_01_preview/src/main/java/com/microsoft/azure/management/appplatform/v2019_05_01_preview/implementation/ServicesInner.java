@@ -8,7 +8,6 @@
 
 package com.microsoft.azure.management.appplatform.v2019_05_01_preview.implementation;
 
-import com.microsoft.azure.arm.collection.InnerSupportsGet;
 import com.microsoft.azure.arm.collection.InnerSupportsDelete;
 import com.microsoft.azure.arm.collection.InnerSupportsListing;
 import retrofit2.Retrofit;
@@ -47,7 +46,7 @@ import rx.Observable;
  * An instance of this class provides access to all the operations defined
  * in Services.
  */
-public class ServicesInner implements InnerSupportsGet<ServiceResourceInner>, InnerSupportsDelete<Void>, InnerSupportsListing<ServiceResourceInner> {
+public class ServicesInner implements InnerSupportsDelete<Void>, InnerSupportsListing<ServiceResourceInner> {
     /** The Retrofit service to perform REST calls. */
     private ServicesService service;
     /** The service client containing this operation class. */
@@ -69,10 +68,6 @@ public class ServicesInner implements InnerSupportsGet<ServiceResourceInner>, In
      * used by Retrofit to perform actually REST calls.
      */
     interface ServicesService {
-        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services getByResourceGroup" })
-        @GET("subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.AppPlatform/Spring/{serviceName}")
-        Observable<Response<ResponseBody>> getByResourceGroup(@Path("subscriptionId") String subscriptionId, @Path("resourceGroupName") String resourceGroupName, @Path("serviceName") String serviceName, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
-
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.management.appplatform.v2019_05_01_preview.Services createOrUpdate" })
         @PUT("subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.AppPlatform/Spring/{serviceName}")
         Observable<Response<ResponseBody>> createOrUpdate(@Path("subscriptionId") String subscriptionId, @Path("resourceGroupName") String resourceGroupName, @Path("serviceName") String serviceName, @Body ServiceResourceInner resource, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
@@ -133,89 +128,6 @@ public class ServicesInner implements InnerSupportsGet<ServiceResourceInner>, In
         @GET
         Observable<Response<ResponseBody>> listByResourceGroupNext(@Url String nextUrl, @Header("accept-language") String acceptLanguage, @Header("User-Agent") String userAgent);
 
-    }
-
-    /**
-     * Get a Service and its properties.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serviceName The name of the Service resource.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws CloudException thrown if the request is rejected by server
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
-     * @return the ServiceResourceInner object if successful.
-     */
-    public ServiceResourceInner getByResourceGroup(String resourceGroupName, String serviceName) {
-        return getByResourceGroupWithServiceResponseAsync(resourceGroupName, serviceName).toBlocking().single().body();
-    }
-
-    /**
-     * Get a Service and its properties.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serviceName The name of the Service resource.
-     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the {@link ServiceFuture} object
-     */
-    public ServiceFuture<ServiceResourceInner> getByResourceGroupAsync(String resourceGroupName, String serviceName, final ServiceCallback<ServiceResourceInner> serviceCallback) {
-        return ServiceFuture.fromResponse(getByResourceGroupWithServiceResponseAsync(resourceGroupName, serviceName), serviceCallback);
-    }
-
-    /**
-     * Get a Service and its properties.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serviceName The name of the Service resource.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the ServiceResourceInner object
-     */
-    public Observable<ServiceResourceInner> getByResourceGroupAsync(String resourceGroupName, String serviceName) {
-        return getByResourceGroupWithServiceResponseAsync(resourceGroupName, serviceName).map(new Func1<ServiceResponse<ServiceResourceInner>, ServiceResourceInner>() {
-            @Override
-            public ServiceResourceInner call(ServiceResponse<ServiceResourceInner> response) {
-                return response.body();
-            }
-        });
-    }
-
-    /**
-     * Get a Service and its properties.
-     *
-     * @param resourceGroupName The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
-     * @param serviceName The name of the Service resource.
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the ServiceResourceInner object
-     */
-    public Observable<ServiceResponse<ServiceResourceInner>> getByResourceGroupWithServiceResponseAsync(String resourceGroupName, String serviceName) {
-        if (this.client.subscriptionId() == null) {
-            throw new IllegalArgumentException("Parameter this.client.subscriptionId() is required and cannot be null.");
-        }
-        if (resourceGroupName == null) {
-            throw new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null.");
-        }
-        if (serviceName == null) {
-            throw new IllegalArgumentException("Parameter serviceName is required and cannot be null.");
-        }
-        return service.getByResourceGroup(this.client.subscriptionId(), resourceGroupName, serviceName, this.client.apiVersion(), this.client.acceptLanguage(), this.client.userAgent())
-            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ServiceResourceInner>>>() {
-                @Override
-                public Observable<ServiceResponse<ServiceResourceInner>> call(Response<ResponseBody> response) {
-                    try {
-                        ServiceResponse<ServiceResourceInner> clientResponse = getByResourceGroupDelegate(response);
-                        return Observable.just(clientResponse);
-                    } catch (Throwable t) {
-                        return Observable.error(t);
-                    }
-                }
-            });
-    }
-
-    private ServiceResponse<ServiceResourceInner> getByResourceGroupDelegate(Response<ResponseBody> response) throws CloudException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ServiceResourceInner, CloudException>newInstance(this.client.serializerAdapter())
-                .register(200, new TypeToken<ServiceResourceInner>() { }.getType())
-                .registerError(CloudException.class)
-                .build(response);
     }
 
     /**
