@@ -89,12 +89,12 @@ public interface PeeringServicePrefix extends HasInner<PeeringServicePrefixInner
          */
         interface WithPeeringService {
            /**
-            * Specifies resourceGroupName, peeringServiceName.
+            * Specifies resourceGroupName, myPeeringService.
             * @param resourceGroupName The name of the resource group
-            * @param peeringServiceName The name of the peering service
+            * @param myPeeringService The name of the peering service
             * @return the next definition stage
             */
-            WithPrefix withExistingPeeringService(String resourceGroupName, String peeringServiceName);
+            WithPrefix withExistingPeeringService(String resourceGroupName, String myPeeringService);
         }
 
         /**
