@@ -20,7 +20,7 @@ import com.microsoft.azure.management.peering.v2019_08_01_preview.ProvisioningSt
 class PeeringServicePrefixImpl extends CreatableUpdatableImpl<PeeringServicePrefix, PeeringServicePrefixInner, PeeringServicePrefixImpl> implements PeeringServicePrefix, PeeringServicePrefix.Definition, PeeringServicePrefix.Update {
     private final PeeringManager manager;
     private String resourceGroupName;
-    private String myPeeringService;
+    private String peeringServiceName;
     private String prefixName;
     private String cprefix;
     private String uprefix;
@@ -40,7 +40,7 @@ class PeeringServicePrefixImpl extends CreatableUpdatableImpl<PeeringServicePref
         this.prefixName = inner.name();
         // set resource ancestor and positional variables
         this.resourceGroupName = IdParsingUtils.getValueFromIdByName(inner.id(), "resourceGroups");
-        this.myPeeringService = IdParsingUtils.getValueFromIdByName(inner.id(), "peeringServices");
+        this.peeringServiceName = IdParsingUtils.getValueFromIdByName(inner.id(), "peeringServices");
         this.prefixName = IdParsingUtils.getValueFromIdByName(inner.id(), "prefixes");
         //
     }
@@ -53,21 +53,21 @@ class PeeringServicePrefixImpl extends CreatableUpdatableImpl<PeeringServicePref
     @Override
     public Observable<PeeringServicePrefix> createResourceAsync() {
         PrefixesInner client = this.manager().inner().prefixes();
-        return client.createOrUpdateAsync(this.resourceGroupName, this.myPeeringService, this.prefixName, this.cprefix)
+        return client.createOrUpdateAsync(this.resourceGroupName, this.peeringServiceName, this.prefixName, this.cprefix)
             .map(innerToFluentMap(this));
     }
 
     @Override
     public Observable<PeeringServicePrefix> updateResourceAsync() {
         PrefixesInner client = this.manager().inner().prefixes();
-        return client.createOrUpdateAsync(this.resourceGroupName, this.myPeeringService, this.prefixName, this.uprefix)
+        return client.createOrUpdateAsync(this.resourceGroupName, this.peeringServiceName, this.prefixName, this.uprefix)
             .map(innerToFluentMap(this));
     }
 
     @Override
     protected Observable<PeeringServicePrefixInner> getInnerAsync() {
         PrefixesInner client = this.manager().inner().prefixes();
-        return client.getAsync(this.resourceGroupName, this.myPeeringService, this.prefixName);
+        return client.getAsync(this.resourceGroupName, this.peeringServiceName, this.prefixName);
     }
 
     @Override
@@ -122,9 +122,9 @@ class PeeringServicePrefixImpl extends CreatableUpdatableImpl<PeeringServicePref
     }
 
     @Override
-    public PeeringServicePrefixImpl withExistingPeeringService(String resourceGroupName, String myPeeringService) {
+    public PeeringServicePrefixImpl withExistingPeeringService(String resourceGroupName, String peeringServiceName) {
         this.resourceGroupName = resourceGroupName;
-        this.myPeeringService = myPeeringService;
+        this.peeringServiceName = peeringServiceName;
         return this;
     }
 
