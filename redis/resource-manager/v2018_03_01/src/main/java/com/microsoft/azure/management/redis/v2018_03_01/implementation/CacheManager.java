@@ -27,29 +27,29 @@ import com.microsoft.azure.arm.resources.implementation.ManagerCore;
 /**
  * Entry point to Azure Cache resource management.
  */
-public final class RedisManager extends ManagerCore<RedisManager, RedisManagementClientImpl> {
+public final class CacheManager extends ManagerCore<CacheManager, RedisManagementClientImpl> {
     private Operations operations;
     private Redis redis;
     private FirewallRules firewallRules;
     private PatchSchedules patchSchedules;
     private LinkedServers linkedServers;
     /**
-    * Get a Configurable instance that can be used to create RedisManager with optional configuration.
+    * Get a Configurable instance that can be used to create CacheManager with optional configuration.
     *
     * @return the instance allowing configurations
     */
     public static Configurable configure() {
-        return new RedisManager.ConfigurableImpl();
+        return new CacheManager.ConfigurableImpl();
     }
     /**
-    * Creates an instance of RedisManager that exposes Cache resource management API entry points.
+    * Creates an instance of CacheManager that exposes Cache resource management API entry points.
     *
     * @param credentials the credentials to use
     * @param subscriptionId the subscription UUID
-    * @return the RedisManager
+    * @return the CacheManager
     */
-    public static RedisManager authenticate(AzureTokenCredentials credentials, String subscriptionId) {
-        return new RedisManager(new RestClient.Builder()
+    public static CacheManager authenticate(AzureTokenCredentials credentials, String subscriptionId) {
+        return new CacheManager(new RestClient.Builder()
             .withBaseUrl(credentials.environment(), AzureEnvironment.Endpoint.RESOURCE_MANAGER)
             .withCredentials(credentials)
             .withSerializerAdapter(new AzureJacksonAdapter())
@@ -57,27 +57,27 @@ public final class RedisManager extends ManagerCore<RedisManager, RedisManagemen
             .build(), subscriptionId);
     }
     /**
-    * Creates an instance of RedisManager that exposes Cache resource management API entry points.
+    * Creates an instance of CacheManager that exposes Cache resource management API entry points.
     *
     * @param restClient the RestClient to be used for API calls.
     * @param subscriptionId the subscription UUID
-    * @return the RedisManager
+    * @return the CacheManager
     */
-    public static RedisManager authenticate(RestClient restClient, String subscriptionId) {
-        return new RedisManager(restClient, subscriptionId);
+    public static CacheManager authenticate(RestClient restClient, String subscriptionId) {
+        return new CacheManager(restClient, subscriptionId);
     }
     /**
     * The interface allowing configurations to be set.
     */
     public interface Configurable extends AzureConfigurable<Configurable> {
         /**
-        * Creates an instance of RedisManager that exposes Cache management API entry points.
+        * Creates an instance of CacheManager that exposes Cache management API entry points.
         *
         * @param credentials the credentials to use
         * @param subscriptionId the subscription UUID
         * @return the interface exposing Cache management API entry points that work across subscriptions
         */
-        RedisManager authenticate(AzureTokenCredentials credentials, String subscriptionId);
+        CacheManager authenticate(AzureTokenCredentials credentials, String subscriptionId);
     }
 
     /**
@@ -134,11 +134,11 @@ public final class RedisManager extends ManagerCore<RedisManager, RedisManagemen
     * The implementation for Configurable interface.
     */
     private static final class ConfigurableImpl extends AzureConfigurableCoreImpl<Configurable> implements Configurable {
-        public RedisManager authenticate(AzureTokenCredentials credentials, String subscriptionId) {
-           return RedisManager.authenticate(buildRestClient(credentials), subscriptionId);
+        public CacheManager authenticate(AzureTokenCredentials credentials, String subscriptionId) {
+           return CacheManager.authenticate(buildRestClient(credentials), subscriptionId);
         }
      }
-    private RedisManager(RestClient restClient, String subscriptionId) {
+    private CacheManager(RestClient restClient, String subscriptionId) {
         super(
             restClient,
             subscriptionId,
