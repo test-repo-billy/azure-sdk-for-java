@@ -76,10 +76,14 @@ class CertificatesImpl extends WrapperImpl<CertificatesInner> implements Certifi
     public Observable<Certificate> getAsync(String resourceGroupName, String accountName, String certificateName) {
         CertificatesInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, certificateName)
-        .map(new Func1<CertificateInner, Certificate>() {
+        .flatMap(new Func1<CertificateInner, Observable<Certificate>>() {
             @Override
-            public Certificate call(CertificateInner inner) {
-                return wrapModel(inner);
+            public Observable<Certificate> call(CertificateInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((Certificate)wrapModel(inner));
+                }
             }
        });
     }
