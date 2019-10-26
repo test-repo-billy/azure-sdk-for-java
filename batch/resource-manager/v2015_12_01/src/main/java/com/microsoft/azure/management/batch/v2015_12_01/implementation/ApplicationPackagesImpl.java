@@ -54,10 +54,14 @@ class ApplicationPackagesImpl extends WrapperImpl<ApplicationPackagesInner> impl
     public Observable<ApplicationPackage> getAsync(String resourceGroupName, String accountName, String applicationId, String version) {
         ApplicationPackagesInner client = this.inner();
         return client.getAsync(resourceGroupName, accountName, applicationId, version)
-        .map(new Func1<ApplicationPackageInner, ApplicationPackage>() {
+        .flatMap(new Func1<ApplicationPackageInner, Observable<ApplicationPackage>>() {
             @Override
-            public ApplicationPackage call(ApplicationPackageInner inner) {
-                return wrapModel(inner);
+            public Observable<ApplicationPackage> call(ApplicationPackageInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((ApplicationPackage)wrapModel(inner));
+                }
             }
        });
     }
