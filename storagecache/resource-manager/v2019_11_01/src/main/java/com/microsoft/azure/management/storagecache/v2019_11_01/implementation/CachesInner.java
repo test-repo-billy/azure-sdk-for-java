@@ -1243,6 +1243,7 @@ public class CachesInner implements InnerSupportsGet<CacheInner>, InnerSupportsD
         return this.client.restClient().responseBuilderFactory().<Object, CloudException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<Object>() { }.getType())
                 .register(202, new TypeToken<Object>() { }.getType())
+                .register(204, new TypeToken<Object>() { }.getType())
                 .registerError(CloudException.class)
                 .build(response);
     }
@@ -1399,6 +1400,7 @@ public class CachesInner implements InnerSupportsGet<CacheInner>, InnerSupportsD
         return this.client.restClient().responseBuilderFactory().<Object, CloudException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<Object>() { }.getType())
                 .register(202, new TypeToken<Object>() { }.getType())
+                .register(204, new TypeToken<Object>() { }.getType())
                 .registerError(CloudException.class)
                 .build(response);
     }
@@ -1555,6 +1557,7 @@ public class CachesInner implements InnerSupportsGet<CacheInner>, InnerSupportsD
         return this.client.restClient().responseBuilderFactory().<Object, CloudException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<Object>() { }.getType())
                 .register(202, new TypeToken<Object>() { }.getType())
+                .register(204, new TypeToken<Object>() { }.getType())
                 .registerError(CloudException.class)
                 .build(response);
     }
@@ -1711,6 +1714,7 @@ public class CachesInner implements InnerSupportsGet<CacheInner>, InnerSupportsD
         return this.client.restClient().responseBuilderFactory().<Object, CloudException>newInstance(this.client.serializerAdapter())
                 .register(201, new TypeToken<Object>() { }.getType())
                 .register(202, new TypeToken<Object>() { }.getType())
+                .register(204, new TypeToken<Object>() { }.getType())
                 .registerError(CloudException.class)
                 .build(response);
     }
