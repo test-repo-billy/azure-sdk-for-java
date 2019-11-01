@@ -67,10 +67,14 @@ class ProductsImpl extends WrapperImpl<ProductsInner> implements Products {
     public Observable<Product> getAsync(String resourceGroup, String registrationName, String productName) {
         ProductsInner client = this.inner();
         return client.getAsync(resourceGroup, registrationName, productName)
-        .map(new Func1<ProductInner, Product>() {
+        .flatMap(new Func1<ProductInner, Observable<Product>>() {
             @Override
-            public Product call(ProductInner inner) {
-                return wrapModel(inner);
+            public Observable<Product> call(ProductInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((Product)wrapModel(inner));
+                }
             }
        });
     }
