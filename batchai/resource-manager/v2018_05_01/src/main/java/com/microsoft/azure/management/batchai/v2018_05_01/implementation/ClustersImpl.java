@@ -83,10 +83,14 @@ class ClustersImpl extends WrapperImpl<ClustersInner> implements Clusters {
     public Observable<Cluster> getAsync(String resourceGroupName, String workspaceName, String clusterName) {
         ClustersInner client = this.inner();
         return client.getAsync(resourceGroupName, workspaceName, clusterName)
-        .map(new Func1<ClusterInner, Cluster>() {
+        .flatMap(new Func1<ClusterInner, Observable<Cluster>>() {
             @Override
-            public Cluster call(ClusterInner inner) {
-                return wrapModel(inner);
+            public Observable<Cluster> call(ClusterInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((Cluster)wrapModel(inner));
+                }
             }
        });
     }

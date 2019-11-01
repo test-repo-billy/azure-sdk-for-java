@@ -64,10 +64,14 @@ class FileServersImpl extends WrapperImpl<FileServersInner> implements FileServe
     public Observable<FileServer> getAsync(String resourceGroupName, String workspaceName, String fileServerName) {
         FileServersInner client = this.inner();
         return client.getAsync(resourceGroupName, workspaceName, fileServerName)
-        .map(new Func1<FileServerInner, FileServer>() {
+        .flatMap(new Func1<FileServerInner, Observable<FileServer>>() {
             @Override
-            public FileServer call(FileServerInner inner) {
-                return wrapModel(inner);
+            public Observable<FileServer> call(FileServerInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((FileServer)wrapModel(inner));
+                }
             }
        });
     }

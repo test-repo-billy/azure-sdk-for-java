@@ -64,10 +64,14 @@ class ExperimentsImpl extends WrapperImpl<ExperimentsInner> implements Experimen
     public Observable<Experiment> getAsync(String resourceGroupName, String workspaceName, String experimentName) {
         ExperimentsInner client = this.inner();
         return client.getAsync(resourceGroupName, workspaceName, experimentName)
-        .map(new Func1<ExperimentInner, Experiment>() {
+        .flatMap(new Func1<ExperimentInner, Observable<Experiment>>() {
             @Override
-            public Experiment call(ExperimentInner inner) {
-                return wrapModel(inner);
+            public Observable<Experiment> call(ExperimentInner inner) {
+                if (inner == null) {
+                    return Observable.empty();
+                } else {
+                    return Observable.just((Experiment)wrapModel(inner));
+                }
             }
        });
     }
