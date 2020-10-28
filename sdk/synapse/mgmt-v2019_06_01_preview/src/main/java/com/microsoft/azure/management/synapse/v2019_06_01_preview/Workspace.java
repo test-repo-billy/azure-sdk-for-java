@@ -38,6 +38,11 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
     DataLakeStorageAccountDetails defaultDataLakeStorage();
 
     /**
+     * @return the extraProperties value.
+     */
+    Map<String, Object> extraProperties();
+
+    /**
      * @return the identity value.
      */
     ManagedIdentity identity();
@@ -51,6 +56,11 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
      * @return the managedVirtualNetwork value.
      */
     String managedVirtualNetwork();
+
+    /**
+     * @return the managedVirtualNetworkSettings value.
+     */
+    ManagedVirtualNetworkSettings managedVirtualNetworkSettings();
 
     /**
      * @return the privateEndpointConnections value.
@@ -136,6 +146,18 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
         }
 
         /**
+         * The stage of the workspace definition allowing to specify ManagedResourceGroupName.
+         */
+        interface WithManagedResourceGroupName {
+            /**
+             * Specifies managedResourceGroupName.
+             * @param managedResourceGroupName Workspace managed resource group. The resource group name uniquely identifies the resource group within the user subscriptionId. The resource group name must be no longer than 90 characters long, and must be alphanumeric characters (Char.IsLetterOrDigit()) and '-', '_', '(', ')' and'.'. Note that the name cannot end with '.'
+             * @return the next definition stage
+             */
+            WithCreate withManagedResourceGroupName(String managedResourceGroupName);
+        }
+
+        /**
          * The stage of the workspace definition allowing to specify ManagedVirtualNetwork.
          */
         interface WithManagedVirtualNetwork {
@@ -145,6 +167,18 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
              * @return the next definition stage
              */
             WithCreate withManagedVirtualNetwork(String managedVirtualNetwork);
+        }
+
+        /**
+         * The stage of the workspace definition allowing to specify ManagedVirtualNetworkSettings.
+         */
+        interface WithManagedVirtualNetworkSettings {
+            /**
+             * Specifies managedVirtualNetworkSettings.
+             * @param managedVirtualNetworkSettings Managed Virtual Network Settings
+             * @return the next definition stage
+             */
+            WithCreate withManagedVirtualNetworkSettings(ManagedVirtualNetworkSettings managedVirtualNetworkSettings);
         }
 
         /**
@@ -200,13 +234,13 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
          * the resource to be created (via {@link WithCreate#create()}), but also allows
          * for any other optional settings to be specified.
          */
-        interface WithCreate extends Creatable<Workspace>, Resource.DefinitionWithTags<WithCreate>, DefinitionStages.WithConnectivityEndpoints, DefinitionStages.WithDefaultDataLakeStorage, DefinitionStages.WithIdentity, DefinitionStages.WithManagedVirtualNetwork, DefinitionStages.WithPrivateEndpointConnections, DefinitionStages.WithSqlAdministratorLogin, DefinitionStages.WithSqlAdministratorLoginPassword, DefinitionStages.WithVirtualNetworkProfile {
+        interface WithCreate extends Creatable<Workspace>, Resource.DefinitionWithTags<WithCreate>, DefinitionStages.WithConnectivityEndpoints, DefinitionStages.WithDefaultDataLakeStorage, DefinitionStages.WithIdentity, DefinitionStages.WithManagedResourceGroupName, DefinitionStages.WithManagedVirtualNetwork, DefinitionStages.WithManagedVirtualNetworkSettings, DefinitionStages.WithPrivateEndpointConnections, DefinitionStages.WithSqlAdministratorLogin, DefinitionStages.WithSqlAdministratorLoginPassword, DefinitionStages.WithVirtualNetworkProfile {
         }
     }
     /**
      * The template for a Workspace update operation, containing all the settings that can be modified.
      */
-    interface Update extends Appliable<Workspace>, Resource.UpdateWithTags<Update>, UpdateStages.WithIdentity, UpdateStages.WithSqlAdministratorLoginPassword {
+    interface Update extends Appliable<Workspace>, Resource.UpdateWithTags<Update>, UpdateStages.WithIdentity, UpdateStages.WithManagedVirtualNetworkSettings, UpdateStages.WithSqlAdministratorLoginPassword {
     }
 
     /**
@@ -223,6 +257,18 @@ public interface Workspace extends HasInner<WorkspaceInner>, Resource, Groupable
              * @return the next update stage
              */
             Update withIdentity(ManagedIdentity identity);
+        }
+
+        /**
+         * The stage of the workspace update allowing to specify ManagedVirtualNetworkSettings.
+         */
+        interface WithManagedVirtualNetworkSettings {
+            /**
+             * Specifies managedVirtualNetworkSettings.
+             * @param managedVirtualNetworkSettings Managed Virtual Network Settings
+             * @return the next update stage
+             */
+            Update withManagedVirtualNetworkSettings(ManagedVirtualNetworkSettings managedVirtualNetworkSettings);
         }
 
         /**
