@@ -16,6 +16,8 @@ import com.microsoft.azure.management.synapse.v2019_06_01_preview.AutoScalePrope
 import org.joda.time.DateTime;
 import com.microsoft.azure.management.synapse.v2019_06_01_preview.AutoPauseProperties;
 import com.microsoft.azure.management.synapse.v2019_06_01_preview.LibraryRequirements;
+import java.util.List;
+import com.microsoft.azure.management.synapse.v2019_06_01_preview.LibraryInfo;
 import com.microsoft.azure.management.synapse.v2019_06_01_preview.NodeSize;
 import com.microsoft.azure.management.synapse.v2019_06_01_preview.NodeSizeFamily;
 
@@ -94,6 +96,11 @@ class BigDataPoolResourceInfoImpl extends CreatableUpdatableImpl<BigDataPoolReso
     }
 
     @Override
+    public List<LibraryInfo> customLibraries() {
+        return this.inner().customLibraries();
+    }
+
+    @Override
     public String defaultSparkLogFolder() {
         return this.inner().defaultSparkLogFolder();
     }
@@ -101,6 +108,11 @@ class BigDataPoolResourceInfoImpl extends CreatableUpdatableImpl<BigDataPoolReso
     @Override
     public String id() {
         return this.inner().id();
+    }
+
+    @Override
+    public Boolean isComputeIsolationEnabled() {
+        return this.inner().isComputeIsolationEnabled();
     }
 
     @Override
@@ -136,6 +148,16 @@ class BigDataPoolResourceInfoImpl extends CreatableUpdatableImpl<BigDataPoolReso
     @Override
     public String provisioningState() {
         return this.inner().provisioningState();
+    }
+
+    @Override
+    public Boolean sessionLevelPackagesEnabled() {
+        return this.inner().sessionLevelPackagesEnabled();
+    }
+
+    @Override
+    public LibraryRequirements sparkConfigProperties() {
+        return this.inner().sparkConfigProperties();
     }
 
     @Override
@@ -200,8 +222,20 @@ class BigDataPoolResourceInfoImpl extends CreatableUpdatableImpl<BigDataPoolReso
     }
 
     @Override
+    public BigDataPoolResourceInfoImpl withCustomLibraries(List<LibraryInfo> customLibraries) {
+        this.inner().withCustomLibraries(customLibraries);
+        return this;
+    }
+
+    @Override
     public BigDataPoolResourceInfoImpl withDefaultSparkLogFolder(String defaultSparkLogFolder) {
         this.inner().withDefaultSparkLogFolder(defaultSparkLogFolder);
+        return this;
+    }
+
+    @Override
+    public BigDataPoolResourceInfoImpl withIsComputeIsolationEnabled(Boolean isComputeIsolationEnabled) {
+        this.inner().withIsComputeIsolationEnabled(isComputeIsolationEnabled);
         return this;
     }
 
@@ -232,6 +266,18 @@ class BigDataPoolResourceInfoImpl extends CreatableUpdatableImpl<BigDataPoolReso
     @Override
     public BigDataPoolResourceInfoImpl withProvisioningState(String provisioningState) {
         this.inner().withProvisioningState(provisioningState);
+        return this;
+    }
+
+    @Override
+    public BigDataPoolResourceInfoImpl withSessionLevelPackagesEnabled(Boolean sessionLevelPackagesEnabled) {
+        this.inner().withSessionLevelPackagesEnabled(sessionLevelPackagesEnabled);
+        return this;
+    }
+
+    @Override
+    public BigDataPoolResourceInfoImpl withSparkConfigProperties(LibraryRequirements sparkConfigProperties) {
+        this.inner().withSparkConfigProperties(sparkConfigProperties);
         return this;
     }
 
