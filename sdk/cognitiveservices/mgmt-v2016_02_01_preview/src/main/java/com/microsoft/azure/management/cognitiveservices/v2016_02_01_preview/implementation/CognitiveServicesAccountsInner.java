@@ -13,14 +13,14 @@ import com.microsoft.azure.arm.collection.InnerSupportsDelete;
 import com.microsoft.azure.arm.collection.InnerSupportsListing;
 import retrofit2.Retrofit;
 import com.google.common.reflect.TypeToken;
+import com.microsoft.azure.Page;
+import com.microsoft.azure.PagedList;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.CognitiveServicesAccountCreateParameters;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.CognitiveServicesAccountUpdateParameters;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.ErrorException;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.KeyName;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.RegenerateKeyParameters;
 import com.microsoft.azure.management.cognitiveservices.v2016_02_01_preview.Sku;
-import com.microsoft.azure.Page;
-import com.microsoft.azure.PagedList;
 import com.microsoft.rest.ServiceCallback;
 import com.microsoft.rest.ServiceFuture;
 import com.microsoft.rest.ServiceResponse;
@@ -29,19 +29,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import okhttp3.ResponseBody;
+import retrofit2.Response;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.HTTP;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
-import retrofit2.http.HTTP;
 import retrofit2.http.PATCH;
-import retrofit2.http.Path;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
-import retrofit2.Response;
-import rx.functions.Func1;
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * An instance of this class provides access to all the operations defined
@@ -730,7 +730,7 @@ public class CognitiveServicesAccountsInner implements InnerSupportsGet<Cognitiv
      * Lists the account keys for the specified Cognitive Services account.
      *
      * @param resourceGroupName The name of the resource group within the user's subscription.
-     * @param accountName The name of the cognitive services account within the specified resource group. Congitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
+     * @param accountName The name of the cognitive services account within the specified resource group. Cognitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @throws ErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
@@ -744,7 +744,7 @@ public class CognitiveServicesAccountsInner implements InnerSupportsGet<Cognitiv
      * Lists the account keys for the specified Cognitive Services account.
      *
      * @param resourceGroupName The name of the resource group within the user's subscription.
-     * @param accountName The name of the cognitive services account within the specified resource group. Congitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
+     * @param accountName The name of the cognitive services account within the specified resource group. Cognitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
@@ -757,7 +757,7 @@ public class CognitiveServicesAccountsInner implements InnerSupportsGet<Cognitiv
      * Lists the account keys for the specified Cognitive Services account.
      *
      * @param resourceGroupName The name of the resource group within the user's subscription.
-     * @param accountName The name of the cognitive services account within the specified resource group. Congitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
+     * @param accountName The name of the cognitive services account within the specified resource group. Cognitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the CognitiveServicesAccountKeysInner object
      */
@@ -774,7 +774,7 @@ public class CognitiveServicesAccountsInner implements InnerSupportsGet<Cognitiv
      * Lists the account keys for the specified Cognitive Services account.
      *
      * @param resourceGroupName The name of the resource group within the user's subscription.
-     * @param accountName The name of the cognitive services account within the specified resource group. Congitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
+     * @param accountName The name of the cognitive services account within the specified resource group. Cognitive Services account names must be between 3 and 24 characters in length and use numbers and lower-case letters only.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the CognitiveServicesAccountKeysInner object
      */
