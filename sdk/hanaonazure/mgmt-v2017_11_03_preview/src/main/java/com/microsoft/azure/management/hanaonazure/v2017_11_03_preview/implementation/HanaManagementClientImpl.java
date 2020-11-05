@@ -10,8 +10,8 @@ package com.microsoft.azure.management.hanaonazure.v2017_11_03_preview.implement
 
 import com.microsoft.azure.AzureClient;
 import com.microsoft.azure.AzureServiceClient;
-import com.microsoft.rest.credentials.ServiceClientCredentials;
 import com.microsoft.rest.RestClient;
+import com.microsoft.rest.credentials.ServiceClientCredentials;
 
 /**
  * Initializes a new instance of the HanaManagementClientImpl class.
