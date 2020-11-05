@@ -13,6 +13,8 @@ import com.google.common.reflect.TypeToken;
 import com.microsoft.azure.AzureServiceFuture;
 import com.microsoft.azure.CloudException;
 import com.microsoft.azure.ListOperationCallback;
+import com.microsoft.azure.Page;
+import com.microsoft.azure.PagedList;
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.ApplyRecoveryPointInput;
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.ApplyRecoveryPointInputProperties;
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.DisableProtectionInput;
@@ -33,8 +35,6 @@ import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.UpdateMobilityServiceRequestProperties;
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.UpdateReplicationProtectedItemInput;
 import com.microsoft.azure.management.recoveryservices.siterecovery.v2018_01_10.UpdateReplicationProtectedItemInputProperties;
-import com.microsoft.azure.Page;
-import com.microsoft.azure.PagedList;
 import com.microsoft.rest.ServiceCallback;
 import com.microsoft.rest.ServiceFuture;
 import com.microsoft.rest.ServiceResponse;
@@ -42,20 +42,20 @@ import com.microsoft.rest.Validator;
 import java.io.IOException;
 import java.util.List;
 import okhttp3.ResponseBody;
+import retrofit2.Response;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.HTTP;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
-import retrofit2.http.HTTP;
 import retrofit2.http.PATCH;
-import retrofit2.http.Path;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.Url;
-import retrofit2.Response;
-import rx.functions.Func1;
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * An instance of this class provides access to all the operations defined
