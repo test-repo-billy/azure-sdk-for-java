@@ -18,16 +18,16 @@ import com.microsoft.rest.Validator;
 import java.io.IOException;
 import java.util.List;
 import okhttp3.ResponseBody;
+import retrofit2.Response;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
-import retrofit2.http.Path;
 import retrofit2.http.PUT;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
-import retrofit2.Response;
-import rx.functions.Func1;
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * An instance of this class provides access to all the operations defined
@@ -72,7 +72,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Gets a list of ProactiveDetection configurations of an Application Insights component.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @throws CloudException thrown if the request is rejected by server
@@ -86,7 +86,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Gets a list of ProactiveDetection configurations of an Application Insights component.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
@@ -99,7 +99,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Gets a list of ProactiveDetection configurations of an Application Insights component.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the List&lt;ApplicationInsightsComponentProactiveDetectionConfigurationInner&gt; object
@@ -116,7 +116,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Gets a list of ProactiveDetection configurations of an Application Insights component.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the List&lt;ApplicationInsightsComponentProactiveDetectionConfigurationInner&gt; object
@@ -158,7 +158,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Get the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @throws IllegalArgumentException thrown if parameters fail the validation
@@ -173,7 +173,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Get the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
@@ -187,7 +187,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Get the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @throws IllegalArgumentException thrown if parameters fail the validation
@@ -205,7 +205,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Get the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @throws IllegalArgumentException thrown if parameters fail the validation
@@ -251,7 +251,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Update the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @param proactiveDetectionProperties Properties that need to be specified to update the ProactiveDetection configuration.
@@ -267,7 +267,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Update the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @param proactiveDetectionProperties Properties that need to be specified to update the ProactiveDetection configuration.
@@ -282,7 +282,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Update the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @param proactiveDetectionProperties Properties that need to be specified to update the ProactiveDetection configuration.
@@ -301,7 +301,7 @@ public class ProactiveDetectionConfigurationsInner {
     /**
      * Update the ProactiveDetection configuration for this configuration id.
      *
-     * @param resourceGroupName The name of the resource group.
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param resourceName The name of the Application Insights component resource.
      * @param configurationId The ProactiveDetection configuration ID. This is unique within a Application Insights component.
      * @param proactiveDetectionProperties Properties that need to be specified to update the ProactiveDetection configuration.
