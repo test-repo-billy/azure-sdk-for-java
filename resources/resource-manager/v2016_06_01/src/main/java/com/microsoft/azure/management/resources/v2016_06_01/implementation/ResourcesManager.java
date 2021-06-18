@@ -16,33 +16,35 @@ import com.microsoft.azure.management.apigeneration.Beta.SinceVersion;
 import com.microsoft.azure.arm.resources.AzureConfigurable;
 import com.microsoft.azure.serializer.AzureJacksonAdapter;
 import com.microsoft.rest.RestClient;
+import com.microsoft.azure.management.resources.v2016_06_01.Operations;
 import com.microsoft.azure.management.resources.v2016_06_01.Subscriptions;
 import com.microsoft.azure.management.resources.v2016_06_01.Tenants;
 import com.microsoft.azure.arm.resources.implementation.AzureConfigurableCoreImpl;
 import com.microsoft.azure.arm.resources.implementation.ManagerCore;
 
 /**
- * Entry point to Azure  resource management.
+ * Entry point to Azure Resources resource management.
  */
-public final class Manager extends ManagerCore<Manager, SubscriptionClientImpl> {
+public final class ResourcesManager extends ManagerCore<ResourcesManager, SubscriptionClientImpl> {
+    private Operations operations;
     private Subscriptions subscriptions;
     private Tenants tenants;
     /**
-    * Get a Configurable instance that can be used to create Manager with optional configuration.
+    * Get a Configurable instance that can be used to create ResourcesManager with optional configuration.
     *
     * @return the instance allowing configurations
     */
     public static Configurable configure() {
-        return new Manager.ConfigurableImpl();
+        return new ResourcesManager.ConfigurableImpl();
     }
     /**
-    * Creates an instance of Manager that exposes  resource management API entry points.
+    * Creates an instance of ResourcesManager that exposes Resources resource management API entry points.
     *
     * @param credentials the credentials to use
-    * @return the Manager
+    * @return the ResourcesManager
     */
-    public static Manager authenticate(AzureTokenCredentials credentials) {
-        return new Manager(new RestClient.Builder()
+    public static ResourcesManager authenticate(AzureTokenCredentials credentials) {
+        return new ResourcesManager(new RestClient.Builder()
             .withBaseUrl(credentials.environment(), AzureEnvironment.Endpoint.RESOURCE_MANAGER)
             .withCredentials(credentials)
             .withSerializerAdapter(new AzureJacksonAdapter())
@@ -50,25 +52,35 @@ public final class Manager extends ManagerCore<Manager, SubscriptionClientImpl> 
             .build());
     }
     /**
-    * Creates an instance of Manager that exposes  resource management API entry points.
+    * Creates an instance of ResourcesManager that exposes Resources resource management API entry points.
     *
     * @param restClient the RestClient to be used for API calls.
-    * @return the Manager
+    * @return the ResourcesManager
     */
-    public static Manager authenticate(RestClient restClient) {
-        return new Manager(restClient);
+    public static ResourcesManager authenticate(RestClient restClient) {
+        return new ResourcesManager(restClient);
     }
     /**
     * The interface allowing configurations to be set.
     */
     public interface Configurable extends AzureConfigurable<Configurable> {
         /**
-        * Creates an instance of Manager that exposes  management API entry points.
+        * Creates an instance of ResourcesManager that exposes Resources management API entry points.
         *
         * @param credentials the credentials to use
-        * @return the interface exposing  management API entry points that work across subscriptions
+        * @return the interface exposing Resources management API entry points that work across subscriptions
         */
-        Manager authenticate(AzureTokenCredentials credentials);
+        ResourcesManager authenticate(AzureTokenCredentials credentials);
+    }
+
+    /**
+     * @return Entry point to manage Operations.
+     */
+    public Operations operations() {
+        if (this.operations == null) {
+            this.operations = new OperationsImpl(this);
+        }
+        return this.operations;
     }
 
     /**
@@ -95,11 +107,11 @@ public final class Manager extends ManagerCore<Manager, SubscriptionClientImpl> 
     * The implementation for Configurable interface.
     */
     private static final class ConfigurableImpl extends AzureConfigurableCoreImpl<Configurable> implements Configurable {
-        public Manager authenticate(AzureTokenCredentials credentials) {
-           return Manager.authenticate(buildRestClient(credentials));
+        public ResourcesManager authenticate(AzureTokenCredentials credentials) {
+           return ResourcesManager.authenticate(buildRestClient(credentials));
         }
      }
-    private Manager(RestClient restClient) {
+    private ResourcesManager(RestClient restClient) {
         super(
             restClient,
             null,
