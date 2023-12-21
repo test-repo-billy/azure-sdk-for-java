@@ -13,8 +13,8 @@ import java.net.URL;
 final class JavaDocCodeSnippetsHelpers {
     static EncryptedBlobClient getEncryptedBlobClient(String blobName, String containerName) {
         return new EncryptedBlobClientBuilder()
-            .key(getKey(), "keyWrapAlgorithm")
-            .keyResolver(getKeyResolver())
+            .key(null, null)
+            .keyResolver(null)
             .blobName(blobName)
             .containerName(containerName)
             .buildEncryptedBlobClient();
@@ -22,8 +22,8 @@ final class JavaDocCodeSnippetsHelpers {
 
     static EncryptedBlobAsyncClient getEncryptedBlobAsyncClient(String blobName, String containerName) {
         return new EncryptedBlobClientBuilder()
-            .key(getKey(), "keyWrapAlgorithm")
-            .keyResolver(getKeyResolver())
+            .key(null, null)
+            .keyResolver(null)
             .blobName(blobName)
             .containerName(containerName)
             .buildEncryptedBlobAsyncClient();

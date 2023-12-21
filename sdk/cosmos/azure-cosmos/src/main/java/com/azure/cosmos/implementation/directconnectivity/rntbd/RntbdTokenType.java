@@ -42,24 +42,6 @@ enum RntbdTokenType {
     Invalid((byte)0xFF, RntbdNone.codec);             // no data
 
     // region Implementation
-    private static final RntbdTokenType[] allTokens = getAllTokens();
-
-    private static  RntbdTokenType[] getAllTokens() {
-        final int maxByteValue = 0xFF + 1;
-        final RntbdTokenType[] allPossibleTokens = new RntbdTokenType[maxByteValue]; // one byte RNTBD limit
-        for(int i = 0; i < maxByteValue; i++) {
-            allPossibleTokens[i] = Invalid;
-        }
-
-        // Override with valid entries
-        for (final RntbdTokenType tokenType : RntbdTokenType.values()) {
-            if (tokenType.id != Invalid.id) { // byte (0xFF auto-translates to -1)
-                allPossibleTokens[tokenType.id] = tokenType;
-            }
-        }
-
-        return allPossibleTokens;
-    }
 
     private Codec codec;
     private byte id;
@@ -74,11 +56,13 @@ enum RntbdTokenType {
     }
 
     public static RntbdTokenType fromId(final byte value) {
-        if (value == Invalid.id) {
-            return Invalid;
-        }
 
-        return allTokens[value];
+        for (final RntbdTokenType tokenType : RntbdTokenType.values()) {
+            if (value == tokenType.id) {
+                return tokenType;
+            }
+        }
+        return Invalid;
     }
 
     public byte id() {

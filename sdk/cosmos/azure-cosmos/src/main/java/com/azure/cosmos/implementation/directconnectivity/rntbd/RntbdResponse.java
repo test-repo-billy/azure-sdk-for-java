@@ -21,7 +21,6 @@ import io.netty.util.ResourceLeakDetector;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
@@ -30,6 +29,7 @@ import static com.azure.cosmos.implementation.directconnectivity.rntbd.RntbdCons
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkState;
+import static java.lang.Integer.min;
 
 @JsonPropertyOrder({ "messageLength", "referenceCount", "frame", "headers", "content" })
 public final class RntbdResponse implements ReferenceCounted {
@@ -55,12 +55,6 @@ public final class RntbdResponse implements ReferenceCounted {
 
     @JsonProperty
     private volatile int referenceCount;
-
-    @JsonIgnore
-    private Instant decodeStartTime;
-
-    @JsonIgnore
-    private Instant decodeEndTime;
 
     // endregion
 
@@ -140,22 +134,6 @@ public final class RntbdResponse implements ReferenceCounted {
     @JsonIgnore
     public Long getTransportRequestId() {
         return this.getHeader(RntbdResponseHeader.TransportRequestID);
-    }
-
-    public Instant getDecodeStartTime() {
-        return this.decodeStartTime;
-    }
-
-    public void setDecodeStartTime(Instant decodeStartTime) {
-        this.decodeStartTime = decodeStartTime;
-    }
-
-    public Instant getDecodeEndTime() {
-        return this.decodeEndTime;
-    }
-
-    public void setDecodeEndTime(Instant decodeEndTime) {
-        this.decodeEndTime = decodeEndTime;
     }
 
     // endregion
@@ -356,12 +334,11 @@ public final class RntbdResponse implements ReferenceCounted {
         if (length == 0) {
             content = null;
         } else {
-            //  TODO:(kuthapar) Add a byte array pool instead of creating a new array every time.
             content = new byte[length];
             this.content.getBytes(0, content);
         }
 
-        return new StoreResponse(this.getStatus().code(), this.headers.asMap(context, this.getActivityId()), content);
+        return new StoreResponse(this.getStatus().code(), this.headers.asList(context, this.getActivityId()), content);
     }
 
     // endregion

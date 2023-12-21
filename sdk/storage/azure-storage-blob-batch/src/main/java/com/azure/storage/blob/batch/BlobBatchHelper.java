@@ -6,13 +6,12 @@ package com.azure.storage.blob.batch;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
-import com.azure.core.http.rest.Response;
 import com.azure.core.http.rest.SimpleResponse;
-import com.azure.core.util.CoreUtils;
 import com.azure.core.util.FluxUtil;
+import com.azure.core.util.CoreUtils;
 import com.azure.core.util.logging.ClientLogger;
+import com.azure.storage.blob.implementation.models.ServicesSubmitBatchResponse;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.common.implementation.Constants;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -43,25 +42,22 @@ class BlobBatchHelper {
      * This pattern matches finding the status code of the batch response.
      */
     private static final Pattern STATUS_CODE_PATTERN = Pattern
-        .compile("HTTP/\\d\\.\\d\\s?(\\d+)\\s?\\w+", Pattern.CASE_INSENSITIVE);
+        .compile("HTTP\\/\\d\\.\\d\\s?(\\d+)\\s?\\w+", Pattern.CASE_INSENSITIVE);
 
     /*
-     * The following patterns were previously used in 'String.split' calls. 'String.split' internally compiles the
-     * String pattern into a Pattern regex if it is larger than one character, or two if-and-only-if it is an escaped
-     * single character. Compiling these patterns here will help reduce the number of regex compilations, greatly
-     * improving performance.
+     * This pattern matches finding the 'application/http' portion of the body.
      */
-    private static final Pattern HTTP_DOUBLE_NEWLINE_PATTERN = Pattern.compile(HTTP_NEWLINE + HTTP_NEWLINE);
-    private static final Pattern HTTP_HEADER_SPLIT_PATTERN = Pattern.compile(":\\s*");
+    private static final Pattern APPLICATION_HTTP_PATTERN = Pattern
+        .compile("application\\/http", Pattern.CASE_INSENSITIVE);
 
     // This method connects the batch response values to the individual batch operations based on their Content-Id
     static Mono<SimpleResponse<Void>> mapBatchResponse(BlobBatchOperationInfo batchOperationInfo,
-        Response<Flux<ByteBuffer>> rawResponse, boolean throwOnAnyFailure, ClientLogger logger) {
+        ServicesSubmitBatchResponse batchResponse, boolean throwOnAnyFailure, ClientLogger logger) {
         /*
          * Content-Type will contain the boundary for each batch response. The expected format is:
          * "Content-Type: multipart/mixed; boundary=batchresponse_66925647-d0cb-4109-b6d3-28efe3e1e5ed"
          */
-        String contentType = rawResponse.getHeaders().getValue(Constants.HeaderConstants.CONTENT_TYPE);
+        String contentType = batchResponse.getDeserializedHeaders().getContentType();
 
         // Split on the boundary [ "multipart/mixed; boundary", "batchresponse_66925647-d0cb-4109-b6d3-28efe3e1e5ed"]
         String[] boundaryPieces = contentType.split("=", 2);
@@ -72,41 +68,30 @@ class BlobBatchHelper {
 
         String boundary = boundaryPieces[1];
 
-        return FluxUtil.collectBytesInByteBufferStream(rawResponse.getValue())
-            /*
-             * This has been changed from using 'Mono.fromRunnable' to 'Mono.create' to resolve an issue where iterating
-             * the responses resulted in 0 responses being returned. The reason that this occurred is that
-             * 'Mono.fromRunnable' only returns an 'onComplete' trigger with no response value, resulting on all
-             * downstream operators being skipped as there is no 'onNext' trigger. Effectively, the request and response
-             * worked correctly but emitting the responses failed.
-             *
-             * This change has an additional benefit in that the MonoSink used in 'Mono.create' now allows for 'onError'
-             * emissions to occur instead of escaping the reactive stream boundaries when throwing an exception.
-             */
-            .flatMap(byteArrayBody -> Mono.create(sink -> {
+        return FluxUtil.collectBytesInByteBufferStream(batchResponse.getValue())
+            .flatMap(byteArrayBody -> Mono.fromRunnable(() -> {
                 String body = new String(byteArrayBody, StandardCharsets.UTF_8);
                 List<BlobStorageException> exceptions = new ArrayList<>();
 
                 String[] subResponses = body.split("--" + boundary);
                 if (subResponses.length == 3 && batchOperationInfo.getOperationCount() != 1) {
-                    String[] exceptionSections = HTTP_DOUBLE_NEWLINE_PATTERN.split(subResponses[1]);
+                    String[] exceptionSections = subResponses[1].split(HTTP_NEWLINE + HTTP_NEWLINE);
                     int statusCode = getStatusCode(exceptionSections[1], logger);
                     HttpHeaders headers = getHttpHeaders(exceptionSections[1]);
 
-                    sink.error(logger.logExceptionAsError(new BlobStorageException(
-                        headers.getValue(Constants.HeaderConstants.ERROR_CODE),
-                        createHttpResponse(rawResponse.getRequest(), statusCode, headers, body), body)));
+                    throw logger.logExceptionAsError(new BlobStorageException(headers.getValue("x-ms-error-code"),
+                        createHttpResponse(batchResponse.getRequest(), statusCode, headers, body), body));
                 }
 
                 // Split the batch response body into batch operation responses.
                 for (String subResponse : subResponses) {
                     // This is a split value that isn't a response.
-                    if (!subResponse.contains("application/http")) {
+                    if (!APPLICATION_HTTP_PATTERN.matcher(subResponse).find()) {
                         continue;
                     }
 
                     // The batch operation response will be delimited by two new lines.
-                    String[] subResponseSections = HTTP_DOUBLE_NEWLINE_PATTERN.split(subResponse);
+                    String[] subResponseSections = subResponse.split(HTTP_NEWLINE + HTTP_NEWLINE);
 
                     // The first section will contain batching metadata.
                     BlobBatchOperationResponse<?> batchOperationResponse =
@@ -119,16 +104,16 @@ class BlobBatchHelper {
                     // The third section will contain the body.
                     if (subResponseSections.length > 2) {
                         // The body is optional and may not exist.
-                        setBodyOrAddException(batchOperationResponse, subResponseSections[2], exceptions, logger);
+                        setBodyOrAddException(batchOperationResponse, subResponseSections[2], exceptions);
                     }
                 }
 
                 if (throwOnAnyFailure && exceptions.size() != 0) {
-                    sink.error(logger.logExceptionAsError(new BlobBatchStorageException("Batch had operation failures.",
-                        createHttpResponse(rawResponse), exceptions)));
+                    throw logger.logExceptionAsError(new BlobBatchStorageException("Batch had operation failures.",
+                        createHttpResponse(batchResponse), exceptions));
                 }
 
-                sink.success(new SimpleResponse<>(rawResponse, null));
+                new SimpleResponse<>(batchResponse, null);
             }));
     }
 
@@ -159,40 +144,30 @@ class BlobBatchHelper {
     private static HttpHeaders getHttpHeaders(String responseMetadata) {
         HttpHeaders headers = new HttpHeaders();
 
-        int previousIndex = 0;
-        int index;
-        do {
-            index = responseMetadata.indexOf(HTTP_NEWLINE, previousIndex);
-            String line = (index == -1)
-                ? responseMetadata.substring(previousIndex)
-                : responseMetadata.substring(previousIndex, index);
-
-            previousIndex = index + 2;
-
+        for (String line : responseMetadata.split(HTTP_NEWLINE)) {
             if (CoreUtils.isNullOrEmpty(line) || (line.startsWith("HTTP") && !line.contains(":"))) {
                 continue;
             }
 
-            String[] headerPieces = HTTP_HEADER_SPLIT_PATTERN.split(line, 2);
+            String[] headerPieces = line.split(":\\s*", 2);
             if (headerPieces.length == 1) {
-                headers.set(headerPieces[0], (String) null);
+                headers.put(headerPieces[0], null);
             } else {
-                headers.set(headerPieces[0], headerPieces[1]);
+                headers.put(headerPieces[0], headerPieces[1]);
             }
-        } while (index != -1);
+        }
 
         return headers;
     }
 
     private static void setBodyOrAddException(BlobBatchOperationResponse<?> batchOperationResponse,
-        String responseBody, List<BlobStorageException> exceptions, ClientLogger logger) {
+        String responseBody, List<BlobStorageException> exceptions) {
         /*
-         * Currently, no batching operations will return a success body, they will only return a body on an exception.
+         * Currently no batching operations will return a success body, they will only return a body on an exception.
          * For now this will only construct the exception and throw if it should throw on an error.
          */
         BlobStorageException exception = new BlobStorageException(responseBody,
             batchOperationResponse.asHttpResponse(responseBody), responseBody);
-        logger.logExceptionAsError(exception);
         batchOperationResponse.setException(exception);
         exceptions.add(exception);
     }
@@ -236,7 +211,7 @@ class BlobBatchHelper {
         };
     }
 
-    private static HttpResponse createHttpResponse(Response<Flux<ByteBuffer>> response) {
+    private static HttpResponse createHttpResponse(ServicesSubmitBatchResponse response) {
         return new HttpResponse(response.getRequest()) {
             @Override
             public int getStatusCode() {

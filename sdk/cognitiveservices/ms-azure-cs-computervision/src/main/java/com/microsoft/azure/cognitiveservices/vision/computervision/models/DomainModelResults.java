@@ -34,12 +34,6 @@ public class DomainModelResults {
     private ImageMetadata metadata;
 
     /**
-     * The modelVersion property.
-     */
-    @JsonProperty(value = "modelVersion")
-    private String modelVersion;
-
-    /**
      * Get the result value.
      *
      * @return the result value
@@ -96,26 +90,6 @@ public class DomainModelResults {
      */
     public DomainModelResults withMetadata(ImageMetadata metadata) {
         this.metadata = metadata;
-        return this;
-    }
-
-    /**
-     * Get the modelVersion value.
-     *
-     * @return the modelVersion value
-     */
-    public String modelVersion() {
-        return this.modelVersion;
-    }
-
-    /**
-     * Set the modelVersion value.
-     *
-     * @param modelVersion the modelVersion value to set
-     * @return the DomainModelResults object itself.
-     */
-    public DomainModelResults withModelVersion(String modelVersion) {
-        this.modelVersion = modelVersion;
         return this;
     }
 

@@ -17,8 +17,7 @@ import java.util.Objects;
  * @param <T> the type of the poll response.
  */
 public final class PollingContext<T> {
-    // PollingContext is a commonly used class, use a static logger.
-    private static final ClientLogger LOGGER = new ClientLogger(PollingContext.class);
+    private final ClientLogger logger = new ClientLogger(PollingContext.class);
     private final Map<String, String> map;
     private volatile PollResponse<T> activationResponse;
     private volatile PollResponse<T> latestResponse;
@@ -46,18 +45,14 @@ public final class PollingContext<T> {
     }
 
     /**
-     * Gets the activation {@link PollResponse} holding the result of an activation operation call.
-     *
-     * @return The activation {@link PollResponse} holding the result of an activation operation call.
+     * @return the activation {@link PollResponse} holding result of activation operation call.
      */
     public PollResponse<T> getActivationResponse() {
         return this.activationResponse;
     }
 
     /**
-     * Gets the latest {@link PollResponse} in the polling operation.
-     *
-     * @return The latest {@link PollResponse} in the polling operation.
+     * @return the latest {@link PollResponse} from pollOperation.
      */
     public PollResponse<T> getLatestResponse() {
         return this.latestResponse;
@@ -66,21 +61,27 @@ public final class PollingContext<T> {
     /**
      * Sets latest {@link PollResponse} from pollOperation.
      *
+     * PACKAGE INTERNAL METHOD
+     *
      * @param latestResponse the poll response
      */
     void setLatestResponse(PollResponse<T> latestResponse) {
-        this.latestResponse = Objects.requireNonNull(latestResponse, "'latestResponse' is required.");
+        this.latestResponse = Objects.requireNonNull(latestResponse,
+                "'latestResponse' is required.");
     }
 
     /**
      * Sets activation {@link PollResponse} holding result of activation operation call.
      *
+     * PACKAGE INTERNAL METHOD
+     *
      * @param activationResponse the activation response
      */
     void setOnetimeActivationResponse(PollResponse<T> activationResponse) {
         if (this.activationResponse != null) {
-            throw LOGGER.logExceptionAsError(new IllegalStateException(
-                "setOnetimeActivationResponse can be called only once."));
+            throw logger
+                    .logExceptionAsError(new IllegalStateException(
+                            "setOnetimeActivationResponse can be called only once."));
         } else {
             this.activationResponse = activationResponse;
             this.latestResponse = this.activationResponse;
@@ -88,11 +89,15 @@ public final class PollingContext<T> {
     }
 
     PollingContext<T> copy() {
-        return new PollingContext<>(this.activationResponse, this.latestResponse, new HashMap<>(this.map));
+        return new PollingContext<>(this.activationResponse,
+                this.latestResponse,
+                new HashMap<>(this.map));
     }
 
     /**
      * Creates PollingContext.
+     *
+     * Package internal default constructor.
      */
     PollingContext() {
         this.map = new HashMap<>();
@@ -105,10 +110,14 @@ public final class PollingContext<T> {
      * @param latestResponse latest poll response from pollOperation.
      * @param map the map to store context
      */
-    private PollingContext(PollResponse<T> activationResponse, PollResponse<T> latestResponse,
-        Map<String, String> map) {
-        this.activationResponse = Objects.requireNonNull(activationResponse, "'activationResponse' cannot be null.");
-        this.latestResponse = Objects.requireNonNull(latestResponse, "'latestResponse' cannot be null.");
-        this.map = Objects.requireNonNull(map, "'map' cannot be null.");
+    private PollingContext(PollResponse<T> activationResponse,
+                           PollResponse<T> latestResponse,
+                           Map<String, String> map) {
+        this.activationResponse = Objects.requireNonNull(activationResponse,
+                "'activationResponse' cannot be null.");
+        this.latestResponse = Objects.requireNonNull(latestResponse,
+                "'latestResponse' cannot be null.");
+        this.map = Objects.requireNonNull(map,
+                "'map' cannot be null.");
     }
 }

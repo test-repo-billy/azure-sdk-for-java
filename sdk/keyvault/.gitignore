@@ -1,7 +1,4 @@
 *.class
-*.cer
-*.key
-*.pfx
 
 #External libs
 extlib/

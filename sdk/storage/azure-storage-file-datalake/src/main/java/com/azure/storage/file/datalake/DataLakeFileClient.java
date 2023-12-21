@@ -3,58 +3,30 @@
 
 package com.azure.storage.file.datalake;
 
-import com.azure.core.annotation.ReturnType;
-import com.azure.core.annotation.ServiceClient;
-import com.azure.core.annotation.ServiceMethod;
 import com.azure.core.http.rest.Response;
-import com.azure.core.http.rest.ResponseBase;
 import com.azure.core.http.rest.SimpleResponse;
-import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
-import com.azure.core.util.FluxUtil;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.models.BlobDownloadResponse;
 import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.blob.models.BlobQueryResponse;
-import com.azure.storage.blob.options.BlobDownloadToFileOptions;
-import com.azure.storage.blob.options.BlobInputStreamOptions;
-import com.azure.storage.blob.options.BlockBlobOutputStreamOptions;
-import com.azure.storage.blob.specialized.BlobInputStream;
 import com.azure.storage.blob.specialized.BlockBlobClient;
-import com.azure.storage.blob.specialized.SpecializedBlobClientBuilder;
 import com.azure.storage.common.ParallelTransferOptions;
 import com.azure.storage.common.Utility;
 import com.azure.storage.common.implementation.Constants;
-import com.azure.storage.common.implementation.FluxInputStream;
 import com.azure.storage.common.implementation.StorageImplUtils;
 import com.azure.storage.common.implementation.UploadUtils;
-import com.azure.storage.file.datalake.implementation.models.InternalDataLakeFileOpenInputStreamResult;
 import com.azure.storage.file.datalake.implementation.util.DataLakeImplUtils;
-import com.azure.storage.file.datalake.implementation.util.ModelHelper;
-import com.azure.storage.file.datalake.models.CustomerProvidedKey;
-import com.azure.storage.file.datalake.models.DataLakeFileOpenInputStreamResult;
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
-import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.azure.storage.file.datalake.models.DownloadRetryOptions;
-import com.azure.storage.file.datalake.models.FileQueryAsyncResponse;
-import com.azure.storage.file.datalake.models.FileQueryResponse;
 import com.azure.storage.file.datalake.models.FileRange;
 import com.azure.storage.file.datalake.models.FileReadResponse;
 import com.azure.storage.file.datalake.models.PathHttpHeaders;
 import com.azure.storage.file.datalake.models.PathInfo;
 import com.azure.storage.file.datalake.models.PathProperties;
-import com.azure.storage.file.datalake.options.DataLakeFileAppendOptions;
-import com.azure.storage.file.datalake.options.DataLakeFileFlushOptions;
-import com.azure.storage.file.datalake.options.DataLakeFileInputStreamOptions;
-import com.azure.storage.file.datalake.options.DataLakeFileOutputStreamOptions;
-import com.azure.storage.file.datalake.options.DataLakePathDeleteOptions;
-import com.azure.storage.file.datalake.options.FileParallelUploadOptions;
-import com.azure.storage.file.datalake.options.FileQueryOptions;
-import com.azure.storage.file.datalake.options.FileScheduleDeletionOptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
+import reactor.core.scheduler.Schedulers;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
@@ -81,18 +53,17 @@ import java.util.Set;
  * <p>
  * Please refer to the
  *
- * <a href="https://docs.microsoft.com/azure/storage/blobs/data-lake-storage-introduction">Azure
+ * <a href="https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction?toc=%2fazure%2fstorage%2fblobs%2ftoc.json">Azure
  * Docs</a> for more information.
  */
-@ServiceClient(builder = DataLakePathClientBuilder.class)
 public class DataLakeFileClient extends DataLakePathClient {
 
     /**
      * Indicates the maximum number of bytes that can be sent in a call to upload.
      */
-    private static final long MAX_APPEND_FILE_BYTES = DataLakeFileAsyncClient.MAX_APPEND_FILE_BYTES;
+    private static final int MAX_APPEND_FILE_BYTES = DataLakeFileAsyncClient.MAX_APPEND_FILE_BYTES;
 
-    private static final ClientLogger LOGGER = new ClientLogger(DataLakeFileClient.class);
+    private final ClientLogger logger = new ClientLogger(DataLakeFileClient.class);
 
     private final DataLakeFileAsyncClient dataLakeFileAsyncClient;
 
@@ -134,34 +105,16 @@ public class DataLakeFileClient extends DataLakePathClient {
     }
 
     /**
-     * Creates a new {@link DataLakeFileClient} with the specified {@code customerProvidedKey}.
-     *
-     * @param customerProvidedKey the {@link CustomerProvidedKey} for the blob,
-     * pass {@code null} to use no customer provided key.
-     * @return a {@link DataLakeFileClient} with the specified {@code customerProvidedKey}.
-     */
-    public DataLakeFileClient getCustomerProvidedKeyClient(CustomerProvidedKey customerProvidedKey) {
-        return new DataLakeFileClient(dataLakeFileAsyncClient.getCustomerProvidedKeyAsyncClient(customerProvidedKey),
-            blockBlobClient.getCustomerProvidedKeyClient(Transforms.toBlobCustomerProvidedKey(customerProvidedKey)));
-    }
-
-    /**
      * Deletes a file.
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.delete -->
-     * <pre>
-     * client.delete&#40;&#41;;
-     * System.out.println&#40;&quot;Delete request completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.delete -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.delete}
      *
      * <p>For more information see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
      * Docs</a></p>
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public void delete() {
         deleteWithResponse(null, null, Context.NONE).getValue();
     }
@@ -171,18 +124,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.deleteWithResponse#DataLakeRequestConditions-Duration-Context -->
-     * <pre>
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;;
-     *
-     * client.deleteWithResponse&#40;requestConditions, timeout, new Context&#40;key1, value1&#41;&#41;;
-     * System.out.println&#40;&quot;Delete request completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.deleteWithResponse#DataLakeRequestConditions-Duration-Context -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.deleteWithResponse#DataLakeRequestConditions-Duration-Context}
      *
      * <p>For more information see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
      * Docs</a></p>
      *
      * @param requestConditions {@link DataLakeRequestConditions}
@@ -191,7 +136,6 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * @return A response containing status code and HTTP headers.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<Void> deleteWithResponse(DataLakeRequestConditions requestConditions, Duration timeout,
         Context context) {
         // TODO (rickle-msft): Update for continuation token if we support HNS off
@@ -201,261 +145,16 @@ public class DataLakeFileClient extends DataLakePathClient {
     }
 
     /**
-     * Deletes a file if it exists.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.deleteIfExists -->
-     * <pre>
-     * client.deleteIfExists&#40;&#41;;
-     * System.out.println&#40;&quot;Delete request completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.deleteIfExists -->
-     *
-     * <p>For more information see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
-     * Docs</a></p>
-     * @return {@code true} if file is successfully deleted, {@code false} if the file does not exist.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public boolean deleteIfExists() {
-        return deleteIfExistsWithResponse(new DataLakePathDeleteOptions(), null, Context.NONE).getValue();
-    }
-
-    /**
-     * Deletes a file if it exists.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.deleteIfExistsWithResponse#DataLakePathDeleteOptions-Duration-Context -->
-     * <pre>
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;;
-     * DataLakePathDeleteOptions options = new DataLakePathDeleteOptions&#40;&#41;.setIsRecursive&#40;false&#41;
-     *     .setRequestConditions&#40;requestConditions&#41;;
-     *
-     * Response&lt;Boolean&gt; response = client.deleteIfExistsWithResponse&#40;options, timeout, new Context&#40;key1, value1&#41;&#41;;
-     * if &#40;response.getStatusCode&#40;&#41; == 404&#41; &#123;
-     *     System.out.println&#40;&quot;Does not exist.&quot;&#41;;
-     * &#125; else &#123;
-     *     System.out.printf&#40;&quot;Delete completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.deleteIfExistsWithResponse#DataLakePathDeleteOptions-Duration-Context -->
-     *
-     * <p>For more information see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/delete">Azure
-     * Docs</a></p>
-     *
-     * @param options {@link DataLakePathDeleteOptions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     *
-     * @return A response containing status code and HTTP headers. If {@link Response}'s status code is 200, the file
-     * was successfully deleted. If status code is 404, the file does not exist.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<Boolean> deleteIfExistsWithResponse(DataLakePathDeleteOptions options, Duration timeout,
-        Context context) {
-        return StorageImplUtils.blockWithOptionalTimeout(dataLakeFileAsyncClient
-            .deleteIfExistsWithResponse(options, context), timeout);
-    }
-
-
-    /**
-     * Creates a new file. By default, this method will not overwrite an existing file.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.upload#InputStream-long -->
-     * <pre>
-     * try &#123;
-     *     client.upload&#40;data, length&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.upload#InputStream-long -->
-     *
-     * @param data The data to write to the blob. The data must be markable. This is in order to support retries. If
-     * the data is not markable, consider wrapping your data source in a {@link java.io.BufferedInputStream} to add mark
-     * support.
-     * @param length The exact length of the data. It is important that this value match precisely the length of the
-     * data provided in the {@link InputStream}.
-     * @return Information about the uploaded path.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public PathInfo upload(InputStream data, long length) {
-        return upload(data, length, false);
-    }
-
-    /**
-     * Creates a new file. By default, this method will not overwrite an existing file.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.upload#BinaryData -->
-     * <pre>
-     * try &#123;
-     *     client.upload&#40;binaryData&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.upload#BinaryData -->
-     *
-     * @param data The data to write to the blob. The data must be markable. This is in order to support retries. If
-     * the data is not markable, consider wrapping your data source in a {@link java.io.BufferedInputStream} to add mark
-     * support.
-     * @return Information about the uploaded path.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public PathInfo upload(BinaryData data) {
-        return upload(data, false);
-    }
-
-    /**
-     * Creates a new file, or updates the content of an existing file.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.upload#InputStream-long-boolean -->
-     * <pre>
-     * try &#123;
-     *     boolean overwrite = false;
-     *     client.upload&#40;data, length, overwrite&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.upload#InputStream-long-boolean -->
-     *
-     * @param data The data to write to the blob. The data must be markable. This is in order to support retries. If
-     * the data is not markable, consider wrapping your data source in a {@link java.io.BufferedInputStream} to add mark
-     * support.
-     * @param length The exact length of the data. It is important that this value match precisely the length of the
-     * data provided in the {@link InputStream}.
-     * @param overwrite Whether to overwrite, should data exist on the file.
-     * @return Information about the uploaded path.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public PathInfo upload(InputStream data, long length, boolean overwrite) {
-        DataLakeRequestConditions requestConditions = new DataLakeRequestConditions();
-        if (!overwrite) {
-            requestConditions.setIfNoneMatch(Constants.HeaderConstants.ETAG_WILDCARD);
-        }
-        return uploadWithResponse(new FileParallelUploadOptions(data, length).setRequestConditions(requestConditions),
-            null, Context.NONE).getValue();
-    }
-
-    /**
-     * Creates a new file, or updates the content of an existing file.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.upload#BinaryData-boolean -->
-     * <pre>
-     * try &#123;
-     *     boolean overwrite = false;
-     *     client.upload&#40;binaryData, overwrite&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.upload#BinaryData-boolean -->
-     *
-     * @param data The data to write to the blob. The data must be markable. This is in order to support retries. If
-     * the data is not markable, consider wrapping your data source in a {@link java.io.BufferedInputStream} to add mark
-     * support.
-     * @param overwrite Whether to overwrite, should data exist on the file.
-     * @return Information about the uploaded path.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public PathInfo upload(BinaryData data, boolean overwrite) {
-        DataLakeRequestConditions requestConditions = new DataLakeRequestConditions();
-        if (!overwrite) {
-            requestConditions.setIfNoneMatch(Constants.HeaderConstants.ETAG_WILDCARD);
-        }
-        return uploadWithResponse(new FileParallelUploadOptions(data).setRequestConditions(requestConditions),
-            null, Context.NONE).getValue();
-    }
-
-    /**
-     * Creates a new file.
-     * To avoid overwriting, pass "*" to {@link DataLakeRequestConditions#setIfNoneMatch(String)}.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.uploadWithResponse#FileParallelUploadOptions-Duration-Context -->
-     * <pre>
-     * PathHttpHeaders headers = new PathHttpHeaders&#40;&#41;
-     *     .setContentMd5&#40;&quot;data&quot;.getBytes&#40;StandardCharsets.UTF_8&#41;&#41;
-     *     .setContentLanguage&#40;&quot;en-US&quot;&#41;
-     *     .setContentType&#40;&quot;binary&quot;&#41;;
-     *
-     * Map&lt;String, String&gt; metadata = Collections.singletonMap&#40;&quot;metadata&quot;, &quot;value&quot;&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;
-     *     .setIfUnmodifiedSince&#40;OffsetDateTime.now&#40;&#41;.minusDays&#40;3&#41;&#41;;
-     * Long blockSize = 100L * 1024L * 1024L; &#47;&#47; 100 MB;
-     * ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions&#40;&#41;.setBlockSizeLong&#40;blockSize&#41;;
-     *
-     * try &#123;
-     *     client.uploadWithResponse&#40;new FileParallelUploadOptions&#40;data, length&#41;
-     *         .setParallelTransferOptions&#40;parallelTransferOptions&#41;.setHeaders&#40;headers&#41;
-     *         .setMetadata&#40;metadata&#41;.setRequestConditions&#40;requestConditions&#41;
-     *         .setPermissions&#40;&quot;permissions&quot;&#41;.setUmask&#40;&quot;umask&quot;&#41;, timeout, new Context&#40;&quot;key&quot;, &quot;value&quot;&#41;&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.uploadWithResponse#FileParallelUploadOptions-Duration-Context -->
-     *
-     * @param options {@link FileParallelUploadOptions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return Information about the uploaded path.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<PathInfo> uploadWithResponse(FileParallelUploadOptions options, Duration timeout,
-        Context context) {
-        Objects.requireNonNull(options);
-        Mono<Response<PathInfo>> upload = this.dataLakeFileAsyncClient.uploadWithResponse(options)
-            .contextWrite(FluxUtil.toReactorContext(context));
-
-        try {
-            return StorageImplUtils.blockWithOptionalTimeout(upload, timeout);
-        } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
-        }
-    }
-
-    /**
-     * Creates a file, with the content of the specified file. By default, this method will not overwrite an
+     * Creates a file, with the content of the specified file. By default this method will not overwrite an
      * existing file.
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String -->
-     * <pre>
-     * try &#123;
-     *     client.uploadFromFile&#40;filePath&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String}
      *
      * @param filePath Path of the file to upload
      * @throws UncheckedIOException If an I/O error occurs
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public void uploadFromFile(String filePath) {
         uploadFromFile(filePath, false);
     }
@@ -465,33 +164,20 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-boolean -->
-     * <pre>
-     * try &#123;
-     *     boolean overwrite = false;
-     *     client.uploadFromFile&#40;filePath, overwrite&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-boolean -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-boolean}
      *
      * @param filePath Path of the file to upload
-     * @param overwrite Whether to overwrite, should the file already exist
+     * @param overwrite Whether or not to overwrite, should the file already exist
      * @throws UncheckedIOException If an I/O error occurs
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public void uploadFromFile(String filePath, boolean overwrite) {
         DataLakeRequestConditions requestConditions = null;
 
         if (!overwrite) {
             // Note we only want to make the exists call if we will be uploading in stages. Otherwise it is superfluous.
-            //
-            // Default behavior is to use uploading in chunks when the file size is greater than 100 MB.
-            if (UploadUtils.shouldUploadInChunks(filePath, ModelHelper.FILE_DEFAULT_MAX_SINGLE_UPLOAD_SIZE, LOGGER)
+            if (UploadUtils.shouldUploadInChunks(filePath, DataLakeFileClient.MAX_APPEND_FILE_BYTES, logger)
                 && exists()) {
-                throw LOGGER.logExceptionAsError(new IllegalArgumentException(Constants.BLOB_ALREADY_EXISTS));
+                throw logger.logExceptionAsError(new IllegalArgumentException(Constants.BLOB_ALREADY_EXISTS));
             }
             requestConditions = new DataLakeRequestConditions().setIfNoneMatch(Constants.HeaderConstants.ETAG_WILDCARD);
         }
@@ -505,39 +191,16 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-ParallelTransferOptions-PathHttpHeaders-Map-DataLakeRequestConditions-Duration -->
-     * <pre>
-     * PathHttpHeaders headers = new PathHttpHeaders&#40;&#41;
-     *     .setContentMd5&#40;&quot;data&quot;.getBytes&#40;StandardCharsets.UTF_8&#41;&#41;
-     *     .setContentLanguage&#40;&quot;en-US&quot;&#41;
-     *     .setContentType&#40;&quot;binary&quot;&#41;;
-     *
-     * Map&lt;String, String&gt; metadata = Collections.singletonMap&#40;&quot;metadata&quot;, &quot;value&quot;&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;
-     *     .setIfUnmodifiedSince&#40;OffsetDateTime.now&#40;&#41;.minusDays&#40;3&#41;&#41;;
-     * Long blockSize = 100L * 1024L * 1024L; &#47;&#47; 100 MB;
-     * ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions&#40;&#41;.setBlockSizeLong&#40;blockSize&#41;;
-     *
-     * try &#123;
-     *     client.uploadFromFile&#40;filePath, parallelTransferOptions, headers, metadata, requestConditions, timeout&#41;;
-     *     System.out.println&#40;&quot;Upload from file succeeded&quot;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-ParallelTransferOptions-PathHttpHeaders-Map-DataLakeRequestConditions-Duration -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFile#String-ParallelTransferOptions-PathHttpHeaders-Map-DataLakeRequestConditions-Duration}
      *
      * @param filePath Path of the file to upload
      * @param parallelTransferOptions {@link ParallelTransferOptions} used to configure buffered uploading.
      * @param headers {@link PathHttpHeaders}
-     * @param metadata Metadata to associate with the resource. If there is leading or trailing whitespace in any
-     * metadata key or value, it must be removed or encoded.
+     * @param metadata Metadata to associate with the resource.
      * @param requestConditions {@link DataLakeRequestConditions}
      * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
      * @throws UncheckedIOException If an I/O error occurs
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public void uploadFromFile(String filePath, ParallelTransferOptions parallelTransferOptions,
         PathHttpHeaders headers, Map<String, String> metadata, DataLakeRequestConditions requestConditions,
         Duration timeout) {
@@ -547,64 +210,7 @@ public class DataLakeFileClient extends DataLakePathClient {
         try {
             StorageImplUtils.blockWithOptionalTimeout(upload, timeout);
         } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
-        }
-    }
-
-    /**
-     * Creates a file, with the content of the specified file.
-     * <p>
-     * To avoid overwriting, pass "*" to {@link DataLakeRequestConditions#setIfNoneMatch(String)}.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFileWithResponse#String-ParallelTransferOptions-PathHttpHeaders-Map-DataLakeRequestConditions-Duration-Context -->
-     * <pre>
-     * PathHttpHeaders headers = new PathHttpHeaders&#40;&#41;
-     *     .setContentMd5&#40;&quot;data&quot;.getBytes&#40;StandardCharsets.UTF_8&#41;&#41;
-     *     .setContentLanguage&#40;&quot;en-US&quot;&#41;
-     *     .setContentType&#40;&quot;binary&quot;&#41;;
-     *
-     * Map&lt;String, String&gt; metadata = Collections.singletonMap&#40;&quot;metadata&quot;, &quot;value&quot;&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;
-     *     .setIfUnmodifiedSince&#40;OffsetDateTime.now&#40;&#41;.minusDays&#40;3&#41;&#41;;
-     * Long blockSize = 100L * 1024L * 1024L; &#47;&#47; 100 MB;
-     * ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions&#40;&#41;.setBlockSizeLong&#40;blockSize&#41;;
-     *
-     * try &#123;
-     *     Response&lt;PathInfo&gt; response = client.uploadFromFileWithResponse&#40;filePath, parallelTransferOptions, headers,
-     *         metadata, requestConditions, timeout, new Context&#40;&quot;key&quot;, &quot;value&quot;&#41;&#41;;
-     *     System.out.printf&#40;&quot;Upload from file succeeded with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * &#125; catch &#40;UncheckedIOException ex&#41; &#123;
-     *     System.err.printf&#40;&quot;Failed to upload from file %s%n&quot;, ex.getMessage&#40;&#41;&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.uploadFromFileWithResponse#String-ParallelTransferOptions-PathHttpHeaders-Map-DataLakeRequestConditions-Duration-Context -->
-     *
-     * @param filePath Path of the file to upload
-     * @param parallelTransferOptions {@link ParallelTransferOptions} used to configure buffered uploading.
-     * @param headers {@link PathHttpHeaders}
-     * @param metadata Metadata to associate with the resource. If there is leading or trailing whitespace in any
-     * metadata key or value, it must be removed or encoded.
-     * @param requestConditions {@link DataLakeRequestConditions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return Response containing information about the uploaded path.
-     * @throws UncheckedIOException If an I/O error occurs
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<PathInfo> uploadFromFileWithResponse(String filePath, ParallelTransferOptions parallelTransferOptions,
-        PathHttpHeaders headers, Map<String, String> metadata, DataLakeRequestConditions requestConditions,
-        Duration timeout, Context context) {
-        Mono<Response<PathInfo>> upload = this.dataLakeFileAsyncClient.uploadFromFileWithResponse(
-            filePath, parallelTransferOptions, headers, metadata, requestConditions)
-            .contextWrite(FluxUtil.toReactorContext(context));
-
-        try {
-            return StorageImplUtils.blockWithOptionalTimeout(upload, timeout);
-        } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
+            throw logger.logExceptionAsError(e);
         }
     }
 
@@ -613,24 +219,18 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.append#InputStream-long-long -->
-     * <pre>
-     * client.append&#40;data, offset, length&#41;;
-     * System.out.println&#40;&quot;Append data completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.append#InputStream-long-long -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.append#InputStream-long-long}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/update">Azure
      * Docs</a></p>
      *
      * @param data The data to write to the file.
      * @param fileOffset The position where the data is to be appended.
      * @param length The exact length of the data.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public void append(InputStream data, long fileOffset, long length) {
-        appendWithResponse(data, fileOffset, length, null, null, Context.NONE);
+        appendWithResponse(data, fileOffset, length, null, null, null, Context.NONE);
     }
 
     /**
@@ -638,44 +238,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.append#BinaryData-long -->
-     * <pre>
-     * client.append&#40;binaryData, offset&#41;;
-     * System.out.println&#40;&quot;Append data completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.append#BinaryData-long -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#InputStream-long-long-byte-String-Duration-Context}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
-     * Docs</a></p>
-     *
-     * @param data The data to write to the file.
-     * @param fileOffset The position where the data is to be appended.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public void append(BinaryData data, long fileOffset) {
-        appendWithResponse(data, fileOffset, null, null, null, Context.NONE);
-    }
-
-    /**
-     * Appends data to the specified resource to later be flushed (written) by a call to flush
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#InputStream-long-long-byte-String-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions options = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     *
-     * Response&lt;Void&gt; response = client.appendWithResponse&#40;data, offset, length, contentMd5, leaseId, timeout,
-     *     new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Append data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#InputStream-long-long-byte-String-Duration-Context -->
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/update">Azure
      * Docs</a></p>
      *
      * @param data The data to write to the file.
@@ -690,164 +256,19 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * @return A response signalling completion.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<Void> appendWithResponse(InputStream data, long fileOffset, long length,
         byte[] contentMd5, String leaseId, Duration timeout, Context context) {
 
-        DataLakeFileAppendOptions appendOptions = new DataLakeFileAppendOptions()
-            .setLeaseId(leaseId)
-            .setContentHash(contentMd5)
-            .setFlush(null);
-
-        return appendWithResponse(data, fileOffset, length, appendOptions, timeout, context);
-    }
-
-    /**
-     * Appends data to the specified resource to later be flushed (written) by a call to flush
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#InputStream-long-long-DataLakeFileAppendOptions-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     * DataLakeFileAppendOptions appendOptions = new DataLakeFileAppendOptions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;
-     *     .setContentHash&#40;contentMd5&#41;
-     *     .setFlush&#40;true&#41;;
-     * Response&lt;Void&gt; response = client.appendWithResponse&#40;data, offset, length, appendOptions, timeout,
-     *     new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Append data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#InputStream-long-long-DataLakeFileAppendOptions-Duration-Context -->
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
-     * Docs</a></p>
-     *
-     * @param data The data to write to the file.
-     * @param fileOffset The position where the data is to be appended.
-     * @param length The exact length of the data.
-     * @param appendOptions {@link DataLakeFileAppendOptions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     *
-     * @return A response signalling completion.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<Void> appendWithResponse(InputStream data, long fileOffset, long length,
-        DataLakeFileAppendOptions appendOptions, Duration timeout, Context context) {
-
         Objects.requireNonNull(data);
         Flux<ByteBuffer> fbb = Utility.convertStreamToByteBuffer(data, length,
-            BlobAsyncClient.BLOB_DEFAULT_UPLOAD_BLOCK_SIZE, true);
-        Mono<Response<Void>> response = dataLakeFileAsyncClient.appendWithResponse(fbb, fileOffset, length,
-            appendOptions, context);
+            BlobAsyncClient.BLOB_DEFAULT_UPLOAD_BLOCK_SIZE);
+        Mono<Response<Void>> response = dataLakeFileAsyncClient.appendWithResponse(
+            fbb.subscribeOn(Schedulers.elastic()), fileOffset, length, contentMd5, leaseId, context);
 
         try {
             return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
         } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
-        }
-    }
-
-    /**
-     * Appends data to the specified resource to later be flushed (written) by a call to flush
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#BinaryData-long-byte-String-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions options = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     *
-     * Response&lt;Void&gt; response = client.appendWithResponse&#40;binaryData, offset, contentMd5, leaseId, timeout,
-     *     new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Append data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#BinaryData-long-byte-String-Duration-Context -->
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
-     * Docs</a></p>
-     *
-     * @param data The data to write to the file.
-     * @param fileOffset The position where the data is to be appended.
-     * @param contentMd5 An MD5 hash of the content of the data. If specified, the service will calculate the MD5 of the
-     * received data and fail the request if it does not match the provided MD5.
-     * @param leaseId By setting lease id, requests will fail if the provided lease does not match the active lease on
-     * the file.
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     *
-     * @return A response signalling completion.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<Void> appendWithResponse(BinaryData data, long fileOffset, byte[] contentMd5, String leaseId,
-        Duration timeout, Context context) {
-
-        Objects.requireNonNull(data);
-        Flux<ByteBuffer> fluxData = data.toFluxByteBuffer();
-        DataLakeFileAppendOptions appendOptions = new DataLakeFileAppendOptions()
-            .setLeaseId(leaseId)
-            .setContentHash(contentMd5)
-            .setFlush(null);
-        Mono<Response<Void>> response = dataLakeFileAsyncClient.appendWithResponse(fluxData, fileOffset,
-            data.getLength(), appendOptions, context);
-
-        try {
-            return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
-        } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
-        }
-    }
-
-    /**
-     * Appends data to the specified resource to later be flushed (written) by a call to flush
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#BinaryData-long-DataLakeFileAppendOptions-Duration-Context -->
-     * <pre>
-     * BinaryData binaryData = BinaryData.fromStream&#40;data, length&#41;;
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     * DataLakeFileAppendOptions appendOptions = new DataLakeFileAppendOptions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;
-     *     .setContentHash&#40;contentMd5&#41;
-     *     .setFlush&#40;true&#41;;
-     * Response&lt;Void&gt; response = client.appendWithResponse&#40;binaryData, offset, appendOptions, timeout,
-     *     new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Append data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.appendWithResponse#BinaryData-long-DataLakeFileAppendOptions-Duration-Context -->
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
-     * Docs</a></p>
-     *
-     * @param data The data to write to the file.
-     * @param fileOffset The position where the data is to be appended.
-     * @param appendOptions {@link DataLakeFileAppendOptions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     *
-     * @return A response signalling completion.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<Void> appendWithResponse(BinaryData data, long fileOffset,
-        DataLakeFileAppendOptions appendOptions, Duration timeout, Context context) {
-
-        Objects.requireNonNull(data);
-        Flux<ByteBuffer> fluxData = data.toFluxByteBuffer();
-        Mono<Response<Void>> response = dataLakeFileAsyncClient.appendWithResponse(fluxData, fileOffset,
-            data.getLength(), appendOptions, context);
-
-        try {
-            return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
-        } catch (UncheckedIOException e) {
-            throw LOGGER.logExceptionAsError(e);
+            throw logger.logExceptionAsError(e);
         }
     }
 
@@ -858,23 +279,16 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.flush#long -->
-     * <pre>
-     * client.flush&#40;position&#41;;
-     * System.out.println&#40;&quot;Flush data completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.flush#long -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.flush#long}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/update">Azure
      * Docs</a></p>
      *
      * @param position The length of the file after all data has been written.
+     *
      * @return Information about the created resource.
-     * @deprecated See {@link #flush(long, boolean)} instead.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    @Deprecated
     public PathInfo flush(long position) {
         return flush(position, false);
     }
@@ -885,27 +299,20 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.flush#long-boolean -->
-     * <pre>
-     * boolean overwrite = true;
-     * client.flush&#40;position, overwrite&#41;;
-     * System.out.println&#40;&quot;Flush data completed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.flush#long-boolean -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.flush#long-boolean}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/update">Azure
      * Docs</a></p>
      *
      * @param position The length of the file after all data has been written.
-     * @param overwrite Whether to overwrite, should data exist on the file.
+     * @param overwrite Whether or not to overwrite, should data exist on the file.
      *
      * @return Information about the created resource.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public PathInfo flush(long position, boolean overwrite) {
         DataLakeRequestConditions requestConditions = new DataLakeRequestConditions();
-        if (!overwrite) {
+        if (overwrite) {
             requestConditions = new DataLakeRequestConditions().setIfNoneMatch(Constants.HeaderConstants.ETAG_WILDCARD);
         }
         return flushWithResponse(position, false, false, null, requestConditions, null, Context.NONE).getValue();
@@ -917,32 +324,15 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.flushWithResponse#long-boolean-boolean-PathHttpHeaders-DataLakeRequestConditions-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions options = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     * boolean retainUncommittedData = false;
-     * boolean close = false;
-     * PathHttpHeaders httpHeaders = new PathHttpHeaders&#40;&#41;
-     *     .setContentLanguage&#40;&quot;en-US&quot;&#41;
-     *     .setContentType&#40;&quot;binary&quot;&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;;
-     *
-     * Response&lt;PathInfo&gt; response = client.flushWithResponse&#40;position, retainUncommittedData, close, httpHeaders,
-     *     requestConditions, timeout, new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Flush data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.flushWithResponse#long-boolean-boolean-PathHttpHeaders-DataLakeRequestConditions-Duration-Context -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.flushWithResponse#long-boolean-boolean-PathHttpHeaders-DataLakeRequestConditions-Duration-Context}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/update">Azure
      * Docs</a></p>
      *
      * @param position The length of the file after all data has been written.
-     * @param retainUncommittedData Whether uncommitted data is to be retained after the operation.
-     * @param close Whether a file changed event raised indicates completion (true) or modification (false).
+     * @param retainUncommittedData Whether or not uncommitted data is to be retained after the operation.
+     * @param close Whether or not a file changed event raised indicates completion (true) or modification (false).
      * @param httpHeaders {@link PathHttpHeaders httpHeaders}
      * @param requestConditions {@link DataLakeRequestConditions requestConditions}
      * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
@@ -950,69 +340,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * @return A response containing the information of the created resource.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<PathInfo> flushWithResponse(long position, boolean retainUncommittedData, boolean close,
         PathHttpHeaders httpHeaders, DataLakeRequestConditions requestConditions, Duration timeout, Context context) {
-        DataLakeFileFlushOptions flushOptions = new DataLakeFileFlushOptions()
-            .setUncommittedDataRetained(retainUncommittedData)
-            .setClose(close)
-            .setPathHttpHeaders(httpHeaders)
-            .setRequestConditions(requestConditions);
-
-        return flushWithResponse(position, flushOptions, timeout, context);
-    }
-
-    /**
-     * Flushes (writes) data previously appended to the file through a call to append.
-     * The previously uploaded data must be contiguous.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.flushWithResponse#long-DataLakeFileFlushOptions-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions options = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     * byte[] contentMd5 = new byte[0]; &#47;&#47; Replace with valid md5
-     * boolean retainUncommittedData = false;
-     * boolean close = false;
-     * PathHttpHeaders httpHeaders = new PathHttpHeaders&#40;&#41;
-     *     .setContentLanguage&#40;&quot;en-US&quot;&#41;
-     *     .setContentType&#40;&quot;binary&quot;&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;;
-     *
-     * Integer leaseDuration = 15;
-     *
-     * DataLakeFileFlushOptions flushOptions = new DataLakeFileFlushOptions&#40;&#41;
-     *     .setUncommittedDataRetained&#40;retainUncommittedData&#41;
-     *     .setClose&#40;close&#41;
-     *     .setPathHttpHeaders&#40;httpHeaders&#41;
-     *     .setRequestConditions&#40;requestConditions&#41;
-     *     .setLeaseAction&#40;LeaseAction.ACQUIRE&#41;
-     *     .setLeaseDuration&#40;leaseDuration&#41;
-     *     .setProposedLeaseId&#40;leaseId&#41;;
-     *
-     * Response&lt;PathInfo&gt; response = client.flushWithResponse&#40;position, flushOptions, timeout,
-     *     new Context&#40;key1, value1&#41;&#41;;
-     * System.out.printf&#40;&quot;Flush data completed with status %d%n&quot;, response.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.flushWithResponse#long-DataLakeFileFlushOptions-Duration-Context -->
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/update">Azure
-     * Docs</a></p>
-     *
-     * @param position The length of the file after all data has been written.
-     * @param flushOptions {@link DataLakeFileFlushOptions}
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     *
-     * @return A response containing the information of the created resource.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<PathInfo> flushWithResponse(long position, DataLakeFileFlushOptions flushOptions, Duration timeout,
-        Context context) {
-        Mono<Response<PathInfo>> response = dataLakeFileAsyncClient.flushWithResponse(position, flushOptions, context);
+        Mono<Response<PathInfo>> response =  dataLakeFileAsyncClient.flushWithResponse(position, retainUncommittedData,
+            close, httpHeaders, requestConditions, context);
 
         return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
     }
@@ -1022,15 +353,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.read#OutputStream -->
-     * <pre>
-     * client.read&#40;new ByteArrayOutputStream&#40;&#41;&#41;;
-     * System.out.println&#40;&quot;Download completed.&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.read#OutputStream -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.read#OutputStream}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/get-blob">Azure Docs</a></p>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob">Azure Docs</a></p>
      *
      * @param stream A non-null {@link OutputStream} instance where the downloaded data will be written.
      * @throws UncheckedIOException If an I/O error occurs.
@@ -1045,19 +371,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.readWithResponse#OutputStream-FileRange-DownloadRetryOptions-DataLakeRequestConditions-boolean-Duration-Context -->
-     * <pre>
-     * FileRange range = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions options = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     *
-     * System.out.printf&#40;&quot;Download completed with status %d%n&quot;,
-     *     client.readWithResponse&#40;new ByteArrayOutputStream&#40;&#41;, range, options, null, false,
-     *         timeout, new Context&#40;key2, value2&#41;&#41;.getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.readWithResponse#OutputStream-FileRange-DownloadRetryOptions-DataLakeRequestConditions-boolean-Duration-Context -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.readWithResponse#OutputStream-FileRange-DownloadRetryOptions-DataLakeRequestConditions-boolean-Duration-Context}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/get-blob">Azure Docs</a></p>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob">Azure Docs</a></p>
      *
      * @param stream A non-null {@link OutputStream} instance where the downloaded data will be written.
      * @param range {@link FileRange}
@@ -1078,112 +395,9 @@ public class DataLakeFileClient extends DataLakePathClient {
                 Transforms.toBlobDownloadRetryOptions(options), Transforms.toBlobRequestConditions(requestConditions),
                 getRangeContentMd5, timeout, context);
             return Transforms.toFileReadResponse(response);
-        }, LOGGER);
+        }, logger);
     }
 
-    /**
-     * Opens a file input stream to download the file. Locks on ETags.
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.openInputStream -->
-     * <pre>
-     * DataLakeFileOpenInputStreamResult inputStream = client.openInputStream&#40;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.openInputStream -->
-     *
-     * @return An {@link InputStream} object that represents the stream to use for reading from the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public DataLakeFileOpenInputStreamResult openInputStream() {
-        return openInputStream(null);
-    }
-
-    /**
-     * Opens a file input stream to download the specified range of the file. Defaults to ETag locking if the option
-     * is not specified.
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.openInputStream#DataLakeFileInputStreamOptions -->
-     * <pre>
-     * DataLakeFileInputStreamOptions options = new DataLakeFileInputStreamOptions&#40;&#41;.setBlockSize&#40;1024&#41;
-     *     .setRequestConditions&#40;new DataLakeRequestConditions&#40;&#41;&#41;;
-     * DataLakeFileOpenInputStreamResult streamResult = client.openInputStream&#40;options&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.openInputStream#DataLakeFileInputStreamOptions -->
-     *
-     * @param options {@link DataLakeFileInputStreamOptions}
-     * @return A {@link DataLakeFileOpenInputStreamResult} object that contains the stream to use for reading from the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public DataLakeFileOpenInputStreamResult openInputStream(DataLakeFileInputStreamOptions options) {
-        return openInputStream(options, Context.NONE);
-    }
-
-    /**
-     * Opens a file input stream to download the specified range of the file. Defaults to ETag locking if the option
-     * is not specified.
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.openInputStream#DataLakeFileInputStreamOptions-Context -->
-     * <pre>
-     * options = new DataLakeFileInputStreamOptions&#40;&#41;.setBlockSize&#40;1024&#41;
-     *     .setRequestConditions&#40;new DataLakeRequestConditions&#40;&#41;&#41;;
-     * DataLakeFileOpenInputStreamResult stream = client.openInputStream&#40;options, new Context&#40;key1, value1&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.openInputStream#DataLakeFileInputStreamOptions-Context -->
-     *
-     * @param options {@link DataLakeFileInputStreamOptions}
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return A {@link DataLakeFileOpenInputStreamResult} object that contains the stream to use for reading from the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public DataLakeFileOpenInputStreamResult openInputStream(DataLakeFileInputStreamOptions options, Context context) {
-        BlobInputStreamOptions convertedOptions = Transforms.toBlobInputStreamOptions(options);
-        BlobInputStream inputStream = blockBlobClient.openInputStream(convertedOptions, context);
-        return new InternalDataLakeFileOpenInputStreamResult(inputStream,
-            Transforms.toPathProperties(inputStream.getProperties()));
-    }
-
-
-    /**
-     * Creates and opens an output stream to write data to the file. If the file already exists on the service, it
-     * will be overwritten.
-     *
-     * @return The {@link OutputStream} that can be used to write to the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public OutputStream getOutputStream() {
-        return getOutputStream(null);
-    }
-
-    /**
-     * Creates and opens an output stream to write data to the file. If the file already exists on the service, it
-     * will be overwritten.
-     * <p>
-     * To avoid overwriting, pass "*" to {@link DataLakeRequestConditions#setIfNoneMatch(String)}.
-     * </p>
-     *
-     * @param options {@link DataLakeFileOutputStreamOptions}
-     * @return The {@link OutputStream} that can be used to write to the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public OutputStream getOutputStream(DataLakeFileOutputStreamOptions options) {
-        return getOutputStream(options, null);
-    }
-
-    /**
-     * Creates and opens an output stream to write data to the file. If the file already exists on the service, it
-     * will be overwritten.
-     * <p>
-     * To avoid overwriting, pass "*" to {@link DataLakeRequestConditions#setIfNoneMatch(String)}.
-     * </p>
-     *
-     * @param options {@link DataLakeFileOutputStreamOptions}
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return The {@link OutputStream} that can be used to write to the file.
-     * @throws DataLakeStorageException If a storage service error occurred.
-     */
-    public OutputStream getOutputStream(DataLakeFileOutputStreamOptions options, Context context) {
-        BlockBlobOutputStreamOptions convertedOptions = Transforms.toBlockBlobOutputStreamOptions(options);
-        return blockBlobClient.getBlobOutputStream(convertedOptions, context);
-    }
 
     /**
      * Reads the entire file into a file specified by the path.
@@ -1193,21 +407,15 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String -->
-     * <pre>
-     * client.readToFile&#40;file&#41;;
-     * System.out.println&#40;&quot;Completed download to file&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/get-blob">Azure Docs</a></p>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob">Azure Docs</a></p>
      *
      * @param filePath A {@link String} representing the filePath where the downloaded data will be written.
      * @return The file properties and metadata.
      * @throws UncheckedIOException If an I/O error occurs
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public PathProperties readToFile(String filePath) {
         return readToFile(filePath, false);
     }
@@ -1220,23 +428,16 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String-boolean -->
-     * <pre>
-     * boolean overwrite = false; &#47;&#47; Default value
-     * client.readToFile&#40;file, overwrite&#41;;
-     * System.out.println&#40;&quot;Completed download to file&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String-boolean -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.readToFile#String-boolean}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/get-blob">Azure Docs</a></p>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob">Azure Docs</a></p>
      *
      * @param filePath A {@link String} representing the filePath where the downloaded data will be written.
-     * @param overwrite Whether to overwrite the file, should the file exist.
+     * @param overwrite Whether or not to overwrite the file, should the file exist.
      * @return The file properties and metadata.
      * @throws UncheckedIOException If an I/O error occurs
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public PathProperties readToFile(String filePath, boolean overwrite) {
         Set<OpenOption> openOptions = null;
         if (overwrite) {
@@ -1260,21 +461,10 @@ public class DataLakeFileClient extends DataLakePathClient {
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.readToFileWithResponse#String-FileRange-ParallelTransferOptions-DownloadRetryOptions-DataLakeRequestConditions-boolean-Set-Duration-Context -->
-     * <pre>
-     * FileRange fileRange = new FileRange&#40;1024, 2048L&#41;;
-     * DownloadRetryOptions downloadRetryOptions = new DownloadRetryOptions&#40;&#41;.setMaxRetryRequests&#40;5&#41;;
-     * Set&lt;OpenOption&gt; openOptions = new HashSet&lt;&gt;&#40;Arrays.asList&#40;StandardOpenOption.CREATE_NEW,
-     *     StandardOpenOption.WRITE, StandardOpenOption.READ&#41;&#41;; &#47;&#47; Default options
-     *
-     * client.readToFileWithResponse&#40;file, fileRange, new ParallelTransferOptions&#40;&#41;.setBlockSizeLong&#40;4L * Constants.MB&#41;,
-     *     downloadRetryOptions, null, false, openOptions, timeout, new Context&#40;key2, value2&#41;&#41;;
-     * System.out.println&#40;&quot;Completed download to file&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.readToFileWithResponse#String-FileRange-ParallelTransferOptions-DownloadRetryOptions-DataLakeRequestConditions-boolean-Set-Duration-Context -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.readToFileWithResponse#String-FileRange-ParallelTransferOptions-DownloadRetryOptions-DataLakeRequestConditions-boolean-Set-Duration-Context}
      *
      * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/get-blob">Azure Docs</a></p>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob">Azure Docs</a></p>
      *
      * @param filePath A {@link String} representing the filePath where the downloaded data will be written.
      * @param range {@link FileRange}
@@ -1289,37 +479,30 @@ public class DataLakeFileClient extends DataLakePathClient {
      * @return A response containing the file properties and metadata.
      * @throws UncheckedIOException If an I/O error occurs.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<PathProperties> readToFileWithResponse(String filePath, FileRange range,
         ParallelTransferOptions parallelTransferOptions, DownloadRetryOptions downloadRetryOptions,
         DataLakeRequestConditions requestConditions, boolean rangeGetContentMd5, Set<OpenOption> openOptions,
         Duration timeout, Context context) {
         return DataLakeImplUtils.returnOrConvertException(() -> {
             Response<BlobProperties> response = blockBlobClient.downloadToFileWithResponse(
-                new BlobDownloadToFileOptions(filePath)
-                    .setRange(Transforms.toBlobRange(range)).setParallelTransferOptions(parallelTransferOptions)
-                    .setDownloadRetryOptions(Transforms.toBlobDownloadRetryOptions(downloadRetryOptions))
-                    .setRequestConditions(Transforms.toBlobRequestConditions(requestConditions))
-                    .setRetrieveContentRangeMd5(rangeGetContentMd5).setOpenOptions(openOptions), timeout,
+                filePath, Transforms.toBlobRange(range),
+                Transforms.toBlobParallelTransferOptions(parallelTransferOptions),
+                Transforms.toBlobDownloadRetryOptions(downloadRetryOptions),
+                Transforms.toBlobRequestConditions(requestConditions), rangeGetContentMd5, openOptions, timeout,
                 context);
             return new SimpleResponse<>(response, Transforms.toPathProperties(response.getValue()));
-        }, LOGGER);
+        }, logger);
     }
 
     /**
      * Moves the file to another location within the file system.
      * For more information see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/create">Azure
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/create">Azure
      * Docs</a>.
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeDirectoryAsyncClient.rename#String-String -->
-     * <pre>
-     * DataLakeDirectoryAsyncClient renamedClient = client.rename&#40;fileSystemName, destinationPath&#41;.block&#40;&#41;;
-     * System.out.println&#40;&quot;Directory Client has been renamed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeDirectoryAsyncClient.rename#String-String -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeDirectoryAsyncClient.rename#String-String}
      *
      * @param destinationFileSystem The file system of the destination within the account.
      * {@code null} for the current file system.
@@ -1328,7 +511,6 @@ public class DataLakeFileClient extends DataLakePathClient {
      * in myfilesystem (ex: newdir/hi.txt) then set the destinationPath = "newdir/hi.txt"
      * @return A {@link DataLakeFileClient} used to interact with the new file created.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public DataLakeFileClient rename(String destinationFileSystem, String destinationPath) {
         return renameWithResponse(destinationFileSystem, destinationPath, null, null, null, null).getValue();
     }
@@ -1336,21 +518,11 @@ public class DataLakeFileClient extends DataLakePathClient {
     /**
      * Moves the file to another location within the file system.
      * For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/datalakestoragegen2/path/create">Azure Docs</a>.
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/create">Azure Docs</a>.
      *
      * <p><strong>Code Samples</strong></p>
      *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.renameWithResponse#String-String-DataLakeRequestConditions-DataLakeRequestConditions-Duration-Context -->
-     * <pre>
-     * DataLakeRequestConditions sourceRequestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;leaseId&#41;;
-     * DataLakeRequestConditions destinationRequestConditions = new DataLakeRequestConditions&#40;&#41;;
-     *
-     * DataLakeFileClient newRenamedClient = client.renameWithResponse&#40;fileSystemName, destinationPath,
-     *     sourceRequestConditions, destinationRequestConditions, timeout, new Context&#40;key1, value1&#41;&#41;.getValue&#40;&#41;;
-     * System.out.println&#40;&quot;Directory Client has been renamed&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.renameWithResponse#String-String-DataLakeRequestConditions-DataLakeRequestConditions-Duration-Context -->
+     * {@codesnippet com.azure.storage.file.datalake.DataLakeFileClient.renameWithResponse#String-String-DataLakeRequestConditions-DataLakeRequestConditions-Duration-Context}
      *
      * @param destinationFileSystem The file system of the destination within the account.
      * {@code null} for the current file system.
@@ -1365,226 +537,14 @@ public class DataLakeFileClient extends DataLakePathClient {
      * @return A {@link Response} whose {@link Response#getValue() value} that contains a {@link DataLakeFileClient}
      * used to interact with the file created.
      */
-    @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<DataLakeFileClient> renameWithResponse(String destinationFileSystem, String destinationPath,
         DataLakeRequestConditions sourceRequestConditions, DataLakeRequestConditions destinationRequestConditions,
         Duration timeout, Context context) {
 
-        Mono<Response<DataLakeFileClient>> response =
-            dataLakeFileAsyncClient.renameWithResponse(destinationFileSystem, destinationPath,
-                    sourceRequestConditions, destinationRequestConditions, context)
-                .map(asyncResponse ->
-                    new SimpleResponse<>(asyncResponse.getRequest(), asyncResponse.getStatusCode(),
-                        asyncResponse.getHeaders(),
-                        new DataLakeFileClient(new DataLakeFileAsyncClient(asyncResponse.getValue()),
-                            new SpecializedBlobClientBuilder()
-                                .blobAsyncClient(asyncResponse.getValue().blockBlobAsyncClient)
-                                .buildBlockBlobClient())));
+        Mono<Response<DataLakePathClient>> response = renameWithResponse(destinationFileSystem, destinationPath,
+            sourceRequestConditions, destinationRequestConditions, context);
 
-        Response<DataLakeFileClient> resp = StorageImplUtils.blockWithOptionalTimeout(response, timeout);
+        Response<DataLakePathClient> resp = StorageImplUtils.blockWithOptionalTimeout(response, timeout);
         return new SimpleResponse<>(resp, new DataLakeFileClient(resp.getValue()));
-    }
-
-    /**
-     * Opens an input stream to query the file.
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/query-blob-contents">Azure Docs</a></p>
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.openQueryInputStream#String -->
-     * <pre>
-     * String expression = &quot;SELECT * from BlobStorage&quot;;
-     * InputStream inputStream = client.openQueryInputStream&#40;expression&#41;;
-     * &#47;&#47; Now you can read from the input stream like you would normally.
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.openQueryInputStream#String -->
-     *
-     * @param expression The query expression.
-     * @return An <code>InputStream</code> object that represents the stream to use for reading the query response.
-     */
-    public InputStream openQueryInputStream(String expression) {
-        return openQueryInputStreamWithResponse(new FileQueryOptions(expression)).getValue();
-    }
-
-    /**
-     * Opens an input stream to query the file.
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/query-blob-contents">Azure Docs</a></p>
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.openQueryInputStream#FileQueryOptions -->
-     * <pre>
-     * String expression = &quot;SELECT * from BlobStorage&quot;;
-     * FileQuerySerialization input = new FileQueryDelimitedSerialization&#40;&#41;
-     *     .setColumnSeparator&#40;','&#41;
-     *     .setEscapeChar&#40;'&#92;n'&#41;
-     *     .setRecordSeparator&#40;'&#92;n'&#41;
-     *     .setHeadersPresent&#40;true&#41;
-     *     .setFieldQuote&#40;'&quot;'&#41;;
-     * FileQuerySerialization output = new FileQueryJsonSerialization&#40;&#41;
-     *     .setRecordSeparator&#40;'&#92;n'&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;
-     *     .setLeaseId&#40;&quot;leaseId&quot;&#41;;
-     * Consumer&lt;FileQueryError&gt; errorConsumer = System.out::println;
-     * Consumer&lt;FileQueryProgress&gt; progressConsumer = progress -&gt; System.out.println&#40;&quot;total file bytes read: &quot;
-     *     + progress.getBytesScanned&#40;&#41;&#41;;
-     * FileQueryOptions queryOptions = new FileQueryOptions&#40;expression&#41;
-     *     .setInputSerialization&#40;input&#41;
-     *     .setOutputSerialization&#40;output&#41;
-     *     .setRequestConditions&#40;requestConditions&#41;
-     *     .setErrorConsumer&#40;errorConsumer&#41;
-     *     .setProgressConsumer&#40;progressConsumer&#41;;
-     *
-     * InputStream inputStream = client.openQueryInputStreamWithResponse&#40;queryOptions&#41;.getValue&#40;&#41;;
-     * &#47;&#47; Now you can read from the input stream like you would normally.
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.openQueryInputStream#FileQueryOptions -->
-     *
-     * @param queryOptions {@link FileQueryOptions The query options}.
-     * @return A response containing status code and HTTP headers including an <code>InputStream</code> object
-     * that represents the stream to use for reading the query response.
-     */
-    public Response<InputStream> openQueryInputStreamWithResponse(FileQueryOptions queryOptions) {
-
-        // Data to subscribe to and read from.
-        FileQueryAsyncResponse response = dataLakeFileAsyncClient.queryWithResponse(queryOptions)
-            .block();
-
-        // Create input stream from the data.
-        if (response == null) {
-            throw LOGGER.logExceptionAsError(new IllegalStateException("Query response cannot be null"));
-        }
-        return new ResponseBase<>(response.getRequest(), response.getStatusCode(), response.getHeaders(),
-            new FluxInputStream(response.getValue()), response.getDeserializedHeaders());
-    }
-
-    /**
-     * Queries an entire file into an output stream.
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/query-blob-contents">Azure Docs</a></p>
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.query#OutputStream-String -->
-     * <pre>
-     * ByteArrayOutputStream queryData = new ByteArrayOutputStream&#40;&#41;;
-     * String expression = &quot;SELECT * from BlobStorage&quot;;
-     * client.query&#40;queryData, expression&#41;;
-     * System.out.println&#40;&quot;Query completed.&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.query#OutputStream-String -->
-     *
-     * @param stream A non-null {@link OutputStream} instance where the downloaded data will be written.
-     * @param expression The query expression.
-     * @throws UncheckedIOException If an I/O error occurs.
-     * @throws NullPointerException if {@code stream} is null.
-     */
-    public void query(OutputStream stream, String expression) {
-        queryWithResponse(new FileQueryOptions(expression, stream), null, Context.NONE);
-    }
-
-    /**
-     * Queries an entire file into an output stream.
-     *
-     * <p>For more information, see the
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/query-blob-contents">Azure Docs</a></p>
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.queryWithResponse#FileQueryOptions-Duration-Context -->
-     * <pre>
-     * ByteArrayOutputStream queryData = new ByteArrayOutputStream&#40;&#41;;
-     * String expression = &quot;SELECT * from BlobStorage&quot;;
-     * FileQueryJsonSerialization input = new FileQueryJsonSerialization&#40;&#41;
-     *     .setRecordSeparator&#40;'&#92;n'&#41;;
-     * FileQueryDelimitedSerialization output = new FileQueryDelimitedSerialization&#40;&#41;
-     *     .setEscapeChar&#40;'&#92;0'&#41;
-     *     .setColumnSeparator&#40;','&#41;
-     *     .setRecordSeparator&#40;'&#92;n'&#41;
-     *     .setFieldQuote&#40;'&#92;''&#41;
-     *     .setHeadersPresent&#40;true&#41;;
-     * DataLakeRequestConditions requestConditions = new DataLakeRequestConditions&#40;&#41;.setLeaseId&#40;leaseId&#41;;
-     * Consumer&lt;FileQueryError&gt; errorConsumer = System.out::println;
-     * Consumer&lt;FileQueryProgress&gt; progressConsumer = progress -&gt; System.out.println&#40;&quot;total file bytes read: &quot;
-     *     + progress.getBytesScanned&#40;&#41;&#41;;
-     * FileQueryOptions queryOptions = new FileQueryOptions&#40;expression, queryData&#41;
-     *     .setInputSerialization&#40;input&#41;
-     *     .setOutputSerialization&#40;output&#41;
-     *     .setRequestConditions&#40;requestConditions&#41;
-     *     .setErrorConsumer&#40;errorConsumer&#41;
-     *     .setProgressConsumer&#40;progressConsumer&#41;;
-     * System.out.printf&#40;&quot;Query completed with status %d%n&quot;,
-     *     client.queryWithResponse&#40;queryOptions, timeout, new Context&#40;key1, value1&#41;&#41;
-     *         .getStatusCode&#40;&#41;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.queryWithResponse#FileQueryOptions-Duration-Context -->
-     *
-     * @param queryOptions {@link FileQueryOptions The query options}.
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return A response containing status code and HTTP headers.
-     * @throws UncheckedIOException If an I/O error occurs.
-     * @throws NullPointerException if {@code stream} is null.
-     */
-    public FileQueryResponse queryWithResponse(FileQueryOptions queryOptions, Duration timeout, Context context) {
-        return DataLakeImplUtils.returnOrConvertException(() -> {
-            BlobQueryResponse response = blockBlobClient.queryWithResponse(
-                Transforms.toBlobQueryOptions(queryOptions), timeout, context);
-            return Transforms.toFileQueryResponse(response);
-        }, LOGGER);
-    }
-
-    // TODO (kasobol-msft) add REST DOCS
-    /**
-     * Schedules the file for deletion.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.scheduleDeletion#FileScheduleDeletionOptions -->
-     * <pre>
-     * FileScheduleDeletionOptions options = new FileScheduleDeletionOptions&#40;OffsetDateTime.now&#40;&#41;.plusDays&#40;1&#41;&#41;;
-     * client.scheduleDeletion&#40;options&#41;;
-     * System.out.println&#40;&quot;File deletion has been scheduled&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.scheduleDeletion#FileScheduleDeletionOptions -->
-     *
-     * @param options Schedule deletion parameters.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public void scheduleDeletion(FileScheduleDeletionOptions options) {
-        this.scheduleDeletionWithResponse(options, null, Context.NONE);
-    }
-
-    // TODO (kasobol-msft) add REST DOCS
-    /**
-     * Schedules the file for deletion.
-     *
-     * <p><strong>Code Samples</strong></p>
-     *
-     * <!-- src_embed com.azure.storage.file.datalake.DataLakeFileClient.scheduleDeletionWithResponse#FileScheduleDeletionOptions-Duration-Context -->
-     * <pre>
-     * FileScheduleDeletionOptions options = new FileScheduleDeletionOptions&#40;OffsetDateTime.now&#40;&#41;.plusDays&#40;1&#41;&#41;;
-     * Context context = new Context&#40;&quot;key&quot;, &quot;value&quot;&#41;;
-     *
-     * client.scheduleDeletionWithResponse&#40;options, timeout, context&#41;;
-     * System.out.println&#40;&quot;File deletion has been scheduled&quot;&#41;;
-     * </pre>
-     * <!-- end com.azure.storage.file.datalake.DataLakeFileClient.scheduleDeletionWithResponse#FileScheduleDeletionOptions-Duration-Context -->
-     *
-     * @param options Schedule deletion parameters.
-     * @param timeout An optional timeout value beyond which a {@link RuntimeException} will be raised.
-     * @param context Additional context that is passed through the Http pipeline during the service call.
-     * @return A response containing status code and HTTP headers.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Response<Void> scheduleDeletionWithResponse(FileScheduleDeletionOptions options,
-        Duration timeout, Context context) {
-        Mono<Response<Void>> response = this.dataLakeFileAsyncClient.scheduleDeletionWithResponse(options, context);
-        return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
     }
 }

@@ -3,162 +3,142 @@
 package com.azure.cosmos.implementation.query;
 
 import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.CosmosDiagnostics;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.implementation.ClientSideRequestStatistics;
+import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.models.CosmosQueryRequestOptions;
+import com.azure.cosmos.models.FeedResponse;
+import com.azure.cosmos.implementation.Resource;
+import com.azure.cosmos.models.SqlQuerySpec;
 import com.azure.cosmos.implementation.Configs;
-import com.azure.cosmos.implementation.DiagnosticsClientContext;
-import com.azure.cosmos.implementation.DistinctClientSideRequestStatisticsCollection;
 import com.azure.cosmos.implementation.DocumentClientRetryPolicy;
-import com.azure.cosmos.implementation.DocumentCollection;
-import com.azure.cosmos.implementation.FeedResponseDiagnostics;
 import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.PartitionKeyRange;
-import com.azure.cosmos.implementation.QueryMetrics;
 import com.azure.cosmos.implementation.RequestChargeTracker;
 import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.Utils.ValueHolder;
 import com.azure.cosmos.implementation.apachecommons.lang.tuple.ImmutablePair;
-import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
-import com.azure.cosmos.models.CosmosQueryRequestOptions;
-import com.azure.cosmos.models.FeedResponse;
-import com.azure.cosmos.models.ModelBridgeInternal;
-import com.azure.cosmos.models.SqlQuerySpec;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.concurrent.Queues;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 /**
  * While this class is public, but it is not part of our published public APIs.
  * This is meant to be internally used only by our sdk.
  */
-public class ParallelDocumentQueryExecutionContext<T>
+public class ParallelDocumentQueryExecutionContext<T extends Resource>
         extends ParallelDocumentQueryExecutionContextBase<T> {
-    private static final Logger logger = LoggerFactory.getLogger(ParallelDocumentQueryExecutionContext.class);
-
-    private static final ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor qryOptAccessor =
-        ImplementationBridgeHelpers
-            .CosmosQueryRequestOptionsHelper
-            .getCosmosQueryRequestOptionsAccessor();
-    private final static
-    ImplementationBridgeHelpers.CosmosDiagnosticsHelper.CosmosDiagnosticsAccessor diagnosticsAccessor =
-        ImplementationBridgeHelpers.CosmosDiagnosticsHelper.getCosmosDiagnosticsAccessor();
-
-    private final CosmosQueryRequestOptions cosmosQueryRequestOptions;
-    private final Map<FeedRangeEpkImpl, String> partitionKeyRangeToContinuationTokenMap;
+    private CosmosQueryRequestOptions cosmosQueryRequestOptions;
 
     private ParallelDocumentQueryExecutionContext(
-        DiagnosticsClientContext diagnosticsClientContext,
-        IDocumentQueryClient client,
-        ResourceType resourceTypeEnum,
-        Class<T> resourceType,
-        SqlQuerySpec query,
-        CosmosQueryRequestOptions cosmosQueryRequestOptions,
-        String resourceLink,
-        String rewrittenQuery,
-        UUID correlatedActivityId,
-        boolean shouldUnwrapSelectValue,
-        final AtomicBoolean isQueryCancelledOnTimeout) {
-        super(diagnosticsClientContext, client, resourceTypeEnum, resourceType, query, cosmosQueryRequestOptions, resourceLink,
-                rewrittenQuery, correlatedActivityId, shouldUnwrapSelectValue, isQueryCancelledOnTimeout);
+            IDocumentQueryClient client,
+            List<PartitionKeyRange> partitionKeyRanges,
+            ResourceType resourceTypeEnum,
+            Class<T> resourceType,
+            SqlQuerySpec query,
+            CosmosQueryRequestOptions cosmosQueryRequestOptions,
+            String resourceLink,
+            String rewrittenQuery,
+            String collectionRid,
+            boolean isContinuationExpected,
+            boolean getLazyFeedResponse,
+            UUID correlatedActivityId) {
+        super(client, partitionKeyRanges, resourceTypeEnum, resourceType, query, cosmosQueryRequestOptions, resourceLink,
+                rewrittenQuery, isContinuationExpected, getLazyFeedResponse, correlatedActivityId);
         this.cosmosQueryRequestOptions = cosmosQueryRequestOptions;
-        partitionKeyRangeToContinuationTokenMap = new HashMap<>();
     }
 
-    public static <T> Flux<IDocumentQueryExecutionComponent<T>> createAsync(
-            DiagnosticsClientContext diagnosticsClientContext,
+    public static <T extends Resource> Flux<IDocumentQueryExecutionComponent<T>> createAsync(
             IDocumentQueryClient client,
-            PipelinedDocumentQueryParams<T> initParams,
-            DocumentCollection collection) {
+            ResourceType resourceTypeEnum,
+            Class<T> resourceType,
+            SqlQuerySpec query,
+            CosmosQueryRequestOptions cosmosQueryRequestOptions,
+            String resourceLink,
+            String collectionRid,
+            PartitionedQueryExecutionInfo partitionedQueryExecutionInfo,
+            List<PartitionKeyRange> targetRanges,
+            int initialPageSize,
+            boolean isContinuationExpected,
+            boolean getLazyFeedResponse,
+            UUID correlatedActivityId) {
 
-        QueryInfo queryInfo = initParams.getQueryInfo();
-
-        ParallelDocumentQueryExecutionContext<T> context = new ParallelDocumentQueryExecutionContext<>(diagnosticsClientContext,
-                client,
-                initParams.getResourceTypeEnum(),
-                initParams.getResourceType(),
-                initParams.getQuery(),
-                initParams.getCosmosQueryRequestOptions(),
-                initParams.getResourceLink(),
-                queryInfo.getRewrittenQuery(),
-                initParams.getCorrelatedActivityId(),
-                queryInfo.hasSelectValue() &&
-                    !(queryInfo.hasOrderBy()
-                        || queryInfo.hasAggregates()
-                        || queryInfo.hasGroupBy()
-                        || queryInfo.hasDCount()
-                        || queryInfo.hasDistinct()),
-                initParams.isQueryCancelledOnTimeout());
-        context.setTop(initParams.getTop());
+        ParallelDocumentQueryExecutionContext<T> context = new ParallelDocumentQueryExecutionContext<T>(client,
+                targetRanges,
+                resourceTypeEnum,
+                resourceType,
+                query,
+                cosmosQueryRequestOptions,
+                resourceLink,
+                partitionedQueryExecutionInfo.getQueryInfo().getRewrittenQuery(),
+                collectionRid,
+                isContinuationExpected,
+                getLazyFeedResponse,
+                correlatedActivityId);
 
         try {
-            context.initialize(
-                    collection,
-                    initParams.getFeedRanges(),
-                    initParams.getInitialPageSize(),
-                    ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(initParams.getCosmosQueryRequestOptions()));
+            context.initialize(collectionRid,
+                    targetRanges,
+                    initialPageSize,
+                    ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(cosmosQueryRequestOptions));
             return Flux.just(context);
         } catch (CosmosException dce) {
             return Flux.error(dce);
         }
     }
 
-    public static <T> Flux<IDocumentQueryExecutionComponent<T>> createReadManyQueryAsync(
-        DiagnosticsClientContext diagnosticsClientContext,
+    public static <T extends Resource> Flux<IDocumentQueryExecutionComponent<T>> createReadManyQueryAsync(
         IDocumentQueryClient queryClient,
-        SqlQuerySpec sqlQuery,
+        String collectionResourceId, SqlQuerySpec sqlQuery,
         Map<PartitionKeyRange, SqlQuerySpec> rangeQueryMap,
         CosmosQueryRequestOptions cosmosQueryRequestOptions, String collectionRid, String collectionLink, UUID activityId, Class<T> klass,
-        ResourceType resourceTypeEnum,
-        final AtomicBoolean isQueryCancelledOnTimeout) {
+        ResourceType resourceTypeEnum) {
 
-        ParallelDocumentQueryExecutionContext<T> context = new ParallelDocumentQueryExecutionContext<>(diagnosticsClientContext,
-                                                                                                        queryClient,
+        List<PartitionKeyRange> ranges = new ArrayList<>();
+        ranges.addAll(rangeQueryMap.keySet());
+
+        ParallelDocumentQueryExecutionContext<T> context = new ParallelDocumentQueryExecutionContext<T>(queryClient,
+                                                                                                        ranges,
                                                                                                         resourceTypeEnum,
                                                                                                         klass,
                                                                                                         sqlQuery,
                                                                                                         cosmosQueryRequestOptions,
                                                                                                         collectionLink,
                                                                                                         sqlQuery.getQueryText(),
-                                                                                                        activityId,
+                                                                                                        collectionRid,
                                                                                                         false,
-                                                                                                        isQueryCancelledOnTimeout);
+                                                                                                        false,
+                                                                                                        activityId);
 
         context
-            .initializeReadMany(rangeQueryMap, cosmosQueryRequestOptions, collectionRid);
+            .initializeReadMany(queryClient, collectionResourceId, sqlQuery, rangeQueryMap, cosmosQueryRequestOptions,
+                                activityId, collectionRid);
         return Flux.just(context);
     }
 
+
     private void initialize(
-        DocumentCollection collection,
-        List<FeedRangeEpkImpl> feedRanges,
-        int initialPageSize,
-        String continuationToken) {
+            String collectionRid,
+            List<PartitionKeyRange> targetRanges,
+            int initialPageSize,
+            String continuationToken) {
         // Generate the corresponding continuation token map.
+        Map<PartitionKeyRange, String> partitionKeyRangeToContinuationTokenMap = new HashMap<PartitionKeyRange, String>();
         if (continuationToken == null) {
             // If the user does not give a continuation token,
             // then just start the query from the first partition.
-            for (FeedRangeEpkImpl feedRangeEpk : feedRanges) {
-                partitionKeyRangeToContinuationTokenMap.put(feedRangeEpk,
+            for (PartitionKeyRange targetRange : targetRanges) {
+                partitionKeyRangeToContinuationTokenMap.put(targetRange,
                         null);
             }
         } else {
@@ -172,7 +152,7 @@ public class ParallelDocumentQueryExecutionContext<T>
             // then we know that partitions 0, 1, 2 are fully drained.
 
             // Check to see if composite continuation token is a valid JSON.
-            ValueHolder<CompositeContinuationToken> outCompositeContinuationToken = new ValueHolder<>();
+            ValueHolder<CompositeContinuationToken> outCompositeContinuationToken = new ValueHolder<CompositeContinuationToken>();
             if (!CompositeContinuationToken.tryParse(continuationToken,
                     outCompositeContinuationToken)) {
                 String message = String.format("INVALID JSON in continuation token %s for Parallel~Context",
@@ -183,65 +163,59 @@ public class ParallelDocumentQueryExecutionContext<T>
 
             CompositeContinuationToken compositeContinuationToken = outCompositeContinuationToken.v;
 
-            PartitionMapper.PartitionMapping<CompositeContinuationToken> partitionMapping =
-                PartitionMapper.getPartitionMapping(feedRanges, Collections.singletonList(compositeContinuationToken));
+            // Get the right hand side of the query ranges:
+            List<PartitionKeyRange> filteredPartitionKeyRanges = this.getPartitionKeyRangesForContinuation(
+                    compositeContinuationToken,
+                    targetRanges);
 
-            // Skip all the partitions left of the target range, since they have already been drained fully.
-            populatePartitionToContinuationMap(partitionMapping.getTargetMapping());
-            populatePartitionToContinuationMap(partitionMapping.getMappingRightOfTarget());
+            // The first partition is the one we left off on and have a backend continuation
+            // token for.
+            partitionKeyRangeToContinuationTokenMap.put(filteredPartitionKeyRanges.get(0),
+                    compositeContinuationToken.getToken());
 
+            // The remaining partitions we have yet to touch / have null continuation tokens
+            for (int i = 1; i < filteredPartitionKeyRanges.size(); i++) {
+                partitionKeyRangeToContinuationTokenMap.put(filteredPartitionKeyRanges.get(i),
+                        null);
+            }
         }
 
-        super.initialize(collection,
+        super.initialize(collectionRid,
                 partitionKeyRangeToContinuationTokenMap,
                 initialPageSize,
                 this.querySpec);
     }
 
-    private void populatePartitionToContinuationMap(
-        Map<FeedRangeEpkImpl, CompositeContinuationToken> partitionMapping) {
-        for (Map.Entry<FeedRangeEpkImpl, CompositeContinuationToken> entry : partitionMapping.entrySet()) {
-            if (entry.getValue() != null) {
-                partitionKeyRangeToContinuationTokenMap.put(entry.getKey(), entry.getValue().getToken());
-            } else {
-                partitionKeyRangeToContinuationTokenMap.put(entry.getKey(), /*continuation*/ null);
-            }
+    private List<PartitionKeyRange> getPartitionKeyRangesForContinuation(
+            CompositeContinuationToken compositeContinuationToken,
+            List<PartitionKeyRange> partitionKeyRanges) {
+        // Find the partition key range we left off on
+        int startIndex = this.findTargetRangeAndExtractContinuationTokens(partitionKeyRanges,
+                compositeContinuationToken.getRange());
+
+        List<PartitionKeyRange> rightHandSideRanges = new ArrayList<PartitionKeyRange>();
+        for (int i = startIndex; i < partitionKeyRanges.size(); i++) {
+            rightHandSideRanges.add(partitionKeyRanges.get(i));
         }
+
+        return rightHandSideRanges;
     }
 
-    private static class EmptyPagesFilterTransformer<T>
-        implements Function<Flux<DocumentProducer<T>.DocumentProducerFeedResponse>, Flux<FeedResponse<T>>> {
+    private static class EmptyPagesFilterTransformer<T extends Resource>
+            implements Function<Flux<DocumentProducer<T>.DocumentProducerFeedResponse>, Flux<FeedResponse<T>>> {
         private final RequestChargeTracker tracker;
         private DocumentProducer<T>.DocumentProducerFeedResponse previousPage;
         private final CosmosQueryRequestOptions cosmosQueryRequestOptions;
-        private final UUID correlatedActivityId;
-        private final ConcurrentMap<String, QueryMetrics> emptyPageQueryMetricsMap = new ConcurrentHashMap<>();
 
-        private final DistinctClientSideRequestStatisticsCollection skippedClientSideRequestStatistics =
-            new DistinctClientSideRequestStatisticsCollection();
-
-        private CosmosDiagnostics cosmosDiagnostics;
-        private final Supplier<String> operationContextTextProvider;
-
-        public EmptyPagesFilterTransformer(
-            RequestChargeTracker tracker,
-            CosmosQueryRequestOptions options,
-            UUID correlatedActivityId,
-            Supplier<String> operationContextTextProvider) {
+        public EmptyPagesFilterTransformer(RequestChargeTracker tracker, CosmosQueryRequestOptions options) {
 
             if (tracker == null) {
                 throw new IllegalArgumentException("Request Charge Tracker must not be null.");
             }
 
-            if (operationContextTextProvider == null) {
-                throw new IllegalArgumentException("Parameter 'operationContextTextProvider' must not be null.");
-            }
-
             this.tracker = tracker;
             this.previousPage = null;
             this.cosmosQueryRequestOptions = options;
-            this.correlatedActivityId = correlatedActivityId;
-            this.operationContextTextProvider = operationContextTextProvider;
         }
 
         private DocumentProducer<T>.DocumentProducerFeedResponse plusCharge(
@@ -253,13 +227,10 @@ public class ParallelDocumentQueryExecutionContext<T>
             pageCharge += charge;
             headers.put(HttpConstants.HttpHeaders.REQUEST_CHARGE,
                     String.valueOf(pageCharge));
-            documentProducerFeedResponse.pageResult = BridgeInternal.createFeedResponseWithQueryMetrics(page.getResults(),
-                headers,
-                BridgeInternal.queryMetricsFromFeedResponse(page),
-                ModelBridgeInternal.getQueryPlanDiagnosticsContext(page),
-                false,
-                false,
-                page.getCosmosDiagnostics());
+            FeedResponse<T> newPage = BridgeInternal.createFeedResponseWithQueryMetrics(page.getResults(),
+                    headers,
+                BridgeInternal.queryMetricsFromFeedResponse(page));
+            documentProducerFeedResponse.pageResult = newPage;
             return documentProducerFeedResponse;
         }
 
@@ -270,14 +241,10 @@ public class ParallelDocumentQueryExecutionContext<T>
             Map<String, String> headers = new HashMap<>(page.getResponseHeaders());
             headers.put(HttpConstants.HttpHeaders.CONTINUATION,
                     compositeContinuationToken);
-            documentProducerFeedResponse.pageResult = BridgeInternal.createFeedResponseWithQueryMetrics(page.getResults(),
-                headers,
-                BridgeInternal.queryMetricsFromFeedResponse(page),
-                ModelBridgeInternal.getQueryPlanDiagnosticsContext(page),
-                false,
-                false,
-                page.getCosmosDiagnostics()
-            );
+            FeedResponse<T> newPage = BridgeInternal.createFeedResponseWithQueryMetrics(page.getResults(),
+                    headers,
+                BridgeInternal.queryMetricsFromFeedResponse(page));
+            documentProducerFeedResponse.pageResult = newPage;
             return documentProducerFeedResponse;
         }
 
@@ -287,66 +254,19 @@ public class ParallelDocumentQueryExecutionContext<T>
                     String.valueOf(requestCharge));
         }
 
-        private void mergeAndResetSkippedRequestStats(CosmosDiagnostics diagnostics) {
-            if (!skippedClientSideRequestStatistics.isEmpty()) {
-                if (diagnostics != null) {
-
-                    FeedResponseDiagnostics feedResponseDiagnostics = diagnosticsAccessor
-                        .getFeedResponseDiagnostics(diagnostics);
-                    feedResponseDiagnostics.addClientSideRequestStatistics(skippedClientSideRequestStatistics);
-                }
-                skippedClientSideRequestStatistics.clear();
-            }
-        }
-
-        private <TItem> void mergeAndResetQueryMetrics(FeedResponse<TItem> page) {
-            //Combining previous empty page query metrics with current non empty page query metrics
-            if (!emptyPageQueryMetricsMap.isEmpty()) {
-                ConcurrentMap<String, QueryMetrics> currentQueryMetrics =
-                    BridgeInternal.queryMetricsFromFeedResponse(page);
-                QueryMetrics.mergeQueryMetricsMap(currentQueryMetrics, emptyPageQueryMetricsMap);
-                emptyPageQueryMetricsMap.clear();
-            }
-        }
-
         @Override
         public Flux<FeedResponse<T>> apply(Flux<DocumentProducer<T>.DocumentProducerFeedResponse> source) {
             // Emit an empty page so the downstream observables know when there are no more
             // results.
             return source.filter(documentProducerFeedResponse -> {
                 if (documentProducerFeedResponse.pageResult.getResults().isEmpty()
-                        && !qryOptAccessor.getAllowEmptyPages(this.cosmosQueryRequestOptions)) {
+                        && !ModelBridgeInternal.getEmptyPagesAllowedFromQueryRequestOptions(this.cosmosQueryRequestOptions)) {
                     // filter empty pages and accumulate charge
                     tracker.addCharge(documentProducerFeedResponse.pageResult.getRequestCharge());
-                    ConcurrentMap<String, QueryMetrics> currentQueryMetrics =
-                        BridgeInternal.queryMetricsFromFeedResponse(documentProducerFeedResponse.pageResult);
-                    QueryMetrics.mergeQueryMetricsMap(emptyPageQueryMetricsMap, currentQueryMetrics);
-                    cosmosDiagnostics = documentProducerFeedResponse.pageResult.getCosmosDiagnostics();
-
-                    // keep a reference of the request statistics for the skipped FeedResponses
-                    Collection<ClientSideRequestStatistics> skippedRequestStatsForPage =
-                        diagnosticsAccessor.getClientSideRequestStatistics(cosmosDiagnostics);
-                    if (skippedRequestStatsForPage != null && !skippedRequestStatsForPage.isEmpty()) {
-                        skippedClientSideRequestStatistics.addAll(skippedRequestStatsForPage);
-                    }
-
-                    if (qryOptAccessor
-                        .isEmptyPageDiagnosticsEnabled(cosmosQueryRequestOptions)) {
-
-                        logEmptyPageDiagnostics(
-                            cosmosDiagnostics,
-                            this.correlatedActivityId,
-                            documentProducerFeedResponse.pageResult.getActivityId(),
-                            this.operationContextTextProvider);
-                    }
-
                     return false;
                 }
                 return true;
             }).map(documentProducerFeedResponse -> {
-                //Combining previous empty page query metrics with current non empty page query metrics
-                mergeAndResetQueryMetrics(documentProducerFeedResponse.pageResult);
-
                 // Add the request charge
                 double charge = tracker.getAndResetCharge();
                 if (charge > 0) {
@@ -380,8 +300,8 @@ public class ParallelDocumentQueryExecutionContext<T>
                     } else {
                         // It wasn't the last partition, so we need to give the next range, but with a
                         // null continuation
-                        CompositeContinuationToken compositeContinuationTokenDom =
-                            new CompositeContinuationToken(null, next.sourceFeedRange.getRange());
+                        CompositeContinuationToken compositeContinuationTokenDom = new CompositeContinuationToken(null,
+                                next.sourcePartitionKeyRange.toRange());
                         compositeContinuationToken = compositeContinuationTokenDom.toJson();
                     }
                 } else {
@@ -389,62 +309,24 @@ public class ParallelDocumentQueryExecutionContext<T>
                     // so give back this partition with a backend continuation token
                     CompositeContinuationToken compositeContinuationTokenDom = new CompositeContinuationToken(
                             backendContinuationToken,
-                            current.sourceFeedRange.getRange());
+                            current.sourcePartitionKeyRange.toRange());
                     compositeContinuationToken = compositeContinuationTokenDom.toJson();
                 }
 
                 DocumentProducer<T>.DocumentProducerFeedResponse page;
-                page = this.addCompositeContinuationToken(current,
+                page = current;
+                page = this.addCompositeContinuationToken(page,
                         compositeContinuationToken);
 
                 return page;
             }).map(documentProducerFeedResponse -> {
-                // merge query metrics for any empty pages after a non-empty page.
-                mergeAndResetQueryMetrics(documentProducerFeedResponse.pageResult);
-
                 // Unwrap the documentProducerFeedResponse and get back the feedResponse
-                mergeAndResetSkippedRequestStats(documentProducerFeedResponse.pageResult.getCosmosDiagnostics());
-
                 return documentProducerFeedResponse.pageResult;
             }).switchIfEmpty(Flux.defer(() -> {
                 // create an empty page if there is no result
-                FeedResponse<T> artificialEmptyFeedResponse =
-                    BridgeInternal.createFeedResponseWithQueryMetrics(
-                        Utils.immutableListOf(),
-                        headerResponse(tracker.getAndResetCharge()),
-                        emptyPageQueryMetricsMap,
-                        null,
-                        false,
-                        false,
-                        cosmosDiagnostics);
-
-                mergeAndResetSkippedRequestStats(artificialEmptyFeedResponse.getCosmosDiagnostics());
-
-                return Flux.just(artificialEmptyFeedResponse);
+                return Flux.just(BridgeInternal.createFeedResponse(Utils.immutableListOf(),
+                        headerResponse(tracker.getAndResetCharge())));
             }));
-        }
-    }
-
-    static void logEmptyPageDiagnostics(
-        CosmosDiagnostics cosmosDiagnostics,
-        UUID correlatedActivityId,
-        String activityId,
-        Supplier<String> operationContextTextProvider) {
-        Collection<ClientSideRequestStatistics> requestStatistics =
-            diagnosticsAccessor.getClientSideRequestStatisticsForQueryPipelineAggregations(cosmosDiagnostics);
-
-        try {
-            if (logger.isInfoEnabled()) {
-                logger.info(
-                    "Empty page request diagnostics for correlatedActivityId [{}] - activityId [{}] - [{}], Context: {}",
-                    correlatedActivityId,
-                    activityId,
-                    Utils.getSimpleObjectMapper().writeValueAsString(requestStatistics),
-                    operationContextTextProvider.get());
-            }
-
-        } catch (JsonProcessingException e) {
-            logger.warn("Failed to log empty page diagnostics. Context: {}", operationContextTextProvider.get(),  e);
         }
     }
 
@@ -455,7 +337,7 @@ public class ParallelDocumentQueryExecutionContext<T>
                 // Get the stream.
                 .stream()
                 // Start from the left most partition first.
-                .sorted(Comparator.comparing(dp -> dp.feedRange.getRange().getMin()))
+                .sorted(Comparator.comparing(dp -> dp.targetRange.getMinInclusive()))
                 // For each partition get it's stream of results.
                 .map(DocumentProducer::produceAsync)
                 // Merge results from all partitions.
@@ -465,19 +347,10 @@ public class ParallelDocumentQueryExecutionContext<T>
         int fluxPrefetch = fluxSequentialMergePrefetch(cosmosQueryRequestOptions, obs.size(),
             maxPageSize, fluxConcurrency);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("ParallelQuery: flux mergeSequential" +
-                    " concurrency {}, prefetch {}, Context: {}",
-                fluxConcurrency,
-                fluxPrefetch,
-                this.getOperationContextTextProvider().get());
-        }
+        logger.debug("ParallelQuery: flux mergeSequential" +
+                         " concurrency {}, prefetch {}", fluxConcurrency, fluxPrefetch);
         return Flux.mergeSequential(obs, fluxConcurrency, fluxPrefetch)
-            .transformDeferred(new EmptyPagesFilterTransformer<>(
-                new RequestChargeTracker(),
-                this.cosmosQueryRequestOptions,
-                correlatedActivityId,
-                this.getOperationContextTextProvider()));
+            .compose(new EmptyPagesFilterTransformer<>(new RequestChargeTracker(), this.cosmosQueryRequestOptions));
     }
 
     @Override
@@ -487,28 +360,28 @@ public class ParallelDocumentQueryExecutionContext<T>
 
     protected DocumentProducer<T> createDocumentProducer(
             String collectionRid,
+            PartitionKeyRange targetRange,
             String initialContinuationToken,
             int initialPageSize,
             CosmosQueryRequestOptions cosmosQueryRequestOptions,
             SqlQuerySpec querySpecForInit,
             Map<String, String> commonRequestHeaders,
-            TriFunction<FeedRangeEpkImpl, String, Integer, RxDocumentServiceRequest> createRequestFunc,
+            TriFunction<PartitionKeyRange, String, Integer, RxDocumentServiceRequest> createRequestFunc,
             Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc,
-            Supplier<DocumentClientRetryPolicy> createRetryPolicyFunc, FeedRangeEpkImpl feedRange) {
-        return new DocumentProducer<>(client,
+            Callable<DocumentClientRetryPolicy> createRetryPolicyFunc) {
+        return new DocumentProducer<T>(client,
                 collectionRid,
                 cosmosQueryRequestOptions,
                 createRequestFunc,
                 executeFunc,
+                targetRange,
                 collectionRid,
-                createRetryPolicyFunc,
+                () -> client.getResetSessionTokenRetryPolicy().getRequestPolicy(),
                 resourceType,
                 correlatedActivityId,
                 initialPageSize,
                 initialContinuationToken,
-                top,
-                feedRange,
-                this.getOperationContextTextProvider());
+                top);
     }
 
     private int fluxSequentialMergeConcurrency(CosmosQueryRequestOptions options, int numberOfPartitions) {

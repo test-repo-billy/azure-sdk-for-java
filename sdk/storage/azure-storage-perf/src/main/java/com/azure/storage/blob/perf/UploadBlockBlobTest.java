@@ -3,36 +3,33 @@
 
 package com.azure.storage.blob.perf;
 
-import com.azure.perf.test.core.RepeatingInputStream;
-import com.azure.storage.blob.perf.core.AbstractUploadTest;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.nio.ByteBuffer;
-
 import static com.azure.perf.test.core.TestDataCreationHelper.createRandomByteBufferFlux;
 import static com.azure.perf.test.core.TestDataCreationHelper.createRandomInputStream;
 
-public class UploadBlockBlobTest extends AbstractUploadTest<BlobPerfStressOptions> {
-    protected final RepeatingInputStream inputStream;
-    protected final Flux<ByteBuffer> byteBufferFlux;
+import com.azure.perf.test.core.PerfStressOptions;
+import com.azure.storage.blob.perf.core.BlobTestBase;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-    public UploadBlockBlobTest(BlobPerfStressOptions options) {
+public class UploadBlockBlobTest extends BlobTestBase<PerfStressOptions> {
+    private final InputStream randomInputStream;
+    private final Flux<ByteBuffer> randomByteBufferFlux;
+
+    public UploadBlockBlobTest(PerfStressOptions options) {
         super(options);
-        inputStream = (RepeatingInputStream) createRandomInputStream(options.getSize());
-        inputStream.mark(Integer.MAX_VALUE);
-        byteBufferFlux = createRandomByteBufferFlux(options.getSize());
+        this.randomInputStream = createRandomInputStream(options.getSize());
+        this.randomByteBufferFlux = createRandomByteBufferFlux(options.getSize());
     }
 
     @Override
     public void run() {
-        inputStream.reset();
-        blockBlobClient.upload(inputStream, options.getSize(), true);
+        blockBlobClient.upload(randomInputStream, options.getSize(), true);
     }
 
     @Override
     public Mono<Void> runAsync() {
-        return blockBlobAsyncClient.upload(byteBufferFlux, options.getSize(), true)
-            .then();
+        return blockBlobAsyncClient.upload(randomByteBufferFlux, options.getSize(), true).then();
     }
 }

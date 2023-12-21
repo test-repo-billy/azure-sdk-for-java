@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Properties when creating a connection through the {@link SimpleProxy}.
  */
 class ConnectionProperties implements Closeable {
-    private static final ClientLogger LOGGER = new ClientLogger(ConnectionProperties.class);
+    private final ClientLogger logger = new ClientLogger(ConnectionProperties.class);
     private final AtomicBoolean isClosed = new AtomicBoolean();
     private final AsynchronousSocketChannel clientSocket;
     private final AsynchronousSocketChannel outgoingSocket;
@@ -91,11 +91,11 @@ class ConnectionProperties implements Closeable {
     @Override
     public void close() throws IOException {
         if (isClosed.getAndSet(true)) {
-            LOGGER.info("Connection already closed.");
+            logger.info("Connection already closed.");
             return;
         }
 
-        LOGGER.info("Closing connection.");
+        logger.info("Closing connection.");
 
         setProxyConnectionState(ProxyConnectionState.PROXY_CLOSED);
         clientSocket.close();

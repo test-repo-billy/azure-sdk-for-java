@@ -3,11 +3,12 @@
 
 package com.azure.cosmos.implementation;
 
-import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.CosmosDiagnostics;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
+import com.azure.cosmos.models.ModelBridgeInternal;
 import com.azure.cosmos.implementation.directconnectivity.Address;
 import com.azure.cosmos.implementation.directconnectivity.StoreResponse;
+import com.azure.cosmos.BridgeInternal;
+import com.azure.cosmos.CosmosDiagnostics;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -19,20 +20,16 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * This is core Transport/Connection agnostic response for the Azure Cosmos DB database service.
  */
 public class RxDocumentServiceResponse {
-    private final DiagnosticsClientContext diagnosticsClientContext;
     private final int statusCode;
     private final Map<String, String> headersMap;
     private final StoreResponse storeResponse;
-    private RequestTimeline gatewayHttpRequestTimeline;
-    private CosmosDiagnostics cosmosDiagnostics;
 
-    public RxDocumentServiceResponse(DiagnosticsClientContext diagnosticsClientContext, StoreResponse response) {
+    public RxDocumentServiceResponse(StoreResponse response) {
         String[] headerNames = response.getResponseHeaderNames();
         String[] headerValues = response.getResponseHeaderValues();
 
@@ -47,30 +44,9 @@ public class RxDocumentServiceResponse {
         }
 
         this.storeResponse = response;
-        this.diagnosticsClientContext = diagnosticsClientContext;
     }
 
-    public RxDocumentServiceResponse(DiagnosticsClientContext diagnosticsClientContext, StoreResponse response,
-                                     RequestTimeline gatewayHttpRequestTimeline) {
-        this(diagnosticsClientContext, response);
-        this.gatewayHttpRequestTimeline = gatewayHttpRequestTimeline;
-    }
-
-    RxDocumentServiceResponse withRemappedStatusCode(int newStatusCode, double additionalRequestCharge) {
-        StoreResponse mappedStoreResponse = this
-            .storeResponse
-            .withRemappedStatusCode(newStatusCode, additionalRequestCharge);
-
-        RxDocumentServiceResponse result = new RxDocumentServiceResponse(
-            this.diagnosticsClientContext, mappedStoreResponse, this.gatewayHttpRequestTimeline);
-        if (this.cosmosDiagnostics != null) {
-            result.setCosmosDiagnostics(this.cosmosDiagnostics);
-        }
-
-        return result;
-    }
-
-    private static <T> String getResourceKey(Class<T> c) {
+    public static <T extends Resource> String getResourceKey(Class<T> c) {
         if (c.equals(Conflict.class)) {
             return InternalConstants.ResourceKeys.CONFLICTS;
         } else if (c.equals(Database.class)) {
@@ -95,11 +71,9 @@ public class RxDocumentServiceResponse {
             return InternalConstants.ResourceKeys.ADDRESSES;
         } else if (c.equals(PartitionKeyRange.class)) {
             return InternalConstants.ResourceKeys.PARTITION_KEY_RANGES;
-        } else if (c.equals(ClientEncryptionKey.class)) {
-            return InternalConstants.ResourceKeys.CLIENT_ENCRYPTION_KEYS;
         }
 
-        return InternalConstants.ResourceKeys.DOCUMENTS;
+        throw new IllegalArgumentException("c");
     }
 
     public int getStatusCode() {
@@ -116,10 +90,6 @@ public class RxDocumentServiceResponse {
 
     public String getResponseBodyAsString() {
         return Utils.utf8StringFromOrNull(this.getResponseBodyAsByteArray());
-    }
-
-    public RequestTimeline getGatewayHttpRequestTimeline() {
-        return gatewayHttpRequestTimeline;
     }
 
     public <T extends Resource> T getResource(Class<T> c) {
@@ -141,13 +111,16 @@ public class RxDocumentServiceResponse {
         return resource;
     }
 
-    private ArrayNode extractQueryResponseNodes(String resourceKey) {
+    @SuppressWarnings("unchecked")
+    // Given cls (where cls == Class<T>), objectNode is first decoded to cls and then casted to T.
+    public <T extends Resource> List<T> getQueryResponse(Class<T> c) {
         byte[] responseBody = this.getResponseBodyAsByteArray();
         if (responseBody == null) {
-            return null;
+            return new ArrayList<T>();
         }
 
         JsonNode jobject = fromJson(responseBody);
+        String resourceKey = RxDocumentServiceResponse.getResourceKey(c);
         ArrayNode jTokenArray = (ArrayNode) jobject.get(resourceKey);
 
         // Aggregate queries may return a nested array
@@ -156,37 +129,21 @@ public class RxDocumentServiceResponse {
             jTokenArray = innerArray;
         }
 
-        return jTokenArray;
-    }
-
-    @SuppressWarnings("unchecked")
-    // Given cls (where cls == Class<T>), objectNode is first decoded to cls and then casted to T.
-    public <T> List<T> getQueryResponse(
-        Function<JsonNode, T> factoryMethod,
-        Class<T> c) {
-
-        String resourceKey = RxDocumentServiceResponse.getResourceKey(c);
-        ArrayNode jTokenArray = this.extractQueryResponseNodes(resourceKey);
-        if (jTokenArray == null) {
-            return new ArrayList<T>();
-        }
-
         List<T> queryResults = new ArrayList<T>();
 
-        for (int i = 0; i < jTokenArray.size(); ++i) {
-            JsonNode jToken = jTokenArray.get(i);
-            // Aggregate on single partition collection may return the aggregated value only
-            // In that case it needs to encapsulated in a special document
+        if (jTokenArray != null) {
+            for (int i = 0; i < jTokenArray.size(); ++i) {
+                JsonNode jToken = jTokenArray.get(i);
+                // Aggregate on single partition collection may return the aggregated value only
+                // In that case it needs to encapsulated in a special document
 
-            ObjectNode resourceJson = jToken.isValueNode() || jToken.isArray()// to add nulls, arrays, objects
-                ? (ObjectNode) fromJson(String.format("{\"%s\": %s}", Constants.Properties.VALUE, jToken))
-                : (ObjectNode) jToken;
+                JsonNode resourceJson = jToken.isValueNode() || jToken.isArray()// to add nulls, arrays, objects
+                        ? fromJson(String.format("{\"%s\": %s}", Constants.Properties.VALUE, jToken.toString()))
+                                : jToken;
 
-            T resource = factoryMethod == null ?
-                (T) JsonSerializable.instantiateFromObjectNodeAndType(resourceJson, c):
-                factoryMethod.apply(resourceJson);
-
-            queryResults.add(resource);
+               T resource = (T) ModelBridgeInternal.instantiateJsonSerializable((ObjectNode) resourceJson, c);
+               queryResults.add(resource);
+            }
         }
 
         return queryResults;
@@ -223,31 +180,10 @@ public class RxDocumentServiceResponse {
         return null;
     }
 
-    public CosmosDiagnostics getCosmosDiagnostics() {
-        return this.cosmosDiagnostics;
-    }
-
-    public void setCosmosDiagnostics(CosmosDiagnostics cosmosDiagnostics) {
-        this.cosmosDiagnostics = cosmosDiagnostics;
-    }
-
-    public DiagnosticsClientContext getDiagnosticsClientContext() {
-        return diagnosticsClientContext;
-    }
-
-    /**
-     * Gets the request charge as request units (RU) consumed by the operation.
-     * <p>
-     * For more information about the RU and factors that can impact the effective charges please visit
-     * <a href="https://docs.microsoft.com/en-us/azure/cosmos-db/request-units">Request Units in Azure Cosmos DB</a>
-     *
-     * @return the request charge.
-     */
-    public double getRequestCharge() {
-        String value = this.getResponseHeaders().get(HttpConstants.HttpHeaders.REQUEST_CHARGE);
-        if (StringUtils.isEmpty(value)) {
-            return 0;
+    CosmosDiagnostics getCosmosDiagnostics() {
+        if (this.storeResponse == null) {
+            return null;
         }
-        return Double.parseDouble(value);
+        return this.storeResponse.getCosmosDiagnostics();
     }
 }

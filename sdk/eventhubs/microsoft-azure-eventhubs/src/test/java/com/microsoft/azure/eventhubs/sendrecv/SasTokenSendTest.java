@@ -4,10 +4,8 @@
 package com.microsoft.azure.eventhubs.sendrecv;
 
 import com.microsoft.azure.eventhubs.EventHubException;
-import com.microsoft.azure.eventhubs.impl.SendTest;
 import com.microsoft.azure.eventhubs.lib.SasTokenTestBase;
 import com.microsoft.azure.eventhubs.lib.TestContext;
-import org.apache.qpid.proton.engine.SslDomain;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -29,7 +27,7 @@ public class SasTokenSendTest extends SasTokenTestBase {
                 && TestContext.getConnectionString().getSasKeyName() == null);
 
         sendTest = new SendTest();
-        SendTest.initializeEventHub(TestContext.getConnectionString(), SslDomain.VerifyMode.ANONYMOUS_PEER);
+        SendTest.initializeEventHub(TestContext.getConnectionString());
     }
 
     @AfterClass

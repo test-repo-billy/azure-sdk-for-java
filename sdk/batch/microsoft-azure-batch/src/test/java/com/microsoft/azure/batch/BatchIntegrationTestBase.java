@@ -5,7 +5,6 @@ package com.microsoft.azure.batch;
 
 import com.microsoft.azure.batch.protocol.models.*;
 import com.microsoft.azure.credentials.ApplicationTokenCredentials;
-import com.azure.core.util.Configuration;
 import com.microsoft.azure.AzureEnvironment;
 import com.microsoft.azure.credentials.AzureTokenCredentials;
 import com.microsoft.azure.management.Azure;
@@ -13,9 +12,9 @@ import com.microsoft.azure.AzureResponseBuilder;
 import com.microsoft.azure.batch.auth.BatchApplicationTokenCredentials;
 import com.microsoft.azure.batch.auth.BatchCredentials;
 import com.microsoft.azure.batch.auth.BatchSharedKeyCredentials;
+import com.microsoft.azure.management.network.Network;
 import com.microsoft.azure.management.resources.core.InterceptorManager;
 import com.microsoft.azure.management.resources.core.TestBase;
-import com.microsoft.azure.management.resources.core.TestBase.TestMode;
 import com.microsoft.azure.management.resources.fluentcore.utils.ResourceManagerThrottlingInterceptor;
 import com.microsoft.azure.serializer.AzureJacksonAdapter;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -74,14 +73,14 @@ public class BatchIntegrationTestBase {
 
 
     private static TestBase.TestMode testMode = null;
+    private PrintStream out;
     private static final String PLAYBACK_URI_BASE = "http://localhost:";
     protected static String playbackUri = null;
     protected static String alternativePlaybackUri = null;
 
 
     private static void initTestMode() throws IOException {
-        String azureTestMode =
-            Configuration.getGlobalConfiguration().get("AZURE_TEST_MODE");
+        String azureTestMode = System.getenv("AZURE_TEST_MODE");
         if (azureTestMode != null) {
             if (azureTestMode.equalsIgnoreCase("Record")) {
                 testMode = TestBase.TestMode.RECORD;
@@ -156,7 +155,6 @@ public class BatchIntegrationTestBase {
         BatchCredentials credentials;
 
         interceptorManager = InterceptorManager.create(testName.getMethodName(), testMode);
-        interceptorManager.addTextReplacementRule("https.*?(sig=[^&]+)", "sig=fakeSig");
         RestClient restClient;
 
         credentials = getCredentials(mode);
@@ -182,6 +180,7 @@ public class BatchIntegrationTestBase {
             alternativeBatchClient = batchClient;
 
         } else { // is Playback Mode
+            out = System.out;
             System.setOut(new PrintStream(new OutputStream() {
                 public void write(int b) {
                     // DO NOTHING
@@ -342,28 +341,28 @@ public class BatchIntegrationTestBase {
     }
 
     static NetworkConfiguration createNetworkConfiguration(){
-        String vnetName = System.getenv("AZURE_VNET");
-        String subnetName = System.getenv("AZURE_VNET_SUBNET");
+        String vnetName = "AzureBatchTestVnet";
+        String subnetName = "AzureBatchTestSubnet";
         if(isRecordMode()) {
             AzureTokenCredentials token = new ApplicationTokenCredentials(
                 System.getenv("CLIENT_ID"),
                 "72f988bf-86f1-41af-91ab-2d7cd011db47",
                 System.getenv("APPLICATION_SECRET"),
                 AzureEnvironment.AZURE);
-            Azure azure = Azure.authenticate(token).withSubscription(System.getenv("SUBSCRIPTION_ID"));
+            Azure azure = Azure.authenticate(token).withSubscription("677f962b-9abf-4423-a27b-0c2f4094dcec");
             if (azure.networks().list().size() == 0) {
-                azure.networks().define(vnetName)
-                    .withRegion(System.getenv("AZURE_BATCH_REGION"))
-                    .withExistingResourceGroup(System.getenv("AZURE_VNET_RESOURCE_GROUP"))
-                    .withAddressSpace(System.getenv("AZURE_VNET_ADDRESS_SPACE"))
-                    .withSubnet(subnetName, System.getenv("AZURE_VNET_SUBNET_ADDRESS_SPACE"))
+                Network virtualNetwork = azure.networks().define(vnetName)
+                    .withRegion("westcentralus")
+                    .withExistingResourceGroup("sdktest2")
+                    .withAddressSpace("192.168.0.0/16")
+                    .withSubnet(subnetName, "192.168.1.0/24")
                     .create();
             }
         }
         String vNetResourceId = String.format(
             "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s",
-            System.getenv("SUBSCRIPTION_ID"),
-            System.getenv("AZURE_VNET_RESOURCE_GROUP"),
+            "677f962b-9abf-4423-a27b-0c2f4094dcec",
+            "sdktest2",
             vnetName,
             subnetName);
         return new NetworkConfiguration().withSubnetId(vNetResourceId);
@@ -383,9 +382,9 @@ public class BatchIntegrationTestBase {
         if (!batchClient.poolOperations().existsPool(poolId)) {
             // Use IaaS VM with Ubuntu
             ImageReference imgRef = new ImageReference().withPublisher("Canonical").withOffer("UbuntuServer")
-                    .withSku("18.04-LTS").withVersion("latest");
+                    .withSku("16.04-LTS").withVersion("latest");
             VirtualMachineConfiguration configuration = new VirtualMachineConfiguration();
-            configuration.withNodeAgentSKUId("batch.node.ubuntu 18.04").withImageReference(imgRef);
+            configuration.withNodeAgentSKUId("batch.node.ubuntu 16.04").withImageReference(imgRef);
 
             List<UserAccount> userList = new ArrayList<>();
             userList.add(new UserAccount().withName("test-user").withPassword("kt#_gahr!@aGERDXA")
@@ -578,15 +577,11 @@ public class BatchIntegrationTestBase {
     }
 
     String getTestMode() {
-        if (testMode == null) {
-            try {
-                initTestMode();
-            } catch (IOException e) {
-                logger.warning("Unable to determine test mode. Defaulting to Playback.");
-                testMode = TestMode.PLAYBACK;
-            }
+        String testMode =  System.getenv("AZURE_TEST_MODE");
+        if (testMode == null){
+            testMode = "PLAYBACK";
         }
-        return testMode.toString();
+        return testMode;
     }
 
 }

@@ -28,10 +28,9 @@ final class CBSChannel {
             final ScheduledExecutorService executor) {
         this.executor = executor;
         RequestResponseCloser closer = new RequestResponseCloser();
-        final String sessionName = "cbs-session";
         this.innerChannel = new FaultTolerantObject<>(
-                new RequestResponseOpener(sessionProvider, clientId, sessionName, "cbs", ClientConstants.CBS_ADDRESS, connection, this.executor),
-                closer, clientId, sessionName);
+                new RequestResponseOpener(sessionProvider, clientId, "cbs-session", "cbs", ClientConstants.CBS_ADDRESS, connection, this.executor),
+                closer);
         closer.setInnerChannel(this.innerChannel);
     }
 

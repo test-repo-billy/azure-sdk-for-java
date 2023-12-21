@@ -285,14 +285,4 @@ public final class DatabaseAccount extends Resource {
     public Object get(String propertyName) {
         return super.get(propertyName);
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

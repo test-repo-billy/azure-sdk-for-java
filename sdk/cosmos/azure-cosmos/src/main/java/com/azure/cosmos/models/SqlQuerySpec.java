@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -71,7 +70,7 @@ public final class SqlQuerySpec {
     public SqlQuerySpec(String queryText, SqlParameter... parameters) {
         this.jsonSerializable = new JsonSerializable();
         this.setQueryText(queryText);
-        this.parameters = Collections.synchronizedList(Arrays.asList(parameters));
+        this.parameters = Arrays.asList(parameters);
     }
 
     /**
@@ -106,7 +105,7 @@ public final class SqlQuerySpec {
                 sqlParameters = new ArrayList<>();
             }
 
-            this.parameters = Collections.synchronizedList(new ArrayList<>(sqlParameters));
+            this.parameters = new ArrayList<>(sqlParameters);
         }
 
         return this.parameters;

@@ -9,23 +9,18 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.Collection;
 
 /**
- * If an object is in rehydrate pending state then this header is returned with priority of rehydrate. Valid values are
- * High and Standard.
+ * Defines values for RehydratePriority.
  */
 public final class RehydratePriority extends ExpandableStringEnum<RehydratePriority> {
-    /** Static value High for RehydratePriority. */
+    /**
+     * Static value High for RehydratePriority.
+     */
     public static final RehydratePriority HIGH = fromString("High");
 
-    /** Static value Standard for RehydratePriority. */
-    public static final RehydratePriority STANDARD = fromString("Standard");
-
     /**
-     * Creates a new instance of RehydratePriority value.
-     *
-     * @deprecated Use the {@link #fromString(String)} factory method.
+     * Static value Standard for RehydratePriority.
      */
-    @Deprecated
-    public RehydratePriority() {}
+    public static final RehydratePriority STANDARD = fromString("Standard");
 
     /**
      * Creates or finds a RehydratePriority from its string representation.
@@ -39,8 +34,6 @@ public final class RehydratePriority extends ExpandableStringEnum<RehydratePrior
     }
 
     /**
-     * Gets known RehydratePriority values.
-     *
      * @return known RehydratePriority values.
      */
     public static Collection<RehydratePriority> values() {

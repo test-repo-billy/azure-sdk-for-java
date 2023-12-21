@@ -5,14 +5,14 @@ package com.azure.ai.textanalytics.models;
 import com.azure.core.annotation.Immutable;
 
 /**
- * The {@code DetectLanguageResult} model.
+ * The {@link DetectLanguageResult} model.
  */
 @Immutable
 public final class DetectLanguageResult extends TextAnalyticsResult {
     private final DetectedLanguage primaryLanguage;
 
     /**
-     * Creates a {@code DetectLanguageResult} model that describes detected languages result.
+     * Create a {@link DetectLanguageResult} model that describes detected languages result.
      *
      * @param id Unique, non-empty document identifier.
      * @param textDocumentStatistics The text document statistics.
@@ -26,12 +26,9 @@ public final class DetectLanguageResult extends TextAnalyticsResult {
     }
 
     /**
-     * Gets the detected primary language.
+     * Get the detected primary language.
      *
      * @return The detected language.
-     *
-     * @throws TextAnalyticsException if result has {@code isError} equals to true and when a non-error property
-     * was accessed.
      */
     public DetectedLanguage getPrimaryLanguage() {
         throwExceptionIfError();

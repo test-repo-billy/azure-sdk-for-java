@@ -19,9 +19,9 @@ public class RecognizeLinkedEntitiesAsync {
     public static void main(String[] args) {
         // Instantiate a client that will be used to call the service.
         TextAnalyticsAsyncClient client = new TextAnalyticsClientBuilder()
-                                              .credential(new AzureKeyCredential("{key}"))
-                                              .endpoint("{endpoint}")
-                                              .buildAsyncClient();
+            .credential(new AzureKeyCredential("{key}"))
+            .endpoint("{endpoint}")
+            .buildAsyncClient();
 
         // The document that needs be analyzed.
         String document = "Old Faithful is a geyser at Yellowstone Park.";
@@ -29,10 +29,9 @@ public class RecognizeLinkedEntitiesAsync {
         client.recognizeLinkedEntities(document).subscribe(
             linkedEntityCollection -> linkedEntityCollection.forEach(linkedEntity -> {
                 System.out.println("Linked Entities:");
-                System.out.printf("Name: %s, entity ID in data source: %s, URL: %s, data source: %s, "
-                        + "Bing Entity Search API ID: %s.%n",
+                System.out.printf("Name: %s, entity ID in data source: %s, URL: %s, data source: %s.%n",
                     linkedEntity.getName(), linkedEntity.getDataSourceEntityId(), linkedEntity.getUrl(),
-                    linkedEntity.getDataSource(), linkedEntity.getBingEntitySearchApiId());
+                    linkedEntity.getDataSource());
                 linkedEntity.getMatches().forEach(entityMatch -> System.out.printf(
                     "Matched entity: %s, confidence score: %f.%n",
                     entityMatch.getText(), entityMatch.getConfidenceScore()));

@@ -10,93 +10,75 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.time.OffsetDateTime;
 
-/** Properties of a container. */
+/**
+ * Properties of a container.
+ */
 @JacksonXmlRootElement(localName = "BlobContainerItemProperties")
 @Fluent
 public final class BlobContainerItemProperties {
     /*
-     * The Last-Modified property.
+     * The lastModified property.
      */
     @JsonProperty(value = "Last-Modified", required = true)
     private DateTimeRfc1123 lastModified;
 
     /*
-     * The Etag property.
+     * The eTag property.
      */
     @JsonProperty(value = "Etag", required = true)
     private String eTag;
 
     /*
-     * The LeaseStatus property.
+     * Possible values include: 'locked', 'unlocked'
      */
     @JsonProperty(value = "LeaseStatus")
     private LeaseStatusType leaseStatus;
 
     /*
-     * The LeaseState property.
+     * Possible values include: 'available', 'leased', 'expired', 'breaking',
+     * 'broken'
      */
     @JsonProperty(value = "LeaseState")
     private LeaseStateType leaseState;
 
     /*
-     * The LeaseDuration property.
+     * Possible values include: 'infinite', 'fixed'
      */
     @JsonProperty(value = "LeaseDuration")
     private LeaseDurationType leaseDuration;
 
     /*
-     * The PublicAccess property.
+     * Possible values include: 'container', 'blob'
      */
     @JsonProperty(value = "PublicAccess")
     private PublicAccessType publicAccess;
 
     /*
-     * The HasImmutabilityPolicy property.
+     * The hasImmutabilityPolicy property.
      */
     @JsonProperty(value = "HasImmutabilityPolicy")
     private Boolean hasImmutabilityPolicy;
 
     /*
-     * The HasLegalHold property.
+     * The hasLegalHold property.
      */
     @JsonProperty(value = "HasLegalHold")
     private Boolean hasLegalHold;
 
     /*
-     * The DefaultEncryptionScope property.
+     * The defaultEncryptionScope property.
      */
     @JsonProperty(value = "DefaultEncryptionScope")
     private String defaultEncryptionScope;
 
     /*
-     * The DenyEncryptionScopeOverride property.
+     * The encryptionScopeOverridePrevented property.
      */
     @JsonProperty(value = "DenyEncryptionScopeOverride")
-    private Boolean encryptionScopeOverridePrevented;
-
-    /*
-     * The DeletedTime property.
-     */
-    @JsonProperty(value = "DeletedTime")
-    private DateTimeRfc1123 deletedTime;
-
-    /*
-     * The RemainingRetentionDays property.
-     */
-    @JsonProperty(value = "RemainingRetentionDays")
-    private Integer remainingRetentionDays;
-
-    /*
-     * Indicates if version level worm is enabled on this container.
-     */
-    @JsonProperty(value = "ImmutableStorageWithVersioningEnabled")
-    private Boolean isImmutableStorageWithVersioningEnabled;
-
-    /** Creates an instance of BlobContainerItemProperties class. */
-    public BlobContainerItemProperties() {}
+    private boolean encryptionScopeOverridePrevented;
 
     /**
-     * Get the lastModified property: The Last-Modified property.
+     * Get the lastModified property: The lastModified property.
      *
      * @return the lastModified value.
      */
@@ -108,7 +90,7 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the lastModified property: The Last-Modified property.
+     * Set the lastModified property: The lastModified property.
      *
      * @param lastModified the lastModified value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -123,7 +105,7 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the eTag property: The Etag property.
+     * Get the eTag property: The eTag property.
      *
      * @return the eTag value.
      */
@@ -132,7 +114,7 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the eTag property: The Etag property.
+     * Set the eTag property: The eTag property.
      *
      * @param eTag the eTag value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -143,7 +125,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the leaseStatus property: The LeaseStatus property.
+     * Get the leaseStatus property: Possible values include: 'locked',
+     * 'unlocked'.
      *
      * @return the leaseStatus value.
      */
@@ -152,7 +135,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the leaseStatus property: The LeaseStatus property.
+     * Set the leaseStatus property: Possible values include: 'locked',
+     * 'unlocked'.
      *
      * @param leaseStatus the leaseStatus value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -163,7 +147,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the leaseState property: The LeaseState property.
+     * Get the leaseState property: Possible values include: 'available',
+     * 'leased', 'expired', 'breaking', 'broken'.
      *
      * @return the leaseState value.
      */
@@ -172,7 +157,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the leaseState property: The LeaseState property.
+     * Set the leaseState property: Possible values include: 'available',
+     * 'leased', 'expired', 'breaking', 'broken'.
      *
      * @param leaseState the leaseState value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -183,7 +169,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the leaseDuration property: The LeaseDuration property.
+     * Get the leaseDuration property: Possible values include: 'infinite',
+     * 'fixed'.
      *
      * @return the leaseDuration value.
      */
@@ -192,7 +179,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the leaseDuration property: The LeaseDuration property.
+     * Set the leaseDuration property: Possible values include: 'infinite',
+     * 'fixed'.
      *
      * @param leaseDuration the leaseDuration value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -203,7 +191,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the publicAccess property: The PublicAccess property.
+     * Get the publicAccess property: Possible values include: 'container',
+     * 'blob'.
      *
      * @return the publicAccess value.
      */
@@ -212,7 +201,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the publicAccess property: The PublicAccess property.
+     * Set the publicAccess property: Possible values include: 'container',
+     * 'blob'.
      *
      * @param publicAccess the publicAccess value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -223,7 +213,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the hasImmutabilityPolicy property: The HasImmutabilityPolicy property.
+     * Get the hasImmutabilityPolicy property: The hasImmutabilityPolicy
+     * property.
      *
      * @return the hasImmutabilityPolicy value.
      */
@@ -232,7 +223,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the hasImmutabilityPolicy property: The HasImmutabilityPolicy property.
+     * Set the hasImmutabilityPolicy property: The hasImmutabilityPolicy
+     * property.
      *
      * @param hasImmutabilityPolicy the hasImmutabilityPolicy value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -243,7 +235,7 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the hasLegalHold property: The HasLegalHold property.
+     * Get the hasLegalHold property: The hasLegalHold property.
      *
      * @return the hasLegalHold value.
      */
@@ -252,7 +244,7 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the hasLegalHold property: The HasLegalHold property.
+     * Set the hasLegalHold property: The hasLegalHold property.
      *
      * @param hasLegalHold the hasLegalHold value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -263,7 +255,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the defaultEncryptionScope property: The DefaultEncryptionScope property.
+     * Get the defaultEncryptionScope property: The defaultEncryptionScope
+     * property.
      *
      * @return the defaultEncryptionScope value.
      */
@@ -272,7 +265,8 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Set the defaultEncryptionScope property: The DefaultEncryptionScope property.
+     * Set the defaultEncryptionScope property: The defaultEncryptionScope
+     * property.
      *
      * @param defaultEncryptionScope the defaultEncryptionScope value to set.
      * @return the BlobContainerItemProperties object itself.
@@ -283,93 +277,25 @@ public final class BlobContainerItemProperties {
     }
 
     /**
-     * Get the encryptionScopeOverridePrevented property: The DenyEncryptionScopeOverride property.
+     * Get the encryptionScopeOverridePrevented property: The
+     * encryptionScopeOverridePrevented property.
      *
      * @return the encryptionScopeOverridePrevented value.
      */
     public boolean isEncryptionScopeOverridePrevented() {
-        Boolean returnValue = this.encryptionScopeOverridePrevented;
-        return Boolean.TRUE.equals(returnValue);
+        return this.encryptionScopeOverridePrevented;
     }
 
     /**
-     * Set the encryptionScopeOverridePrevented property: The DenyEncryptionScopeOverride property.
+     * Set the encryptionScopeOverridePrevented property: The
+     * encryptionScopeOverridePrevented property.
      *
-     * @param encryptionScopeOverridePrevented the encryptionScopeOverridePrevented value to set.
+     * @param encryptionScopeOverridePrevented the
+     * encryptionScopeOverridePrevented value to set.
      * @return the BlobContainerItemProperties object itself.
      */
     public BlobContainerItemProperties setEncryptionScopeOverridePrevented(boolean encryptionScopeOverridePrevented) {
         this.encryptionScopeOverridePrevented = encryptionScopeOverridePrevented;
-        return this;
-    }
-
-    /**
-     * Get the deletedTime property: The DeletedTime property.
-     *
-     * @return the deletedTime value.
-     */
-    public OffsetDateTime getDeletedTime() {
-        if (this.deletedTime == null) {
-            return null;
-        }
-        return this.deletedTime.getDateTime();
-    }
-
-    /**
-     * Set the deletedTime property: The DeletedTime property.
-     *
-     * @param deletedTime the deletedTime value to set.
-     * @return the BlobContainerItemProperties object itself.
-     */
-    public BlobContainerItemProperties setDeletedTime(OffsetDateTime deletedTime) {
-        if (deletedTime == null) {
-            this.deletedTime = null;
-        } else {
-            this.deletedTime = new DateTimeRfc1123(deletedTime);
-        }
-        return this;
-    }
-
-    /**
-     * Get the remainingRetentionDays property: The RemainingRetentionDays property.
-     *
-     * @return the remainingRetentionDays value.
-     */
-    public Integer getRemainingRetentionDays() {
-        return this.remainingRetentionDays;
-    }
-
-    /**
-     * Set the remainingRetentionDays property: The RemainingRetentionDays property.
-     *
-     * @param remainingRetentionDays the remainingRetentionDays value to set.
-     * @return the BlobContainerItemProperties object itself.
-     */
-    public BlobContainerItemProperties setRemainingRetentionDays(Integer remainingRetentionDays) {
-        this.remainingRetentionDays = remainingRetentionDays;
-        return this;
-    }
-
-    /**
-     * Get the isImmutableStorageWithVersioningEnabled property: Indicates if version level worm is enabled on this
-     * container.
-     *
-     * @return the isImmutableStorageWithVersioningEnabled value.
-     */
-    public Boolean isImmutableStorageWithVersioningEnabled() {
-        return this.isImmutableStorageWithVersioningEnabled;
-    }
-
-    /**
-     * Set the isImmutableStorageWithVersioningEnabled property: Indicates if version level worm is enabled on this
-     * container.
-     *
-     * @param isImmutableStorageWithVersioningEnabled the isImmutableStorageWithVersioningEnabled value to set.
-     * @return the BlobContainerItemProperties object itself.
-     */
-    public BlobContainerItemProperties setImmutableStorageWithVersioningEnabled(
-            Boolean isImmutableStorageWithVersioningEnabled) {
-        this.isImmutableStorageWithVersioningEnabled = isImmutableStorageWithVersioningEnabled;
         return this;
     }
 }

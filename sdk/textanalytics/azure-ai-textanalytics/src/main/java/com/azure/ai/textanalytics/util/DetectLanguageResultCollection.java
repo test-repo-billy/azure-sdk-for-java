@@ -14,9 +14,8 @@ import com.azure.core.util.IterableStream;
 public class DetectLanguageResultCollection extends IterableStream<DetectLanguageResult> {
     private final String modelVersion;
     private final TextDocumentBatchStatistics statistics;
-
     /**
-     * Creates a {@code DetectLanguageResultCollection} model that maintains a list of {@link DetectLanguageResult}
+     * Create a {@link DetectLanguageResultCollection} model that maintains a list of {@link DetectLanguageResult}
      * along with model version and batch's statistics.
      *
      * @param documentResults A list of {@link DetectLanguageResult}.
@@ -31,7 +30,7 @@ public class DetectLanguageResultCollection extends IterableStream<DetectLanguag
     }
 
     /**
-     * Gets the model version trained in service for the request.
+     * Get the model version trained in service for the request.
      *
      * @return The model version trained in service for the request.
      */
@@ -40,7 +39,7 @@ public class DetectLanguageResultCollection extends IterableStream<DetectLanguag
     }
 
     /**
-     * Gets the batch statistics of response.
+     * Get the batch statistics of response.
      *
      * @return The batch statistics of response.
      */

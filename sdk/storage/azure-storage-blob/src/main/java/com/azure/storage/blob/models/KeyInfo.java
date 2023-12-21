@@ -8,7 +8,9 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** Key information. */
+/**
+ * Key information.
+ */
 @JacksonXmlRootElement(localName = "KeyInfo")
 @Fluent
 public final class KeyInfo {
@@ -24,11 +26,9 @@ public final class KeyInfo {
     @JsonProperty(value = "Expiry", required = true)
     private String expiry;
 
-    /** Creates an instance of KeyInfo class. */
-    public KeyInfo() {}
-
     /**
-     * Get the start property: The date-time the key is active in ISO 8601 UTC time.
+     * Get the start property: The date-time the key is active in ISO 8601 UTC
+     * time.
      *
      * @return the start value.
      */
@@ -37,7 +37,8 @@ public final class KeyInfo {
     }
 
     /**
-     * Set the start property: The date-time the key is active in ISO 8601 UTC time.
+     * Set the start property: The date-time the key is active in ISO 8601 UTC
+     * time.
      *
      * @param start the start value to set.
      * @return the KeyInfo object itself.
@@ -48,7 +49,8 @@ public final class KeyInfo {
     }
 
     /**
-     * Get the expiry property: The date-time the key expires in ISO 8601 UTC time.
+     * Get the expiry property: The date-time the key expires in ISO 8601 UTC
+     * time.
      *
      * @return the expiry value.
      */
@@ -57,7 +59,8 @@ public final class KeyInfo {
     }
 
     /**
-     * Set the expiry property: The date-time the key expires in ISO 8601 UTC time.
+     * Set the expiry property: The date-time the key expires in ISO 8601 UTC
+     * time.
      *
      * @param expiry the expiry value to set.
      * @return the KeyInfo object itself.

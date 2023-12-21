@@ -6,11 +6,9 @@ package com.azure.data.tables.implementation.models;
 
 import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.time.OffsetDateTime;
 
-/** An Access policy. */
-@JacksonXmlRootElement(localName = "AccessPolicy")
+/** The AccessPolicy model. */
 @Fluent
 public final class AccessPolicy {
     /*
@@ -30,9 +28,6 @@ public final class AccessPolicy {
      */
     @JsonProperty(value = "Permission", required = true)
     private String permission;
-
-    /** Creates an instance of AccessPolicy class. */
-    public AccessPolicy() {}
 
     /**
      * Get the start property: The start datetime from which the policy is active.

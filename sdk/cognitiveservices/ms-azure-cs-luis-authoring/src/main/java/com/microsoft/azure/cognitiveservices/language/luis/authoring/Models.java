@@ -2300,13 +2300,6 @@ public interface Models {
              */
             ModelsListIntentSuggestionsDefinitionStages.WithExecute withTake(Integer take);
 
-            /**
-             * Toggles nested/flat format.
-             *
-             * @return next definition stage
-             */
-            ModelsListIntentSuggestionsDefinitionStages.WithExecute withEnableNestedChildren(Boolean enableNestedChildren);
-
         }
 
         /**
@@ -2423,13 +2416,6 @@ public interface Models {
              * @return next definition stage
              */
             ModelsListEntitySuggestionsDefinitionStages.WithExecute withTake(Integer take);
-
-            /**
-             * Toggles nested/flat format.
-             *
-             * @return next definition stage
-             */
-            ModelsListEntitySuggestionsDefinitionStages.WithExecute withEnableNestedChildren(Boolean enableNestedChildren);
 
         }
 

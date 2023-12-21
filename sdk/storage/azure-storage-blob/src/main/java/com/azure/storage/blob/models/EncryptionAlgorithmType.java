@@ -7,12 +7,18 @@ package com.azure.storage.blob.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/** Defines values for EncryptionAlgorithmType. */
+/**
+ * Defines values for EncryptionAlgorithmType.
+ */
 public enum EncryptionAlgorithmType {
-    /** Enum value AES256. */
+    /**
+     * Enum value AES256.
+     */
     AES256("AES256");
 
-    /** The actual serialized value for a EncryptionAlgorithmType instance. */
+    /**
+     * The actual serialized value for a EncryptionAlgorithmType instance.
+     */
     private final String value;
 
     EncryptionAlgorithmType(String value) {
@@ -27,9 +33,6 @@ public enum EncryptionAlgorithmType {
      */
     @JsonCreator
     public static EncryptionAlgorithmType fromString(String value) {
-        if (value == null) {
-            return null;
-        }
         EncryptionAlgorithmType[] items = EncryptionAlgorithmType.values();
         for (EncryptionAlgorithmType item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -39,7 +42,6 @@ public enum EncryptionAlgorithmType {
         return null;
     }
 
-    /** {@inheritDoc} */
     @JsonValue
     @Override
     public String toString() {

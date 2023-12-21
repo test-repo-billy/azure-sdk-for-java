@@ -8,7 +8,9 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** A permission (a security descriptor) at the share level. */
+/**
+ * A permission (a security descriptor) at the share level.
+ */
 @JacksonXmlRootElement(localName = "SharePermission")
 @Fluent
 public final class SharePermission {
@@ -18,11 +20,9 @@ public final class SharePermission {
     @JsonProperty(value = "permission", required = true)
     private String permission;
 
-    /** Creates an instance of SharePermission class. */
-    public SharePermission() {}
-
     /**
-     * Get the permission property: The permission in the Security Descriptor Definition Language (SDDL).
+     * Get the permission property: The permission in the Security Descriptor
+     * Definition Language (SDDL).
      *
      * @return the permission value.
      */
@@ -31,7 +31,8 @@ public final class SharePermission {
     }
 
     /**
-     * Set the permission property: The permission in the Security Descriptor Definition Language (SDDL).
+     * Set the permission property: The permission in the Security Descriptor
+     * Definition Language (SDDL).
      *
      * @param permission the permission value to set.
      * @return the SharePermission object itself.

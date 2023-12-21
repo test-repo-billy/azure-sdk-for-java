@@ -49,14 +49,4 @@ public class OfferAutoscaleSettings extends JsonSerializable {
         }
         return offerAutoscaleAutoUpgradeProperties;
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

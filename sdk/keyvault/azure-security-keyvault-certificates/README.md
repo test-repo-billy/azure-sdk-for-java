@@ -1,74 +1,99 @@
 # Azure Key Vault Certificate client library for Java
 Azure Key Vault allows you to securely manage and tightly control your certificates. The Azure Key Vault Certificate client library supports certificates backed by RSA and EC keys.
 
-Multiple certificates and multiple versions of the same certificate can be kept in the Key Vault. Cryptographic keys in Azure Key Vault backing the certificates are represented as [JSON Web Key (JWK)][jwk_specification] objects. This library offers operations to create, retrieve, update, delete, purge, backup, restore, and list the certificates, as well as its versions.
+Multiple certificates and multiple versions of the same certificate can be kept in the Key Vault. Cryptographic keys in Key Vault backing the certificates are represented as [JSON Web Key [JWK]](https://tools.ietf.org/html/rfc7517) objects. This library offers operations to create, retrieve, update, delete, purge, backup, restore, and list the certificates, as well as its versions.
 
 [Source code][source_code] | [API reference documentation][api_documentation] | [Product documentation][azkeyvault_docs] | [Samples][certificates_samples]
 
 ## Getting started
-### Include the package
-#### Include the BOM file
-Please include the `azure-sdk-bom` to your project to take dependency on the General Availability (GA) version of the library. In the following snippet, replace the {bom_version_to_target} placeholder with the version number. To learn more about the BOM, see the [AZURE SDK BOM README](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/boms/azure-sdk-bom/README.md).
-
-```xml
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-sdk-bom</artifactId>
-            <version>{bom_version_to_target}</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-```
-
-and then include the direct dependency in the dependencies section without the version tag as shown below.
-
-```xml
-<dependencies>
-    <dependency>
-        <groupId>com.azure</groupId>
-        <artifactId>azure-security-keyvault-certificates</artifactId>
-    </dependency>
-</dependencies>
-```
-
-#### Include direct dependency
-If you want to take dependency on a particular version of the library that is not present in the BOM, add the direct dependency to your project as follows.
+### Adding the package to your project
+Maven dependency for the Azure Key Vault Certificate client library. Add it to your project's POM file.
 
 [//]: # ({x-version-update-start;com.azure:azure-security-keyvault-certificates;current})
 ```xml
 <dependency>
     <groupId>com.azure</groupId>
     <artifactId>azure-security-keyvault-certificates</artifactId>
-    <version>4.6.0-beta.1</version>
+    <version>4.0.4</version>
 </dependency>
 ```
 [//]: # ({x-version-update-end})
 
 ### Prerequisites
-- A [Java Development Kit (JDK)][jdk_link], version 8 or later.
-- An [Azure Subscription][azure_subscription].
-- An existing [Azure Key Vault][azure_keyvault]. If you need to create a key vault, you can do so in the Azure Portal by following the steps in [this document][azure_keyvault_portal]. Alternatively, you can use the Azure CLI by following the steps in [this document][azure_keyvault_cli].
+- Java Development Kit (JDK) with version 8 or above
+- [Azure Subscription][azure_subscription]
+- An existing [Azure Key Vault][azure_keyvault]. If you need to create a Key Vault, you can use the [Azure Cloud Shell](https://shell.azure.com/bash) to create one with this Azure CLI command. Replace `<your-resource-group-name>` and `<your-key-vault-name>` with your own, unique names:
+
+    ```Bash
+    az keyvault create --resource-group <your-resource-group-name> --name <your-key-vault-name>
+    ```
 
 ### Authenticate the client
-In order to interact with the Azure Key Vault service, you will need to create an instance of the [`CertificateClient`](#create-certificate-client) class, a **vault url** and a credential object. The examples shown in this document use a credential object named  [`DefaultAzureCredential`][default_azure_credential], which is appropriate for most scenarios, including local development and production environments. Additionally, we recommend using a [managed identity][managed_identity] for authentication in production environments.
+In order to interact with the Azure Key Vault service, you'll need to create an instance of the [CertificateClient](#create-certificate-client) class. You need a **vault url** and **client secret credentials (client id, client secret, tenant id)** to instantiate a client object using the `DefaultAzureCredential` examples shown in this document.
 
-You can find more information on different ways of authenticating and their corresponding credential types in the [Azure Identity documentation][azure_identity].
+The `DefaultAzureCredential` way of authentication by providing client secret credentials is being used in this getting started section but you can find more ways to authenticate with [azure-identity][azure_identity].
+
+#### Create/Get credentials
+To create/get client secret credentials you can use the [Azure Portal][azure_create_application_in_portal], [Azure CLI][azure_keyvault_cli_full] or [Azure Cloud Shell](https://shell.azure.com/bash)
+
+Here is an [Azure Cloud Shell](https://shell.azure.com/bash) snippet below to
+
+ * Create a service principal and configure its access to Azure resources:
+
+    ```Bash
+    az ad sp create-for-rbac -n <your-application-name> --skip-assignment
+    ```
+
+    Output:
+
+    ```json
+    {
+        "appId": "generated-app-ID",
+        "displayName": "dummy-app-name",
+        "name": "http://dummy-app-name",
+        "password": "random-password",
+        "tenant": "tenant-ID"
+    }
+    ```
+
+* Use the above returned credentials information to set the **AZURE_CLIENT_ID** (appId), **AZURE_CLIENT_SECRET** (password), and **AZURE_TENANT_ID** (tenantId) environment variables. The following example shows a way to do this in Bash:
+
+    ```Bash
+    export AZURE_CLIENT_ID="generated-app-ID"
+    export AZURE_CLIENT_SECRET="random-password"
+    export AZURE_TENANT_ID="tenant-ID"
+    ```
+
+* Grant the aforementioned application authorization to perform certificate operations on the Key Vault:
+
+    ```Bash
+    az keyvault set-policy --name <your-key-vault-name> --spn $AZURE_CLIENT_ID --certificate-permissions backup delete get list create update
+    ```
+
+    > --certificate-permissions:
+    > Accepted values: backup, create, delete, deleteissuers, get, getissuers, import, list, listissuers, managecontacts, manageissuers, purge, recover, restore, setissuers, update
+
+* Use the aforementioned Key Vault name to retrieve details of your Key Vault, which also contain your Key Vault URL:
+
+    ```Bash
+    az keyvault show --name <your-key-vault-name>
+    ```
 
 #### Create certificate client
-Once you perform [the authentication set up that suits you best][default_azure_credential] and replaced **your-key-vault-url** with the URL for your key vault, you can create the `CertificateClient`:
+Once you've populated the **AZURE_CLIENT_ID**, **AZURE_CLIENT_SECRET**, and **AZURE_TENANT_ID** environment variables and replaced **your-key-vault-url** with the URI returned above, you can create the CertificateClient:
 
-```java readme-sample-createCertificateClient
+```Java
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.security.keyvault.certificates.CertificateClient;
+import com.azure.security.keyvault.certificates.CertificateClientBuilder;
+
 CertificateClient certificateClient = new CertificateClientBuilder()
     .vaultUrl("<your-key-vault-url>")
     .credential(new DefaultAzureCredentialBuilder().build())
     .buildClient();
 ```
 
-> NOTE: For using an asynchronous client use `CertificateAsyncClient` instead of `CertificateClient` and call `buildAsyncClient()`.
+> NOTE: For using an asynchronous client use CertificateAsyncClient instead of CertificateClient and call `buildAsyncClient()`
 
 ## Key concepts
 ### Certificate
@@ -78,7 +103,7 @@ Azure Key Vault supports certificates with secret content types (`PKCS12` & `PEM
 * updated: Indicates when this version of the certificate was updated.
 
 ### Certificate client
-The certificate client performs the interactions with the Azure Key Vault service for getting, setting, updating, deleting, and listing certificates and its versions. The client also supports CRUD operations for certificate issuers and contacts in the key vault. Asynchronous (`CertificateAsyncClient`) and synchronous (`CertificateClient`) clients exist in the SDK allowing for the selection of a client based on an application's use case. Once you've initialized a certificate, you can interact with the primary resource types in Azure Key Vault.
+The certificate client performs the interactions with the Azure Key Vault service for getting, setting, updating, deleting, and listing certificates and its versions. The client also supports CRUD operations for certificate issuers and contacts in the key vault. Asynchronous (CertificateAsyncClient) and synchronous (CertificateClient) clients exist in the SDK allowing for the selection of a client based on an application's use case. Once you've initialized a certificate, you can interact with the primary resource types in Azure Key Vault.
 
 ## Examples
 ### Sync API
@@ -93,40 +118,55 @@ The following sections provide several code snippets covering some of the most c
 Create a certificate to be stored in the Azure Key Vault.
 - `beginCreateCertificate` creates a new certificate in the Azure Key Vault. If a certificate with the same name already exists then a new version of the certificate is created.
 
-```java readme-sample-createCertificate
+```Java
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.SyncPoller;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.security.keyvault.certificates.CertificateClient;
+import com.azure.security.keyvault.certificates.CertificateClientBuilder;
+import com.azure.security.keyvault.certificates.models.CertificateOperation;
+import com.azure.security.keyvault.certificates.models.CertificatePolicy;
+import com.azure.security.keyvault.certificates.models.KeyVaultCertificate;
+import com.azure.security.keyvault.certificates.models.KeyVaultCertificateWithPolicy; 
+
+CertificateClient certificateClient = new CertificateClientBuilder()
+    .vaultUrl("<your-key-vault-url>")
+    .credential(new DefaultAzureCredentialBuilder().build())
+    .buildClient();
+
 SyncPoller<CertificateOperation, KeyVaultCertificateWithPolicy> certificatePoller =
     certificateClient.beginCreateCertificate("certificateName", CertificatePolicy.getDefault());
 certificatePoller.waitUntil(LongRunningOperationStatus.SUCCESSFULLY_COMPLETED);
 KeyVaultCertificate certificate = certificatePoller.getFinalResult();
-System.out.printf("Certificate created with name \"%s\"%n", certificate.getName());
+System.out.printf("Certificate created with name \"%s\"\n", certificate.getName());
 ```
 
 ### Retrieve a certificate
 Retrieve a previously stored certificate by calling `getCertificate` or `getCertificateVersion`.
 
-```java readme-sample-retrieveCertificate
+```Java
 KeyVaultCertificateWithPolicy certificate = certificateClient.getCertificate("<certificate-name>");
-System.out.printf("Received certificate with name \"%s\", version %s and secret id %s%n",
+System.out.printf("Recevied certificate with name \"%s\", version %s and secret id %s\n",
     certificate.getProperties().getName(), certificate.getProperties().getVersion(), certificate.getSecretId());
 ```
 
 ### Update an existing certificate
 Update an existing certificate by calling `updateCertificateProperties`.
 
-```java readme-sample-updateCertificate
+```Java
 // Get the certificate to update.
 KeyVaultCertificate certificate = certificateClient.getCertificate("<certificate-name>");
 // Update certificate enabled status.
 certificate.getProperties().setEnabled(false);
 KeyVaultCertificate updatedCertificate = certificateClient.updateCertificateProperties(certificate.getProperties());
-System.out.printf("Updated certificate with name \"%s\" and enabled status \"%s\"%n",
+System.out.printf("Updated certificate with name \"%s\" and enabled status \"%s\"\n",
     updatedCertificate.getProperties().getName(), updatedCertificate.getProperties().isEnabled());
 ```
 
 ### Delete a certificate
 Delete an existing certificate by calling `beginDeleteCertificate`.
 
-```java readme-sample-deleteCertificate
+```Java
 SyncPoller<DeletedCertificate, Void> deleteCertificatePoller =
     certificateClient.beginDeleteCertificate("<certificate-name>");
 
@@ -144,7 +184,7 @@ deleteCertificatePoller.waitForCompletion();
 ### List certificates
 List the certificates in the key vault by calling `listPropertiesOfCertificates`.
 
-```java readme-sample-listCertificates
+```java
 // List operations don't return the certificates with their full information. So, for each returned certificate we call
 // getCertificate to get the certificate with all its properties excluding the policy.
 for (CertificateProperties certificateProperties : certificateClient.listPropertiesOfCertificates()) {
@@ -169,7 +209,16 @@ The following sections provide several code snippets covering some of the most c
 Create a certificate to be stored in the Azure Key Vault.
 - `beginCreateCertificate` creates a new certificate in the Azure Key Vault. If a certificate with same name already exists then a new version of the certificate is created.
 
-```java readme-sample-createCertificateAsync
+```Java
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.security.keyvault.certificates.CertificateClient;
+import com.azure.security.keyvault.certificates.CertificateClientBuilder;
+
+CertificateAsyncClient certificateAsyncClient = new CertificateClientBuilder()
+    .vaultUrl("<your-key-vault-url>")
+    .credential(new DefaultAzureCredentialBuilder().build())
+    .buildAsyncClient();
+
 // Creates a certificate using the default policy and polls on its progress.
 certificateAsyncClient.beginCreateCertificate("<certificate-name>", CertificatePolicy.getDefault())
     .subscribe(pollResponse -> {
@@ -183,68 +232,70 @@ certificateAsyncClient.beginCreateCertificate("<certificate-name>", CertificateP
 ### Retrieve a certificate asynchronously
 Retrieve a previously stored certificate by calling `getCertificate` or `getCertificateVersion`.
 
-```java readme-sample-retrieveCertificateAsync
+```Java
 certificateAsyncClient.getCertificate("<certificate-name>")
     .subscribe(certificateResponse ->
-        System.out.printf("Certificate was returned with name \"%s\" and secretId %s%n",
+        System.out.printf("Certificate was returned with name \"%s\" and secretId %s\n",
             certificateResponse.getProperties().getName(), certificateResponse.getSecretId()));
 ```
 
 ### Update an existing certificate asynchronously
 Update an existing certificate by calling `updateCertificateProperties`.
 
-```java readme-sample-updateCertificateAsync
+```Java
 certificateAsyncClient.getCertificate("<certificate-name>")
-    .flatMap(certificate -> {
+    .subscribe(certificateResponseValue -> {
+        KeyVaultCertificate certificate = certificateResponseValue;
         // Update enabled status of the certificate.
         certificate.getProperties().setEnabled(false);
-        return certificateAsyncClient.updateCertificateProperties(certificate.getProperties());
-    }).subscribe(certificateResponse -> System.out.printf("Certificate's enabled status: %s%n",
-        certificateResponse.getProperties().isEnabled()));
+        certificateAsyncClient.updateCertificateProperties(certificate.getProperties())
+            .subscribe(certificateResponse ->
+                System.out.printf("Certificate's enabled status %s\n",
+                    certificateResponse.getProperties().isEnabled().toString()));
+    });
 ```
 
 ### Delete a certificate asynchronously
 Delete an existing certificate by calling `beginDeleteCertificate`.
 
-```java readme-sample-deleteCertificateAsync
+```java
 certificateAsyncClient.beginDeleteCertificate("<certificate-name>")
     .subscribe(pollResponse -> {
-        System.out.printf("Deletion status: %s%n", pollResponse.getStatus());
-        System.out.printf("Deleted certificate name: %s%n", pollResponse.getValue().getName());
-        System.out.printf("Certificate deletion date: %s%n", pollResponse.getValue().getDeletedOn());
+        System.out.printf("Deletion status: %s\n", pollResponse.getStatus().toString());
+        System.out.printf("Deleted certificate name: %s\n", pollResponse.getValue().getName());
+        System.out.printf("Certificate deletion date: %s\n", pollResponse.getValue().getDeletedOn().toString());
     });
 ```
 
 ### List certificates asynchronously
 List the certificates in the Azure Key Vault by calling `listPropertiesOfCertificates`.
 
-```java readme-sample-listCertificateAsync
+```Java
 // The List Certificates operation returns certificates without their full properties, so for each certificate returned
 // we call `getCertificate` to get all its attributes excluding the policy.
 certificateAsyncClient.listPropertiesOfCertificates()
-    .flatMap(certificateProperties -> certificateAsyncClient
-        .getCertificateVersion(certificateProperties.getName(), certificateProperties.getVersion()))
-    .subscribe(certificateResponse ->
-        System.out.printf("Received certificate with name \"%s\" and key id %s", certificateResponse.getName(),
-            certificateResponse.getKeyId()));
+    .subscribe(certificateProperties ->
+        certificateAsyncClient.getCertificateVersion(certificateProperties.getName(),
+            certificateProperties.getVersion())
+            .subscribe(certificateResponse ->
+                System.out.printf("Received certificate with name \"%s\" and key id %s",
+                    certificateResponse.getName(), certificateResponse.getKeyId())));
 ```
 
 ## Troubleshooting
-See our [troubleshooting guide](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/keyvault/azure-security-keyvault-certificates/TROUBLESHOOTING.md) for details on how to diagnose various failure scenarios.
-
 ### General
 Azure Key Vault Certificate clients raise exceptions. For example, if you try to retrieve a certificate after it is deleted a `404` error is returned, indicating the resource was not found. In the following snippet, the error is handled gracefully by catching the exception and displaying additional information about the error.
 
-```java readme-sample-troubleshooting
+```java
 try {
-    certificateClient.getCertificate("<deleted-certificate-name>");
+    certificateClient.getCertificate("<deleted-certificate-name>")
 } catch (ResourceNotFoundException e) {
     System.out.println(e.getMessage());
 }
 ```
 
 ### Default HTTP client
-All client libraries by default use the Netty HTTP client. Adding the above dependency will automatically configure the client library to use the Netty HTTP client. Configuring or changing the HTTP client is detailed in the [HTTP clients wiki][http_clients_wiki].
+All client libraries by default use the Netty HTTP client. Adding the above dependency will automatically configure the client library to use the Netty HTTP client. Configuring or changing the HTTP client is detailed in the [HTTP clients wiki](https://github.com/Azure/azure-sdk-for-java/wiki/HTTP-clients).
 
 ### Default SSL library
 All client libraries, by default, use the Tomcat-native Boring SSL library to enable native-level performance for SSL operations. The Boring SSL library is an Uber JAR containing native libraries for Linux / macOS / Windows, and provides better performance compared to the default SSL implementation within the JDK. For more information, including how to reduce the dependency size, refer to the [performance tuning][performance_tuning] section of the wiki.
@@ -263,25 +314,24 @@ This project welcomes contributions and suggestions. Most contributions require 
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 
-This project has adopted the [Microsoft Open Source Code of Conduct][microsoft_code_of_conduct]. For more information see the Code of Conduct FAQ or contact <opencode@microsoft.com> with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the Code of Conduct FAQ or contact <opencode@microsoft.com> with any additional questions or comments.
 
 <!-- LINKS -->
-[source_code]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/keyvault/azure-security-keyvault-certificates/src
+[source_code]: src
 [api_documentation]: https://azure.github.io/azure-sdk-for-java
 [azkeyvault_docs]: https://docs.microsoft.com/azure/key-vault/
-[azure_identity]: https://docs.microsoft.com/java/api/overview/azure/identity-readme?view=azure-java-stable
+[azure_identity]: https://github.com/Azure/azure-sdk-for-java/tree/master/sdk/identity/azure-identity
+[maven]: https://maven.apache.org/
 [azure_subscription]: https://azure.microsoft.com/
-[azure_keyvault]: https://docs.microsoft.com/azure/key-vault/general/overview
-[azure_keyvault_cli]: https://docs.microsoft.com/azure/key-vault/general/quick-create-cli
-[azure_keyvault_portal]: https://docs.microsoft.com/azure/key-vault/general/quick-create-portal
-[default_azure_credential]: https://docs.microsoft.com/java/api/overview/azure/identity-readme?view=azure-java-stable#defaultazurecredential
+[azure_keyvault]: https://docs.microsoft.com/azure/key-vault/quick-create-portal
+[azure_cli]: https://docs.microsoft.com/cli/azure
+[rest_api]: https://docs.microsoft.com/rest/api/keyvault/
 [azkeyvault_rest]: https://docs.microsoft.com/rest/api/keyvault/
-[certificates_samples]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/keyvault/azure-security-keyvault-certificates/src/samples/java/com/azure/security/keyvault/certificates
-[samples_readme]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/keyvault/azure-security-keyvault-certificates/src/samples/README.md
+[azure_create_application_in_portal]: https://docs.microsoft.com/azure/active-directory/develop/howto-create-service-principal-portal
+[azure_keyvault_cli]: https://docs.microsoft.com/azure/key-vault/quick-create-cli
+[azure_keyvault_cli_full]: https://docs.microsoft.com/cli/azure/keyvault?view=azure-cli-latest
+[certificates_samples]: src/samples/java/com/azure/security/keyvault/certificates
+[samples_readme]: src/samples/README.md
 [performance_tuning]: https://github.com/Azure/azure-sdk-for-java/wiki/Performance-Tuning
-[jdk_link]: https://docs.microsoft.com/java/azure/jdk/?view=azure-java-stable
-[jwk_specification]: https://tools.ietf.org/html/rfc7517
-[http_clients_wiki]: https://github.com/Azure/azure-sdk-for-java/wiki/HTTP-clients
-[microsoft_code_of_conduct]: https://opensource.microsoft.com/codeofconduct/
 
 ![Impressions](https://azure-sdk-impressions.azurewebsites.net/api/impressions/azure-sdk-for-java%2Fsdk%2Fkeyvault%2Fazure-security-keyvault-certificates%2FREADME.png)

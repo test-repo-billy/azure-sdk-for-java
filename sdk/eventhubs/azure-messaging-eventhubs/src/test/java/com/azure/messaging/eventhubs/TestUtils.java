@@ -6,7 +6,6 @@ package com.azure.messaging.eventhubs;
 import com.azure.core.amqp.AmqpMessageConstant;
 import com.azure.core.amqp.implementation.MessageSerializer;
 import com.azure.core.util.CoreUtils;
-import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
@@ -14,7 +13,6 @@ import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
-import org.apache.qpid.proton.codec.ReadableBuffer;
 import org.apache.qpid.proton.message.Message;
 
 import java.time.Instant;
@@ -37,7 +35,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public final class TestUtils {
     private static final MessageSerializer MESSAGE_SERIALIZER = new EventHubMessageSerializer();
-    private static final ClientLogger LOGGER = new ClientLogger(TestUtils.class);
 
     // System and application properties from the generated test message.
     static final Instant ENQUEUED_TIME = Instant.ofEpochSecond(1561344661);
@@ -91,14 +88,15 @@ public final class TestUtils {
         message.getMessageAnnotations().getValue()
             .put(Symbol.getSymbol(OTHER_SYSTEM_PROPERTY), OTHER_SYSTEM_PROPERTY_VALUE);
 
-        Map<String, Object> applicationProperties = new HashMap<>(APPLICATION_PROPERTIES);
+        Map<String, Object> applicationProperties = new HashMap<>();
+        APPLICATION_PROPERTIES.forEach(applicationProperties::put);
 
         if (!CoreUtils.isNullOrEmpty(messageTrackingValue)) {
             applicationProperties.put(MESSAGE_ID, messageTrackingValue);
         }
 
         if (additionalProperties != null) {
-            applicationProperties.putAll(additionalProperties);
+            additionalProperties.forEach(applicationProperties::put);
         }
 
         message.setApplicationProperties(new ApplicationProperties(applicationProperties));
@@ -111,22 +109,14 @@ public final class TestUtils {
      */
     static Message getMessage(byte[] contents, Long sequenceNumber, Long offsetNumber, Date enqueuedTime) {
         final Map<Symbol, Object> systemProperties = new HashMap<>();
-        systemProperties.put(getSymbol(OFFSET_ANNOTATION_NAME), offsetNumber);
+        systemProperties.put(getSymbol(OFFSET_ANNOTATION_NAME), String.valueOf(offsetNumber));
         systemProperties.put(getSymbol(ENQUEUED_TIME_UTC_ANNOTATION_NAME), enqueuedTime);
         systemProperties.put(getSymbol(SEQUENCE_NUMBER_ANNOTATION_NAME), sequenceNumber);
         systemProperties.put(getSymbol(PARTITION_KEY_ANNOTATION_NAME), PARTITION_KEY);
 
         final Message message = Proton.message();
         message.setMessageAnnotations(new MessageAnnotations(systemProperties));
-
-        final Data body;
-        if (contents != null) {
-            body = new Data(new Binary(contents));
-        } else {
-            body = new Data(Binary.create((ReadableBuffer) null));
-        }
-
-        message.setBody(body);
+        message.setBody(new Data(new Binary(contents)));
 
         return message;
     }
@@ -163,13 +153,6 @@ public final class TestUtils {
      * Checks the {@link #MESSAGE_ID} to see if it matches the {@code expectedValue}.
      */
     public static boolean isMatchingEvent(EventData event, String expectedValue) {
-        LOGGER.atInfo()
-            .addKeyValue("expectedMessageId", expectedValue)
-            .addKeyValue("sequenceNo", event.getSequenceNumber())
-            .addKeyValue("enqueuedTime", event.getEnqueuedTime())
-            .addKeyValue("MESSAGE_ID", event.getProperties() == null ? null : event.getProperties().get(MESSAGE_ID))
-            .log("isMatchingEvent");
-
         return event.getProperties() != null && event.getProperties().containsKey(MESSAGE_ID)
             && expectedValue.equals(event.getProperties().get(MESSAGE_ID));
     }

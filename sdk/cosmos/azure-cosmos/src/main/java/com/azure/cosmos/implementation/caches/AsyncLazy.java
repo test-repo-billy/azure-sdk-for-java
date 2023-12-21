@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
 class AsyncLazy<TValue> {
@@ -15,7 +14,7 @@ class AsyncLazy<TValue> {
 
     private final Mono<TValue> single;
 
-    private volatile TValue value;
+    private volatile boolean succeeded;
     private volatile boolean failed;
 
     public AsyncLazy(Callable<Mono<TValue>> func) {
@@ -31,15 +30,14 @@ class AsyncLazy<TValue> {
 
     public AsyncLazy(TValue value) {
         this.single = Mono.just(value);
-        this.value = value;
+        this.succeeded = true;
         this.failed = false;
     }
 
-    // TODO: revert back to private modifier after replica validation is changed to use nonblocking cache
-    public AsyncLazy(Mono<TValue> single) {
+    private AsyncLazy(Mono<TValue> single) {
         logger.debug("constructor");
         this.single = single
-                .doOnSuccess(v -> this.value = v)
+                .doOnSuccess(v -> this.succeeded = true)
                 .doOnError(e -> this.failed = true)
                 .cache();
     }
@@ -49,16 +47,7 @@ class AsyncLazy<TValue> {
     }
 
     public boolean isSucceeded() {
-        return value != null;
-    }
-
-    public Optional<TValue> tryGet() {
-        TValue result = this.value;
-        if (result == null) {
-            return Optional.empty();
-        } else {
-            return  Optional.of(result);
-        }
+        return succeeded;
     }
 
     public boolean isFaulted() {

@@ -1,0 +1,50 @@
+{
+  "networkCallRecords" : [ {
+    "Method" : "PUT",
+    "Uri" : "https://gaprastg71.file.core.windows.net/shareapitestsgetproperties0671514f21621d9cb4a?restype=share",
+    "Headers" : {
+      "x-ms-version" : "2019-07-07",
+      "User-Agent" : "azsdk-java-azure-storage-file-share/12.0.0 (11.0.4; Windows 10 10.0)",
+      "x-ms-client-request-id" : "572f16e2-c964-475d-88b7-1b192136bb50"
+    },
+    "Response" : {
+      "x-ms-version" : "2019-07-07",
+      "Server" : "Windows-Azure-File/1.0 Microsoft-HTTPAPI/2.0",
+      "ETag" : "0x8D77911FBE900F5",
+      "Last-Modified" : "Wed, 04 Dec 2019 23:30:44 GMT",
+      "retry-after" : "0",
+      "Content-Length" : "0",
+      "StatusCode" : "201",
+      "x-ms-request-id" : "9ba99eca-201a-0011-70fa-aa088f000000",
+      "Date" : "Wed, 04 Dec 2019 23:30:43 GMT",
+      "x-ms-client-request-id" : "572f16e2-c964-475d-88b7-1b192136bb50"
+    },
+    "Exception" : null
+  }, {
+    "Method" : "GET",
+    "Uri" : "https://gaprastg71.file.core.windows.net/shareapitestsgetproperties0671514f21621d9cb4a?restype=share",
+    "Headers" : {
+      "x-ms-version" : "2019-07-07",
+      "User-Agent" : "azsdk-java-azure-storage-file-share/12.0.0 (11.0.4; Windows 10 10.0)",
+      "x-ms-client-request-id" : "10b1bd10-8b29-45d4-9554-ff531bce4337"
+    },
+    "Response" : {
+      "x-ms-version" : "2019-07-07",
+      "Server" : "Windows-Azure-File/1.0 Microsoft-HTTPAPI/2.0",
+      "Last-Modified" : "Wed, 04 Dec 2019 23:30:44 GMT",
+      "retry-after" : "0",
+      "StatusCode" : "200",
+      "Date" : "Wed, 04 Dec 2019 23:30:43 GMT",
+      "x-ms-has-legal-hold" : "false",
+      "x-ms-share-quota" : "1",
+      "ETag" : "0x8D77911FBE900F5",
+      "x-ms-has-immutability-policy" : "false",
+      "x-ms-meta-testmetadata" : "value",
+      "Content-Length" : "0",
+      "x-ms-request-id" : "9ba99ecd-201a-0011-71fa-aa088f000000",
+      "x-ms-client-request-id" : "10b1bd10-8b29-45d4-9554-ff531bce4337"
+    },
+    "Exception" : null
+  } ],
+  "variables" : [ "shareapitestsgetproperties0671514f21621d9cb4a" ]
+}

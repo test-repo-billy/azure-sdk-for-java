@@ -32,6 +32,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
     private static final Logger TRACE_LOGGER = LoggerFactory.getLogger(MessageAndSessionPump.class);
     private static final Duration MINIMUM_MESSAGE_LOCK_VALIDITY = Duration.ofSeconds(4);
     private static final Duration MAXIMUM_RENEW_LOCK_BUFFER = Duration.ofSeconds(10);
+    private static final Duration SLEEP_DURATION_ON_ACCEPT_SESSION_EXCEPTION = Duration.ofMinutes(1);
     private static final int UNSET_PREFETCH_COUNT = -1; // Means prefetch count not set
     private static final CompletableFuture<Void> COMPLETED_FUTURE = CompletableFuture.completedFuture(null);
 
@@ -146,7 +147,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
 
     private void receiveAndPumpMessage() {
         if (!this.getIsClosingOrClosed()) {
-            CompletableFuture<IMessage> receiveMessageFuture = receiveAsyncWrapper(this.innerReceiver, this.messageHandlerOptions.getMessageWaitDuration());
+            CompletableFuture<IMessage> receiveMessageFuture = this.innerReceiver.receiveAsync(this.messageHandlerOptions.getMessageWaitDuration());
             receiveMessageFuture.handleAsync((message, receiveEx) -> {
                 if (receiveEx != null) {
                     receiveEx = ExceptionUtil.extractAsyncCompletionCause(receiveEx);
@@ -203,7 +204,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                                     dispositionPhase = ExceptionPhase.COMPLETE;
                                     if (this.messageHandlerOptions.isAutoComplete()) {
                                         TRACE_LOGGER.debug("Completing message with sequence number '{}'", message.getSequenceNumber());
-                                        updateDispositionFuture = completeAsyncWrapper(this.innerReceiver, message.getLockToken());
+                                        updateDispositionFuture = this.innerReceiver.completeAsync(message.getLockToken());
                                     } else {
                                         updateDispositionFuture = CompletableFuture.completedFuture(null);
                                     }
@@ -212,7 +213,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                                     dispositionPhase = ExceptionPhase.ABANDON;
                                     if (this.messageHandlerOptions.isAutoComplete()) {
                                         TRACE_LOGGER.debug("Abandoning message with sequence number '{}'", message.getSequenceNumber());
-                                        updateDispositionFuture = abandonAsyncWrapper(this.innerReceiver, message.getLockToken());
+                                        updateDispositionFuture = this.innerReceiver.abandonAsync(message.getLockToken());
                                     } else {
                                         updateDispositionFuture = CompletableFuture.completedFuture(null);
                                     }
@@ -258,9 +259,11 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
 
                     if (!(acceptSessionEx instanceof OperationCancelledException)) {
                         // don't retry if OperationCancelled by service.. may be entity itself is deleted
-                        // In case of any other exception, retry
-                    	TRACE_LOGGER.debug("Retrying to acceptSession from entity '{}'.", this.entityPath);
-                    	this.acceptSessionAndPumpMessages();
+                        // In case of any other exception, sleep and retry
+                        TRACE_LOGGER.debug("AcceptSession from entity '{}' will be retried after '{}'.", this.entityPath, SLEEP_DURATION_ON_ACCEPT_SESSION_EXCEPTION);
+                        Timer.schedule(() -> {
+                            MessageAndSessionPump.this.acceptSessionAndPumpMessages();
+                        }, SLEEP_DURATION_ON_ACCEPT_SESSION_EXCEPTION, TimerType.OneTimeRun);
                     }
                 } else {
                     // Received a session.. Now pump messages..
@@ -290,7 +293,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
     private void receiveFromSessionAndPumpMessage(SessionTracker sessionTracker) {
         if (!this.getIsClosingOrClosed()) {
             IMessageSession session = sessionTracker.getSession();
-            CompletableFuture<IMessage> receiverFuture = receiveAsyncWrapper(session, this.sessionHandlerOptions.getMessageWaitDuration());
+            CompletableFuture<IMessage> receiverFuture = session.receiveAsync(this.sessionHandlerOptions.getMessageWaitDuration());
             receiverFuture.handleAsync((message, receiveEx) -> {
                 if (receiveEx != null) {
                     receiveEx = ExceptionUtil.extractAsyncCompletionCause(receiveEx);
@@ -350,7 +353,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                                     dispositionPhase = ExceptionPhase.COMPLETE;
                                     if (this.sessionHandlerOptions.isAutoComplete()) {
                                         TRACE_LOGGER.debug("Completing message with sequence number '{}'", message.getSequenceNumber());
-                                        updateDispositionFuture = completeAsyncWrapper(session, message.getLockToken());
+                                        updateDispositionFuture = session.completeAsync(message.getLockToken());
                                     } else {
                                         updateDispositionFuture = CompletableFuture.completedFuture(null);
                                     }
@@ -359,7 +362,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                                     dispositionPhase = ExceptionPhase.ABANDON;
                                     if (this.sessionHandlerOptions.isAutoComplete()) {
                                         TRACE_LOGGER.debug("Abandoning message with sequence number '{}'", message.getSequenceNumber());
-                                        updateDispositionFuture = abandonAsyncWrapper(session, message.getLockToken());
+                                        updateDispositionFuture = session.abandonAsync(message.getLockToken());
                                     } else {
                                         updateDispositionFuture = CompletableFuture.completedFuture(null);
                                     }
@@ -568,7 +571,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                 if (renewInterval != null && !renewInterval.isNegative()) {
                     this.timerFuture = Timer.schedule(() -> {
                         TRACE_LOGGER.debug("Renewing lock on '{}'", this.messageIdentifier);
-                        renewMessageLockAsyncWrapper(this.innerReceiver, message).handleAsync((v, renewLockEx) -> {
+                        this.innerReceiver.renewMessageLockAsync(message).handleAsync((v, renewLockEx) -> {
                             if (renewLockEx != null) {
                                 renewLockEx = ExceptionUtil.extractAsyncCompletionCause(renewLockEx);
                                 TRACE_LOGGER.info("Renewing lock on '{}' failed", this.messageIdentifier, renewLockEx);
@@ -622,7 +625,7 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
                 if (renewInterval != null && !renewInterval.isNegative()) {
                     this.timerFuture = Timer.schedule(() -> {
                         TRACE_LOGGER.debug("Renewing lock on '{}'", this.sessionIdentifier);
-                        renewSessionLockAsyncWrapper(this.session).handleAsync((v, renewLockEx) -> {
+                        this.session.renewSessionLockAsync().handleAsync((v, renewLockEx) -> {
                             if (renewLockEx != null) {
                                 renewLockEx = ExceptionUtil.extractAsyncCompletionCause(renewLockEx);
                                 TRACE_LOGGER.info("Renewing lock on '{}' failed", this.sessionIdentifier, renewLockEx);
@@ -838,58 +841,6 @@ class MessageAndSessionPump extends InitializableEntity implements IMessageAndSe
         if (!(ex instanceof IllegalStateException && this.getIsClosingOrClosed())) {
             this.customCodeExecutor.execute(() -> this.messageHandler.notifyException(ex, phase));
         }
-    }
-    
-    // These wrappers catch any synchronous exceptions and properly complete completablefutures with those excetions.
-    // Callers of these methods don't expect any synchronous exceptions.
-    private static CompletableFuture<IMessage> receiveAsyncWrapper(IMessageReceiver receiver, Duration serverWaitTime) {
-    	try	{
-    		return receiver.receiveAsync(serverWaitTime);
-    	} catch (Throwable t) {
-    		CompletableFuture<IMessage> exceptionalFuture = new CompletableFuture<IMessage>();
-    		exceptionalFuture.completeExceptionally(t);
-    		return exceptionalFuture;
-    	}
-    }
-    
-    private static CompletableFuture<Void> completeAsyncWrapper(IMessageReceiver receiver, UUID lockToken) {
-    	try	{
-    		return receiver.completeAsync(lockToken);
-    	} catch (Throwable t) {
-    		CompletableFuture<Void> exceptionalFuture = new CompletableFuture<Void>();
-    		exceptionalFuture.completeExceptionally(t);
-    		return exceptionalFuture;
-    	}
-    }
-    
-    private static CompletableFuture<Void> abandonAsyncWrapper(IMessageReceiver receiver, UUID lockToken) {
-    	try	{
-    		return receiver.abandonAsync(lockToken);
-    	} catch (Throwable t) {
-    		CompletableFuture<Void> exceptionalFuture = new CompletableFuture<Void>();
-    		exceptionalFuture.completeExceptionally(t);
-    		return exceptionalFuture;
-    	}
-    }
-    
-    private static CompletableFuture<Instant> renewMessageLockAsyncWrapper(IMessageReceiver receiver, IMessage message) {
-    	try	{
-    		return receiver.renewMessageLockAsync(message);
-    	} catch (Throwable t) {
-    		CompletableFuture<Instant> exceptionalFuture = new CompletableFuture<Instant>();
-    		exceptionalFuture.completeExceptionally(t);
-    		return exceptionalFuture;
-    	}
-    }
-    
-    private static CompletableFuture<Void> renewSessionLockAsyncWrapper(IMessageSession session) {
-    	try	{
-    		return session.renewSessionLockAsync();
-    	} catch (Throwable t) {
-    		CompletableFuture<Void> exceptionalFuture = new CompletableFuture<Void>();
-    		exceptionalFuture.completeExceptionally(t);
-    		return exceptionalFuture;
-    	}
     }
 
     @Override

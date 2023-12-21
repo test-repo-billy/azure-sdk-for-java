@@ -3,14 +3,16 @@
 
 package com.azure.core.http.policy;
 
+import com.azure.core.http.HttpHeader;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
-import com.azure.core.http.HttpPipelineNextSyncPolicy;
-import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.util.Context;
+import com.azure.core.http.HttpRequest;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 /**
  * The pipeline policy that override or add  {@link HttpHeaders} in {@link HttpRequest} by reading values from
@@ -40,31 +42,20 @@ public class AddHeadersFromContextPolicy implements HttpPipelinePolicy {
     /**Key used to override headers in HttpRequest. The Value for this key should be {@link HttpHeaders}.*/
     public static final String AZURE_REQUEST_HTTP_HEADERS_KEY = "azure-http-headers-key";
 
-    /**
-     * Creates a new instance of {@link AddHeadersFromContextPolicy}.
-     */
-    public AddHeadersFromContextPolicy() {
-    }
-
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        addHeadersFromContext(context);
-
-        return next.process();
-    }
-
-    @Override
-    public HttpResponse processSync(HttpPipelineCallContext context, HttpPipelineNextSyncPolicy next) {
-        addHeadersFromContext(context);
-
-        return next.processSync();
-    }
-
-    private static void addHeadersFromContext(HttpPipelineCallContext context) {
         context.getData(AZURE_REQUEST_HTTP_HEADERS_KEY).ifPresent(headers -> {
             if (headers instanceof HttpHeaders) {
-                context.getHttpRequest().getHeaders().setAllHttpHeaders((HttpHeaders) headers);
+                HttpHeaders customHttpHeaders = (HttpHeaders) headers;
+                // loop through customHttpHeaders and add headers in HttpRequest
+                for (HttpHeader httpHeader : customHttpHeaders) {
+                    if (!Objects.isNull(httpHeader.getName()) && !Objects.isNull(httpHeader.getValue())) {
+                        context.getHttpRequest().getHeaders().put(httpHeader.getName(), httpHeader.getValue());
+                    }
+                }
             }
         });
+        return next.process();
+
     }
 }

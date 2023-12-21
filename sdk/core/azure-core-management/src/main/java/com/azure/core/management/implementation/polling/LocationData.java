@@ -73,26 +73,16 @@ final class LocationData {
      * Update the data from the given poll response.
      *
      * @param pollResponseStatusCode the poll response status code
-     * @param pollResponseHeaders the poll response headers
      * @param pollResponseBody the poll response body
      */
     void update(int pollResponseStatusCode, HttpHeaders pollResponseHeaders, String pollResponseBody) {
         if (pollResponseStatusCode == 202) {
-            try {
-                this.provisioningState = ProvisioningState.IN_PROGRESS;
-                final URL locationUrl = Util.getLocationUrl(pollResponseHeaders, logger);
-                if (locationUrl != null) {
-                    this.pollUrl = locationUrl;
-                }
-            } catch (Util.MalformedUrlException mue) {
-                this.provisioningState = ProvisioningState.FAILED;
-                this.pollError = new Error(
-                    "Long running operation contains a malformed Location header.",
-                    pollResponseStatusCode,
-                    pollResponseHeaders.toMap(),
-                    pollResponseBody);
+            this.provisioningState = ProvisioningState.IN_PROGRESS;
+            final URL locationUrl = Util.getLocationUrl(pollResponseHeaders, logger);
+            if (locationUrl != null) {
+                this.pollUrl = locationUrl;
             }
-        } else if (pollResponseStatusCode == 200 || pollResponseStatusCode == 201 || pollResponseStatusCode == 204) {
+        } else if (pollResponseStatusCode == 200 || pollResponseStatusCode == 201) {
             this.provisioningState = ProvisioningState.SUCCEEDED;
             if (pollResponseBody != null) {
                 this.finalResult = new FinalResult(null, pollResponseBody);
@@ -101,7 +91,6 @@ final class LocationData {
             this.provisioningState = ProvisioningState.FAILED;
             this.pollError = new Error("Polling failed with status code:" + pollResponseStatusCode,
                 pollResponseStatusCode,
-                pollResponseHeaders.toMap(),
                 pollResponseBody);
         }
     }

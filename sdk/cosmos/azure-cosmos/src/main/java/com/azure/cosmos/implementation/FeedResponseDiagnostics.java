@@ -3,53 +3,28 @@
 
 package com.azure.cosmos.implementation;
 
-import com.azure.cosmos.implementation.query.QueryInfo;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static com.azure.cosmos.implementation.guava27.Strings.lenientFormat;
 
 /**
  * The type Feed response diagnostics.
  */
-public class FeedResponseDiagnostics {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FeedResponseDiagnostics.class);
+public final class FeedResponseDiagnostics {
+
     private Map<String, QueryMetrics> queryMetricsMap;
-    private QueryInfo.QueryPlanDiagnosticsContext diagnosticsContext;
-    private final Collection<ClientSideRequestStatistics> clientSideRequestStatistics;
 
-    public FeedResponseDiagnostics(Map<String, QueryMetrics> queryMetricsMap, Collection<ClientSideRequestStatistics> clientSideRequestStatistics) {
+    public FeedResponseDiagnostics(Map<String, QueryMetrics> queryMetricsMap) {
         this.queryMetricsMap = queryMetricsMap;
-        this.clientSideRequestStatistics = new DistinctClientSideRequestStatisticsCollection();
-        if (clientSideRequestStatistics != null) {
-            this.clientSideRequestStatistics.addAll(clientSideRequestStatistics);
-        }
     }
 
-    public FeedResponseDiagnostics(FeedResponseDiagnostics toBeCloned) {
-        if (toBeCloned.queryMetricsMap != null) {
-            this.queryMetricsMap = new ConcurrentHashMap<>(toBeCloned.queryMetricsMap);
-        }
-
-        this.clientSideRequestStatistics = new DistinctClientSideRequestStatisticsCollection();
-        this.clientSideRequestStatistics.addAll(toBeCloned.clientSideRequestStatistics);
-
-        if (diagnosticsContext != null) {
-            this.diagnosticsContext = new QueryInfo.QueryPlanDiagnosticsContext(
-                toBeCloned.diagnosticsContext.getStartTimeUTC(),
-                toBeCloned.diagnosticsContext.getEndTimeUTC(),
-                toBeCloned.diagnosticsContext.getRequestTimeline()
-            );
-        }
-    }
-
-    public Map<String, QueryMetrics> getQueryMetricsMap() {
+    Map<String, QueryMetrics> getQueryMetricsMap() {
         return queryMetricsMap;
+    }
+
+    FeedResponseDiagnostics setQueryMetricsMap(Map<String, QueryMetrics> queryMetricsMap) {
+        this.queryMetricsMap = queryMetricsMap;
+        return this;
     }
 
     /**
@@ -60,53 +35,14 @@ public class FeedResponseDiagnostics {
      */
     @Override
     public String toString() {
-        try {
-            return Utils.getDurationEnabledObjectMapper().writeValueAsString(this);
-        } catch (final JsonProcessingException error) {
-            LOGGER.debug("could not convert {} value to JSON due to:", this.getClass(), error);
-            try {
-                return lenientFormat("{\"error\":%s}", Utils.getDurationEnabledObjectMapper().writeValueAsString(error.toString()));
-            } catch (final JsonProcessingException exception) {
-                return "null";
-            }
+        if (queryMetricsMap == null || queryMetricsMap.isEmpty()) {
+            return StringUtils.EMPTY;
         }
-    }
-
-    public void setDiagnosticsContext(QueryInfo.QueryPlanDiagnosticsContext diagnosticsContext) {
-        this.diagnosticsContext = diagnosticsContext;
-    }
-
-    public QueryInfo.QueryPlanDiagnosticsContext getQueryPlanDiagnosticsContext() {
-        return diagnosticsContext;
-    }
-
-    /**
-     * Getter for property 'clientSideRequestStatistics'.
-     *
-     * @return Value for property 'clientSideRequestStatistics'.
-     */
-    public Collection<ClientSideRequestStatistics> getClientSideRequestStatistics() {
-        return clientSideRequestStatistics;
-    }
-
-    public void addClientSideRequestStatistics(Collection<ClientSideRequestStatistics> requestStatistics) {
-        clientSideRequestStatistics.addAll(requestStatistics);
-    }
-
-    public String getUserAgent() {
-        if (this.clientSideRequestStatistics != null && !this.clientSideRequestStatistics.isEmpty()) {
-            return this.clientSideRequestStatistics.stream().findFirst().get().getUserAgent();
-        }
-
-        // return default one
-        return Utils.getUserAgent();
-    }
-
-    public FeedResponseDiagnostics setSamplingRateSnapshot(double samplingRateSnapshot) {
-        for (ClientSideRequestStatistics c: this.clientSideRequestStatistics) {
-            c.setSamplingRateSnapshot(samplingRateSnapshot);
-        }
-
-        return this;
+        StringBuilder stringBuilder = new StringBuilder();
+        queryMetricsMap.forEach((key, value) -> stringBuilder.append(key)
+                                                    .append("=")
+                                                    .append(value.toString())
+                                                    .append(System.lineSeparator()));
+        return stringBuilder.toString();
     }
 }

@@ -4,15 +4,14 @@
 package com.azure.cosmos.implementation.directconnectivity.rntbd;
 
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
-import com.azure.cosmos.implementation.guava27.Strings;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.azure.cosmos.implementation.guava27.Strings;
 import io.netty.buffer.ByteBuf;
 
 import java.util.UUID;
 
 import static com.azure.cosmos.implementation.directconnectivity.rntbd.RntbdConstants.RntbdRequestHeader;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
-import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkState;
 
 public final class RntbdRequest {
 
@@ -79,18 +78,13 @@ public final class RntbdRequest {
     void encode(final ByteBuf out) {
 
         final int expectedLength = RntbdRequestFrame.LENGTH + this.headers.computeLength();
-        final int start = out.writerIndex();
+        final int start = out.readerIndex();
 
         out.writeIntLE(expectedLength);
         this.frame.encode(out);
         this.headers.encode(out);
 
-        final int observedLength = out.writerIndex() - start;
-
-        checkState(observedLength == expectedLength,
-            "encoding error: {\"expectedLength\": %s, \"observedLength\": %s}",
-            expectedLength,
-            observedLength);
+        assert out.writerIndex() - start == expectedLength;
 
         if (this.payload.length > 0) {
             out.writeIntLE(this.payload.length);

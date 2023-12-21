@@ -8,7 +8,10 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** Represents a single block in a block blob. It describes the block's ID and size. */
+/**
+ * Represents a single block in a block blob.  It describes the block's ID and
+ * size.
+ */
 @JacksonXmlRootElement(localName = "Block")
 @Fluent
 public final class Block {
@@ -22,16 +25,7 @@ public final class Block {
      * The block size in bytes.
      */
     @JsonProperty(value = "Size", required = true)
-    private long sizeLong;
-
-    /*
-     * The SizeInt property.
-     */
-    @JsonProperty(value = "SizeInt", required = true)
-    private int sizeInt;
-
-    /** Creates an instance of Block class. */
-    public Block() {}
+    private int size;
 
     /**
      * Get the name property: The base64 encoded block ID.
@@ -54,48 +48,22 @@ public final class Block {
     }
 
     /**
-     * Get the sizeLong property: The block size in bytes.
+     * Get the size property: The block size in bytes.
      *
-     * @return the sizeLong value.
+     * @return the size value.
      */
-    public long getSizeLong() {
-        return this.sizeLong;
-    }
-
-    /**
-     * Set the sizeLong property: The block size in bytes.
-     *
-     * @param sizeLong the sizeLong value to set.
-     * @return the Block object itself.
-     */
-    public Block setSizeLong(long sizeLong) {
-        this.sizeLong = sizeLong;
-        return this;
-    }
-
-    /**
-     * Get the sizeInt property: The SizeInt property.
-     *
-     * @return the sizeInt value.
-     * @deprecated Use {@link #getSizeLong()}
-     */
-    @Deprecated
     public int getSize() {
-        int returnValue = this.sizeInt;
-        return (int) this.sizeLong; // return returnValue;
+        return this.size;
     }
 
     /**
-     * Set the sizeInt property: The SizeInt property.
+     * Set the size property: The block size in bytes.
      *
-     * @param sizeInt the sizeInt value to set.
+     * @param size the size value to set.
      * @return the Block object itself.
-     * @deprecated Use {@link #setSizeLong(long)}
      */
-    @Deprecated
-    public Block setSize(int sizeInt) {
-        this.sizeInt = sizeInt;
-        Block returnValue = this;
-        return returnValue.setSizeLong((long) sizeInt);
+    public Block setSize(int size) {
+        this.size = size;
+        return this;
     }
 }

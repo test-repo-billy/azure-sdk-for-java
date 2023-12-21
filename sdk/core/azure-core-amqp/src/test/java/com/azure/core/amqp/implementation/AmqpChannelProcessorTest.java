@@ -8,31 +8,26 @@ import com.azure.core.amqp.AmqpRetryPolicy;
 import com.azure.core.amqp.exception.AmqpErrorCondition;
 import com.azure.core.amqp.exception.AmqpErrorContext;
 import com.azure.core.amqp.exception.AmqpException;
-import org.junit.jupiter.api.AfterEach;
+import com.azure.core.util.logging.ClientLogger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
-import reactor.test.scheduler.VirtualTimeScheduler;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Objects;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -42,7 +37,6 @@ import static org.mockito.Mockito.when;
  * Tests for {@link AmqpChannelProcessor}.
  */
 class AmqpChannelProcessorTest {
-    private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(30);
     private final TestObject connection1 = new TestObject();
     private final TestObject connection2 = new TestObject();
     private final TestObject connection3 = new TestObject();
@@ -50,26 +44,24 @@ class AmqpChannelProcessorTest {
     @Mock
     private AmqpRetryPolicy retryPolicy;
     private AmqpChannelProcessor<TestObject> channelProcessor;
-    private AutoCloseable mocksCloseable;
 
-    private VirtualTimeScheduler virtualTimeScheduler;
+    @BeforeAll
+    static void beforeAll() {
+        StepVerifier.setDefaultTimeout(Duration.ofSeconds(30));
+    }
+
+    @AfterAll
+    static void afterAll() {
+        StepVerifier.resetDefaultTimeout();
+    }
 
     @BeforeEach
     void setup() {
-        mocksCloseable = MockitoAnnotations.openMocks(this);
-        virtualTimeScheduler = VirtualTimeScheduler.create();
-        channelProcessor = new AmqpChannelProcessor<>("namespace-test", TestObject::getStates, retryPolicy, new HashMap<>());
-    }
+        MockitoAnnotations.initMocks(this);
 
-    @AfterEach
-    void teardown() throws Exception {
-        // Tear down any inline mocks to avoid memory leaks.
-        // https://github.com/mockito/mockito/wiki/What's-new-in-Mockito-2#mockito-2250
-        Mockito.framework().clearInlineMock(this);
-        virtualTimeScheduler.dispose();
-        if (mocksCloseable != null) {
-            mocksCloseable.close();
-        }
+        channelProcessor = new AmqpChannelProcessor<>("connection-test", "test-path",
+            TestObject::getStates, retryPolicy,
+            new ClientLogger(AmqpChannelProcessor.class + "<TestObject>"));
     }
 
     /**
@@ -87,8 +79,7 @@ class AmqpChannelProcessorTest {
             .then(() -> publisher.next(connection1))
             .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
         publisher.assertMaxRequested(1L);
     }
@@ -107,13 +98,11 @@ class AmqpChannelProcessorTest {
         StepVerifier.create(processor)
             .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
         StepVerifier.create(processor)
             .expectNext(connection1)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
     }
 
     /**
@@ -126,16 +115,17 @@ class AmqpChannelProcessorTest {
         final AmqpChannelProcessor<TestObject> processor = publisher.next(connection1)
             .flux().subscribeWith(channelProcessor);
 
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
+
         // Act & Assert
         // Verify that we get the first connection.
         StepVerifier.create(processor)
-            .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
+            .then(() -> endpointSink.next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
         // Close that connection.
-        connection1.getSink().complete();
+        endpointSink.complete();
 
         // Expect that the next connection is returned to us.
         StepVerifier.create(processor)
@@ -144,8 +134,7 @@ class AmqpChannelProcessorTest {
                 connection2.getSink().next(AmqpEndpointState.ACTIVE);
             })
             .expectNext(connection2)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
         // Close connection 2
         connection2.getSink().complete();
@@ -157,110 +146,86 @@ class AmqpChannelProcessorTest {
                 connection3.getSink().next(AmqpEndpointState.ACTIVE);
             })
             .expectNext(connection3)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
         // Expect that the new connection is returned again.
         StepVerifier.create(processor)
             .expectNext(connection3)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
-    }
-
-    public static Stream<Throwable> newConnectionOnRetriableError() {
-        return Stream.of(
-            new RejectedExecutionException("Rejected test execution"),
-            new IllegalStateException("Dispatcher was closed. Please try again."),
-            new AmqpException(true, AmqpErrorCondition.SERVER_BUSY_ERROR, "Test-error",
-                new AmqpErrorContext("test-namespace"))
-        );
+            .verifyComplete();
     }
 
     /**
      * Verifies that we can get the next connection when the first one encounters a retryable error.
      */
-    @MethodSource
-    @ParameterizedTest
-    @Disabled("Disable test until fixed. https://github.com/Azure/azure-sdk-for-java/issues/29239")
-    void newConnectionOnRetriableError(Throwable exception) {
+    @Test
+    void newConnectionOnRetryableError() {
         // Arrange
-        final TestPublisher<TestObject> publisher = TestPublisher.createCold();
-        publisher.next(connection1);
-        publisher.next(connection2);
-        final AmqpChannelProcessor<TestObject> processor = publisher.flux().subscribeWith(channelProcessor);
-        final long request = 1;
+        final AmqpException amqpException = new AmqpException(true, AmqpErrorCondition.SERVER_BUSY_ERROR, "Test-error",
+            new AmqpErrorContext("test-namespace"));
 
-        when(retryPolicy.calculateRetryDelay(exception, 1)).thenReturn(Duration.ofSeconds(1));
+        final Flux<TestObject> publisher = createSink(connection1, connection2);
+        final AmqpChannelProcessor<TestObject> processor = publisher.subscribeWith(channelProcessor);
+
+        when(retryPolicy.calculateRetryDelay(amqpException, 1)).thenReturn(Duration.ofSeconds(1));
         when(retryPolicy.getMaxRetries()).thenReturn(3);
 
         // Act & Assert
         // Verify that we get the first connection.
-        StepVerifier.create(processor, request)
-            .thenAwait(Duration.ofMillis(400))
+        StepVerifier.create(processor)
             .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verifyComplete();
 
-        connection1.getSink().error(exception);
-
-        // Expect that the next connection is returned to us.
-        StepVerifier.create(processor, request)
-            .thenAwait(Duration.ofMillis(400))
-            .then(() -> connection2.getSink().next(AmqpEndpointState.ACTIVE))
-            .expectNext(connection2)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+        connection1.getSink().error(amqpException);
+        connection2.getSink().next(AmqpEndpointState.ACTIVE);
 
         // Expect that the next connection is returned to us.
-        StepVerifier.create(processor, request)
-            .expectNext(connection2)
-            .expectComplete()
-            .verify(VERIFY_TIMEOUT);
-    }
+        StepVerifier.create(processor)
+            .then(() -> {
 
-    public static Stream<Throwable> nonRetriableError() {
-        return Stream.of(
-            new AmqpException(false, AmqpErrorCondition.ILLEGAL_STATE, "Test-error",
-                new AmqpErrorContext("test-namespace")),
-            new NullPointerException("Another exception"));
+            })
+            .expectNext(connection2)
+            .verifyComplete();
+
+        // Expect that the next connection is returned to us.
+        StepVerifier.create(processor)
+            .expectNext(connection2)
+            .verifyComplete();
     }
 
     /**
-     * Verifies that an error is propagated when the first connection encounters a non-retriable error.
+     * Verifies that an error is propagated when the first connection encounters a non-retryable error.
      */
-    @MethodSource
-    @ParameterizedTest
-    void nonRetriableError(Throwable exception) {
+    @Test
+    void nonRetryableError() {
         // Arrange
+        final AmqpException amqpException = new AmqpException(false, AmqpErrorCondition.ILLEGAL_STATE, "Test-error",
+            new AmqpErrorContext("test-namespace"));
+
         final TestPublisher<TestObject> publisher = TestPublisher.createCold();
         final AmqpChannelProcessor<TestObject> processor = publisher.next(connection1).flux()
             .subscribeWith(channelProcessor);
-
-        /*
-         * Beginning in Mockito 3.4.0+ the default value for duration changed from null to Duration.ZERO
-         */
-        when(retryPolicy.calculateRetryDelay(any(), anyInt())).thenReturn(null);
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
 
         // Act & Assert
         // Verify that we get the first connection.
         StepVerifier.create(processor)
-            .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
+            .then(() -> endpointSink.next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
             .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verify();
 
-        connection1.getSink().error(exception);
+        endpointSink.error(amqpException);
 
         // Expect that the error is returned to us.
         StepVerifier.create(processor)
-            .expectErrorMatches(error -> Objects.equals(exception, error))
-            .verify(VERIFY_TIMEOUT);
+            .expectErrorMatches(error -> Objects.equals(amqpException, error))
+            .verify();
 
         // Expect that the error is returned to us again.
         StepVerifier.create(processor)
-            .expectErrorMatches(error -> Objects.equals(exception, error))
-            .verify(VERIFY_TIMEOUT);
+            .expectErrorMatches(error -> Objects.equals(amqpException, error))
+            .verify();
     }
 
     /**
@@ -288,23 +253,40 @@ class AmqpChannelProcessorTest {
         final TestPublisher<TestObject> publisher = TestPublisher.createCold();
         final AmqpChannelProcessor<TestObject> processor = publisher.next(connection1).flux()
             .subscribeWith(channelProcessor);
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
 
         // Act & Assert
         // Verify that we get the first connection.
         StepVerifier.create(processor)
-            .then(() -> connection1.getSink().next(AmqpEndpointState.ACTIVE))
+            .then(() -> endpointSink.next(AmqpEndpointState.ACTIVE))
             .expectNext(connection1)
             .expectComplete()
-            .verify(VERIFY_TIMEOUT);
+            .verify();
 
         processor.dispose();
 
         // Verify that it errors without emitting a connection.
         StepVerifier.create(processor)
             .expectError(IllegalStateException.class)
-            .verify(VERIFY_TIMEOUT);
+            .verify();
+    }
 
-        assertTrue(channelProcessor.isChannelClosed());
+    @Test
+    void doesNotEmitConnectionWhenNotActive() {
+        // Arrange
+        final TestPublisher<TestObject> publisher = TestPublisher.createCold();
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
+
+        // Act & Assert
+        StepVerifier.withVirtualTime(() -> publisher.next(connection1).flux()
+            .subscribeWith(channelProcessor))
+            .expectSubscription()
+            .thenAwait(Duration.ofMinutes(10))
+            .expectNoEvent(Duration.ofMinutes(10))
+            .then(() -> endpointSink.next(AmqpEndpointState.UNINITIALIZED))
+            .expectNoEvent(Duration.ofMinutes(10))
+            .thenCancel()
+            .verify();
     }
 
     @Test
@@ -314,15 +296,80 @@ class AmqpChannelProcessorTest {
         Assertions.assertThrows(NullPointerException.class, () -> channelProcessor.onError(null));
     }
 
+    /**
+     * Verifies that this AmqpChannelProcessor won't time out even if the 5 minutes default timeout occurs. This is
+     * possible when there is a disconnect for a long period of time.
+     */
+    @Test
+    void waitsLongPeriodOfTimeForConnection() {
+        // Arrange
+        final TestPublisher<TestObject> publisher = TestPublisher.createCold();
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
+
+        // Act & Assert
+        StepVerifier.withVirtualTime(() -> publisher.next(connection1).flux()
+            .subscribeWith(channelProcessor))
+            .expectSubscription()
+            .thenAwait(Duration.ofMinutes(10))
+            .then(() -> endpointSink.next(AmqpEndpointState.ACTIVE))
+            .expectNext(connection1)
+            .verifyComplete();
+    }
+
+    /**
+     * Verifies that this AmqpChannelProcessor won't time out even if the 5 minutes default timeout occurs. This is
+     * possible when there is a disconnect for a long period of time.
+     */
+    @Test
+    void waitsLongPeriodOfTimeForChainedConnections() {
+        // Arrange
+        final TestPublisher<TestObject> publisher = TestPublisher.createCold();
+        final FluxSink<AmqpEndpointState> endpointSink = connection1.getSink();
+        final String contents = "Emitted something after 10 minutes.";
+
+        // Act & Assert
+        StepVerifier.withVirtualTime(() -> {
+            return publisher.next(connection1).flux()
+                .subscribeWith(channelProcessor).flatMap(e -> Mono.just(contents));
+        })
+            .expectSubscription()
+            .thenAwait(Duration.ofMinutes(10))
+            .then(() -> endpointSink.next(AmqpEndpointState.ACTIVE))
+            .expectNext(contents)
+            .verifyComplete();
+    }
+
+    private static Flux<TestObject> createSink(TestObject... connections) {
+        return Flux.create(emitter -> {
+            final AtomicInteger counter = new AtomicInteger();
+
+            emitter.onRequest(request -> {
+                for (int i = 0; i < request; i++) {
+                    final int index = counter.getAndIncrement();
+
+                    if (index == connections.length) {
+                        emitter.error(new RuntimeException(String.format(
+                            "Cannot emit more. Index: %s. # of Connections: %s",
+                            index, connections.length)));
+                        break;
+                    }
+
+                    emitter.next(connections[index]);
+                }
+            });
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
     static final class TestObject {
-        private final TestPublisher<AmqpEndpointState> processor = TestPublisher.createCold();
+        private final ReplayProcessor<AmqpEndpointState> processor = ReplayProcessor.cacheLast();
+        private final FluxSink<AmqpEndpointState> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
         public Flux<AmqpEndpointState> getStates() {
-            return processor.flux();
+            return processor;
         }
 
-        public TestPublisher<AmqpEndpointState> getSink() {
-            return processor;
+        public FluxSink<AmqpEndpointState> getSink() {
+            return sink;
         }
     }
 }

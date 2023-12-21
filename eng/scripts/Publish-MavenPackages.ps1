@@ -5,22 +5,167 @@ param(
   [Parameter(Mandatory=$true)][string]$RepositoryPassword,
   [Parameter(Mandatory=$true)][string]$GPGExecutablePath,
   [Parameter(Mandatory=$false)][switch]$StageOnly,
-  [Parameter(Mandatory=$false)][switch]$ShouldPublish,
-  [Parameter(Mandatory=$false)][AllowEmptyString()][string]$GroupIDFilter,
-  [Parameter(Mandatory=$false)][AllowEmptyString()][string]$ArtifactIDFilter
+  [Parameter(Mandatory=$false)][string]$GroupIDFilter,
+  [Parameter(Mandatory=$false)][string]$ArtifactIDFilter
 )
 
 $ErrorActionPreference = "Stop"
 
-. "${PSScriptRoot}/../common/scripts/common.ps1"
-. $PSScriptRoot\MavenPackaging.ps1
+if ((Test-Path $ArtifactDirectory) -ne $true) { throw "Artifact directory does not exist." }
+if ((Test-Path $GPGExecutablePath) -ne $true) { throw "GPG executable path does not exist." }
 
-# The Resolve-Path will normalize the path separators and throw if they don't exist.
-# This is necessary because, the yml passes in ${{parameters.BuildToolsPath}}/ which
-# on Windows means <drive>:\<BuildToolsPath>/<whatever>/<else>. Maven doesn't always
-# behave well with different separators in the path.
-$ArtifactDirectory = Resolve-Path $ArtifactDirectory
-$GPGExecutablePath = Resolve-Path $GPGExecutablePath
+# This class is the top level representation of a Maven package
+# for this script. A MavenPackageDetail maps to one physical POM
+# file and then contains a collection of associated artifacts
+# which are useful when constructing the command to publish the
+# artifacts via the Maven tooling.
+class MavenPackageDetail {
+  [System.IO.FileInfo]$File
+  [string]$FullyQualifiedName
+  [string]$GroupID
+  [string]$ArtifactID
+  [string]$Version
+  [string]$SonaTypeProfileID
+  [AssociatedArtifact[]]$AssociatedArtifacts
+}
+
+# This class represents a physical file on disk which is
+# grouped under a specific POM file. There will be one of
+# these for the javadoc file, the sources, the main jar file
+# (or aar file) and POM file. If this is a POM only package
+# then there will only be one associated artifact. Additionally
+# if other artifacts with different classications are present
+# they will also be stored in one of these instances.
+class AssociatedArtifact {
+  [System.IO.FileInfo]$File
+  [string]$Type
+  [string]$Classifier
+}
+
+# Given a Maven package, discover the associated artifacts and return them in an array. We
+# do this by filtering all the artifacts in the directory by the artifactId and version prefix
+# of the file to get the full set of artifacts, and then do processing on the filenames
+# to figure out what the classifier (e.g. -sources, -javadoc and -uber) and type (extension).
+function Get-AssociatedArtifacts([MavenPackageDetail]$PackageDetail) {
+  Write-Information "Detecting associated artifacts for $($PackageDetail.FullyQualifiedName)"
+  $associtedArtifactFileFilter = "$($PackageDetail.ArtifactID)-$($PackageDetail.Version)*"
+  Write-Information "Search filter is: $associtedArtifactFileFilter (jar, aar and pom files only)"
+  
+  $associatedArtifactFiles = @(Get-ChildItem -Path $PackageDetail.File.Directory -Filter $associtedArtifactFileFilter | Where-Object { $_ -match "^*\.(jar|pom|aar|module)$" })
+  Write-Information "Found $($associatedArtifactFiles.Length) possible artifacts:"
+
+  [AssociatedArtifact[]]$associatedArtifacts = @()
+
+  foreach ($associatedArtifactFile in $associatedArtifactFiles)
+  {
+    $associatedArtifact = [AssociatedArtifact]::new()
+    $associatedArtifact.File = $associatedArtifactFile
+
+    Write-Information "Processsing artifact $($associatedArtifact.File.Name) of $($PackageDetail.FullyQualifiedName)"
+
+    $associatedArtifact.Type = $associatedArtifact.File.Extension.Replace(".", "")
+    Write-Information "Type is: $($associatedArtifact.Type)"
+
+    $artifactPrefix = "$($PackageDetail.ArtifactID)-$($PackageDetail.Version)-"
+    if ($associatedArtifact.File.BaseName.Contains($artifactPrefix)) {
+      $associatedArtifact.Classifier = $associatedArtifact.File.BaseName.Replace($artifactPrefix, "")
+    } 
+    Write-Information "Classifier is: $($associatedArtifact.Classifier)"
+
+    $associatedArtifacts += $associatedArtifact
+  }
+
+  return $associatedArtifacts
+}
+
+# This function maps the group ID that is detected in the POM file against a
+# know set of mappings to SonaType Nexus profile IDs. A profile ID is needed
+# to stage a Maven package in https://oss.sonatype.org prior to being "released"
+# into the public Maven Central repository (and mirrors).
+#
+# NOTE that the current azuresdk SonaType user identity has access to all of
+# the profile Ids below for publishing. If a new profile is introduced then
+# the azuresdk identity will need to be granted access to it so that it can
+# publish to it.
+function Get-SonaTypeProfileID([string]$GroupID) {
+  $sonaTypeProfileID = switch -wildcard ($GroupID)
+  {
+    "com.azure*"                   { "88192f04117501" }
+    "com.microsoft.azure*"         { "534d15ee3800f4" }
+    "com.microsoft.rest*"          { "66eef5eb9b85bd" }
+    "com.microsoft.servicefabric*" { "8acff2e04dc15e" }
+    "com.microsoft.spring*"        { "615994e851c580" }
+    "com.microsoft.sqlserver*"     { "2bafd8aecdb240" }
+    default {
+      throw "Profile ID for group ID $GroupID was not found."
+    }
+  }
+
+  return $sonaTypeProfileID
+}
+
+# This function returns an array of object where each object represents a logical Maven package
+# including all of its associated artifacts. It takes care of extracting out group ID, artifact ID,
+# and version information, as well as providing metadata for each of the associated files including
+# types and classifiers.
+function Get-MavenPackageDetails([string]$ArtifactDirectory) {
+  Write-Information "Searching artifact directory for POM files."
+  $pomFiles = @(Get-ChildItem -Path $ArtifactDirectory -Filter *.pom -Recurse)
+  Write-Information "Found $($pomFiles.Length) POM files."
+
+  [MavenPackageDetail[]] $packageDetails = @()
+
+  foreach ($pomFile in $pomFiles) {
+    $packageDetail = [MavenPackageDetail]::new()
+    $packageDetail.File = $pomFile
+
+    Write-Information "Processing POM file: $pomFile"
+    [xml]$pomDocument = Get-Content $pomFile
+
+    $packageDetail.GroupID = $pomDocument.project.groupId    
+    Write-Information "Group ID is: $($packageDetail.GroupID)"
+
+    $packageDetail.ArtifactID = $pomDocument.project.artifactId
+    Write-Information "Artifact ID is: $($packageDetail.ArtifactID)"
+
+    $packageDetail.Version = $pomDocument.project.version
+    Write-Information "Version  is: $($packageDetail.Version)"
+
+    $packageDetail.SonaTypeProfileID = Get-SonaTypeProfileID($packageDetail.GroupID)
+    Write-Information "SonaType Profile ID is: $($packageDetail.SonaTypeProfileID)"
+
+    $packageDetail.FullyQualifiedName = "$($packageDetail.GroupID):$($packageDetail.ArtifactID):$($packageDetail.Version)"
+    Write-Information "Fully-qualified name is: $($packageDetail.FullyQualifiedName)"
+
+    $associatedArtifacts = Get-AssociatedArtifacts($packageDetail)
+    $packageDetail.AssociatedArtifacts = $associatedArtifacts
+
+    $packageDetails += $packageDetail
+  }
+
+  return $packageDetails
+}
+
+# Implements filtering logic on the set of detected packages within the artifact directory
+# that is specified. In theory we could do the filtering as soon as we read the artifact ID
+# and group ID from the POM file, however discovering the full set of packages accessible
+# under a path may be a useful diagnostic when looking into release issues.
+function Get-FilteredMavenPackageDetails([string]$ArtifactDirectory, [string]$GroupIDFilter, [string]$ArtifactIDFilter) {
+  [MavenPackageDetail[]]$packageDetails = Get-MavenPackageDetails($ArtifactDirectory)
+  [MavenPackageDetail[]]$filteredPackageDetails = @()
+
+  if (($GroupIDFilter -ne "") -and ($ArtifactIDFilter -ne "")) {
+    $filteredPackageDetails = @($packageDetails | Where-Object { ($_.GroupID -eq $GroupIDFilter) -and ($_.ArtifactID -eq $ArtifactIDFilter) })
+  }
+  elseif (($GroupIDFilter -ne "") -or ($ArtifactIDFilter -ne "")) {
+    throw "You must specify both -GroupIDFilter and -ArtifactIDFilter together."
+  }
+  else {
+    $filteredPackageDetails = $packageDetails
+  }
+
+  return $filteredPackageDetails
+}
 
 function Get-RandomRepositoryDirectory() {
   Write-Information "Getting random repository directory."
@@ -38,8 +183,6 @@ Write-Information "Repository Password is: [redacted]"
 Write-Information "GPG Executable Path is: $GPGExecutablePath"
 Write-Information "Group ID Filter is: $GroupIDFilter"
 Write-Information "Artifact ID Filter is: $ArtifactIDFilter"
-Write-Information "Stage Only is: $StageOnly"
-Write-Information "Should Publish is: $ShouldPublish"
 
 Write-Information "Getting filtered package details."
 $packageDetails = Get-FilteredMavenPackageDetails -ArtifactDirectory $ArtifactDirectory -GroupIDFilter $GroupIDFilter -ArtifactIDFilter $ArtifactIDFilter
@@ -47,23 +190,13 @@ $packageDetails = Get-FilteredMavenPackageDetails -ArtifactDirectory $ArtifactDi
 Write-Host "Found $($packageDetails.Length) packages to publish:"
 $packageDetails | % { Write-Host $_.FullyQualifiedName }
 
-if ($packageDetails.Length -eq 0) {
-  throw "Aborting, no packages to publish."
-}
-
-if ($StageOnly)
-{
-  foreach ($packageDetail in $packageDetails) {
-    if ($packageDetail.IsSnapshot) {
-      throw "Package $($packageDetail.FullyQualifiedName) is a Snapshot and StageOnly is set to 'true'. Staging of snapshot packages is not supported."
-    }
-  }
-}
-
 Write-Host "Starting GPG signing and publishing"
 
 foreach ($packageDetail in $packageDetails) {
   Write-Host "GPG signing and publishing package: $($packageDetail.FullyQualifiedName)"
+  $localRepositoryDirectory = Get-RandomRepositoryDirectory
+  $localRepositoryDirectoryUri = $([Uri]$localRepositoryDirectory.FullName).AbsoluteUri
+  Write-Information "Local Repository Directory URI is: $localRepositoryDirectoryUri"
 
   $pomAssociatedArtifact = $packageDetail.AssociatedArtifacts | Where-Object { ($_.Classifier -eq $null) -and ($_.Type -eq "pom") }
   $pomOption = "-DpomFile=$($pomAssociatedArtifact.File.FullName)"
@@ -78,23 +211,13 @@ foreach ($packageDetail in $packageDetails) {
   $fileOption = "-Dfile=$($fileAssociatedArtifact.File.FullName)"
   Write-Information "File Option is: $fileOption"
 
-  $javadocOption = ""
   $javadocAssociatedArtifact = $packageDetail.AssociatedArtifacts | Where-Object { ($_.Classifier -eq "javadoc") -and ($_.Type -eq "jar")}
-  if (-not $javadocAssociatedArtifact) {
-    Write-Information "No JavaDoc artifact, omitting JavaDoc Option"
-  } else {
-    $javadocOption = "-Djavadoc=$($javadocAssociatedArtifact.File.FullName)"
-    Write-Information "JavaDoc Option is: $javadocOption"
-  }
+  $javadocOption = "-Djavadoc=$($javadocAssociatedArtifact.File.FullName)"
+  Write-Information "JavaDoc Option is: $javadocOption"
 
-  $sourcesOption = ""
   $sourcesAssociatedArtifact = $packageDetail.AssociatedArtifacts | Where-Object { ($_.Classifier -eq "sources") -and ($_.Type -eq "jar") }
-  if (-not $sourcesAssociatedArtifact) {
-    Write-Information "No Sources artifact, omitting Sources Option"
-  } else {
-    $sourcesOption = "-Dsources=$($sourcesAssociatedArtifact.File.FullName)"
-    Write-Information "Sources Option is: $sourcesOption"
-  }
+  $sourcesOption = "-Dsources=$($sourcesAssociatedArtifact.File.FullName)"
+  Write-Information "Sources Option is: $sourcesOption"
 
   [AssociatedArtifact[]]$additionalAssociatedArtifacts = @()
   foreach ($additionalAssociatedArtifact in $packageDetail.AssociatedArtifacts) {
@@ -112,190 +235,65 @@ foreach ($packageDetail in $packageDetails) {
     $commaDelimitedFileNames = ""
     $additionalAssociatedArtifacts | ForEach-Object { $commaDelimitedFileNames += ",$($_.File.FullName)" }
     $filesOption = "-Dfiles=$($commaDelimitedFileNames.Substring(1))"
-
+    
     $commaDelimitedClassifiers = ""
     $additionalAssociatedArtifacts | ForEach-Object { $commaDelimitedClassifiers += ",$($_.Classifier)" }
     $classifiersOption = "-Dclassifiers=$($commaDelimitedClassifiers.Substring(1))"
-
+    
     $commaDelimitedTypes = ""
     $additionalAssociatedArtifacts | ForEach-Object { $commaDelimitedTypes += ",$($_.Type)" }
     $typesOption = "-Dtypes=$($commaDelimitedTypes.Substring(1))"
   }
-
-  $shouldPublishPackage = $ShouldPublish
-  $packageReposityUrl = $RepositoryUrl
-
-  if ($packageReposityUrl -match "https://pkgs.dev.azure.com/azure-sdk/\b(internal|public)\b/*") {
-    # Azure DevOps feeds don't support staging
-    $shouldPublishPackage = $ShouldPublish -and !$StageOnly
-    $releaseType = 'AzureDevOps'
-  }
-  elseif ($packageReposityUrl -like "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-    if ($packageDetail.IsSnapshot) {
-      # Snapshots don't go to the standard maven central url
-      $packageReposityUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-      $releaseType = 'MavenCentralSnapshot'
-    }
-    elseif ($StageOnly) {
-      $releaseType = 'MavenCentralStaging'
-    }
-    else {
-      $releaseType = 'MavenCentral'
-    }
-  }
-  else {
-    throw "Repository URL must be either an Azure Artifacts feed, or a SonaType Nexus feed."
-  }
-
-  #Local GPG deployment is required when we're not going to publish a package, or when we're publishing to maven central
-  $requiresLocalGpg = !$shouldPublishPackage -or ($releaseType -eq 'MavenCentralStaging') -or ($releaseType -eq 'MavenCentral')
-
-  Write-Information "Release Type: $releaseType"
-  Write-Information "Should Publish Package: $shouldPublishPackage"
-  Write-Information "Requires local GPG deployment: $requiresLocalGpg"
-
+  
   Write-Information "Files Option is: $filesOption"
   Write-Information "Classifiers Option is: $classifiersOption"
   Write-Information "Types Option is: $typesOption"
 
+  $urlOption = "-Durl=$localRepositoryDirectoryUri"
+  Write-Information "URL Option is: $urlOption"
+
+  $repositoryDirectoryOption = "-DrepositoryDirectory=$localRepositoryDirectory"
+  Write-Information "Repository Directory Option is: $repositoryDirectoryOption"
+
   $gpgexeOption = "-Dgpgexe=$GPGExecutablePath"
   Write-Information "GPG Executable Option is: $gpgexeOption"
 
-  if ($requiresLocalGpg) {
-    $localRepositoryDirectory = Get-RandomRepositoryDirectory
-    $localRepositoryDirectoryUri = $([Uri]$localRepositoryDirectory.FullName).AbsoluteUri
-    Write-Information "Local Repository Directory URI is: $localRepositoryDirectoryUri"
+  $stagingProfileIdOption = "-DstagingProfileId=$($packageDetail.SonaTypeProfileID)"
+  Write-Information "Staging Profile ID Option is: $stagingProfileIdOption"
 
-    $urlOption = "-Durl=$localRepositoryDirectoryUri"
-    Write-Information "URL Option is: $urlOption"
+  $stagingDescriptionOption = "-DstagingDescription=$($packageDetail.FullyQualifiedName)"
+  Write-Information "Staging Description Option is: $stagingDescriptionOption"
 
+  if ($RepositoryUrl -match "https://pkgs.dev.azure.com/azure-sdk/\b(internal|public)\b/*") {
+    Write-Information "GPG Signing and deploying package in one step to devops feed: $RepositoryUrl"
+    mvn gpg:sign-and-deploy-file "--batch-mode" "$pomOption" "$fileOption" "$javadocOption" "$sourcesOption" "$filesOption" $classifiersOption "$typesOption" "-Durl=$RepositoryUrl" "$gpgexeOption" "-DrepositoryId=target-repo" "-Drepo.password=$RepositoryPassword" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
+  }
+  elseif ($RepositoryUrl -like "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
     Write-Information "Signing and deploying package to $localRepositoryDirectoryUri"
-    Write-Information "mvn gpg:sign-and-deploy-file `"--batch-mode`" `"$pomOption`" `"$fileOption`" `"$javadocOption`" `"$sourcesOption`" `"$filesOption`" $classifiersOption `"$typesOption`" `"$urlOption`" `"$gpgexeOption`" `"-DrepositoryId=target-repo`" `"--settings=$PSScriptRoot\..\maven.publish.settings.xml`""
     mvn gpg:sign-and-deploy-file "--batch-mode" "$pomOption" "$fileOption" "$javadocOption" "$sourcesOption" "$filesOption" $classifiersOption "$typesOption" "$urlOption" "$gpgexeOption" "-DrepositoryId=target-repo" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
-    if ($LASTEXITCODE) { exit $LASTEXITCODE }
-  }
-
-  if(!$shouldPublishPackage)
-  {
-    Write-Information "Skipping deployment because Should Publish Package == false."
-    continue
-  }
-
-  if ($releaseType -eq 'AzureDevOps') {
-    Write-Information "GPG Signing and deploying package in one step to devops feed: $packageReposityUrl"
-    Write-Information "mvn gpg:sign-and-deploy-file `"--batch-mode`" `"$pomOption`" `"$fileOption`" `"$javadocOption`" `"$sourcesOption`" `"$filesOption`" $classifiersOption `"$typesOption`" `"-Durl=$packageReposityUrl`" `"$gpgexeOption`" `"-DrepositoryId=target-repo`" `"-Drepo.password=[redacted]`" `"--settings=$PSScriptRoot\..\maven.publish.settings.xml`""
-    mvn gpg:sign-and-deploy-file "--batch-mode" "$pomOption" "$fileOption" "$javadocOption" "$sourcesOption" "$filesOption" $classifiersOption "$typesOption" "-Durl=$packageReposityUrl" "$gpgexeOption" "-DrepositoryId=target-repo" "-Drepo.password=$RepositoryPassword" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
-
-    if ($LASTEXITCODE -eq 0) {
-      Write-Information "Package $($packageDetail.FullyQualifiedName) deployed"
-      continue
-    }
-
-    Write-Information "Release attempt $attemt exited with code $LASTEXITCODE"
-    Write-Information "Checking Azure DevOps to see if release was successful"
-    if (Test-ReleasedPackage -RepositoryUrl $packageReposityUrl -PackageDetail $packageDetail -BearerToken $RepositoryPassword) {
-      Write-Information "Package $($packageDetail.FullyQualifiedName) deployed despite non-zero exit code."
-      continue
-    }
-
-    exit $LASTEXITCODE
-  }
-  elseif ($releaseType -eq 'MavenCentralSnapshot') {
-    Write-Information "GPG Signing and deploying package in one step to Sonatype snapshots: $packageReposityUrl"
-    Write-Information "mvn gpg:sign-and-deploy-file `"--batch-mode`" `"$pomOption`" `"$fileOption`" `"$javadocOption`" `"$sourcesOption`" `"$filesOption`" $classifiersOption `"$typesOption`" `"-Durl=$packageReposityUrl`" `"$gpgexeOption`" `"-DrepositoryId=target-repo`" `"-Drepo.username=`"`"$RepositoryUsername`"`"`" `"-Drepo.password=[redacted]`" `"--settings=$PSScriptRoot\..\maven.publish.settings.xml`""
-    mvn gpg:sign-and-deploy-file "--batch-mode" "$pomOption" "$fileOption" "$javadocOption" "$sourcesOption" "$filesOption" $classifiersOption "$typesOption" "-Durl=$packageReposityUrl" "$gpgexeOption" "-DrepositoryId=target-repo" "-Drepo.username=""$RepositoryUsername""" "-Drepo.password=""$RepositoryPassword""" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
-    if ($LASTEXITCODE) { exit $LASTEXITCODE }
-  }
-  else {
-
-    $resultsTime = [diagnostics.stopwatch]::StartNew()
-    # IsMavenPackageVersionPublished is a very quick check to see if the pom is on maven which takes about 1-2 seconds
-    # to complete. If the POM if there, Test-ReleasedPackage will look at all of the package artifacts (pom, jars, .md)
-    # and compare their hashes. The reason we need the quick check first, is that Test-ReleasedPackage, when called
-    # on something that hasn't been released, takes 90 seconds if none of the artifacts have been released and about
-    # 25 seconds, if they have. The first time an artifact is being released we use IsMavenPackageVersionPublished so
-    # we don't add 90 seconds on to every Maven release.
-    if (IsMavenPackageVersionPublished -pkgId $packageDetail.ArtifactID -pkgVersion $packageDetail.Version -groupId $packageDetail.GroupId) {
-      if (Test-ReleasedPackage -RepositoryUrl $packageReposityUrl -PackageDetail $packageDetail) {
-        Write-Information "Package $($packageDetail.FullyQualifiedName) has already been deployed."
-        continue
-      }
-    } else {
-      Write-Information "$($packageDetail.FullyQualifiedName) has not yet deployed."
-    }
-    Write-Information "Time to test released package=$($resultstime.Elapsed.ToString('dd\.hh\:mm\:ss'))"
-
-    # Maven Central Staging + optional Release
-    $repositoryDirectoryOption = "-DrepositoryDirectory=$localRepositoryDirectory"
-    Write-Information "Repository Directory Option is: $repositoryDirectoryOption"
-
-    $stagingProfileIdOption = "-DstagingProfileId=$($packageDetail.SonaTypeProfileID)"
-    Write-Information "Staging Profile ID Option is: $stagingProfileIdOption"
-
-    $stagingDescriptionOption = "-DstagingDescription=$($packageDetail.FullyQualifiedName)"
-    Write-Information "Staging Description Option is: $stagingDescriptionOption"
-
-    $nexusPluginVersion = . $PSScriptRoot\Get-ExternalDependencyVersion.ps1 -GroupId 'org.sonatype.plugins' -ArtifactId 'nexus-staging-maven-plugin'
-    if ($LASTEXITCODE) {
-      Write-Information "##vso[task.logissue type=error]Unable to resolve version of external dependency 'org.sonatype.plugins:nexus-staging-maven-plugin'"
-      exit $LASTEXITCODE
-    }
-
-    $stagingGoal = "org.sonatype.plugins:nexus-staging-maven-plugin:$nexusPluginVersion`:deploy-staged-repository"
-    $releaseGoal = "org.sonatype.plugins:nexus-staging-maven-plugin:$nexusPluginVersion`:rc-release"
-
+  
     Write-Information "Staging package to Maven Central"
-    Write-Information "mvn $stagingGoal `"--batch-mode`" `"-DnexusUrl=https://oss.sonatype.org`" `"$repositoryDirectoryOption`" `"$stagingProfileIdOption`" `"$stagingDescriptionOption`" `"-DrepositoryId=target-repo`" `"-DserverId=target-repo`" `"-Drepo.username=$RepositoryUsername`" `"-Drepo.password=`"[redacted]`"`" `"--settings=$PSScriptRoot\..\maven.publish.settings.xml`""
-    mvn $stagingGoal "--batch-mode" "-DnexusUrl=https://oss.sonatype.org" "$repositoryDirectoryOption" "$stagingProfileIdOption" "$stagingDescriptionOption" "-DrepositoryId=target-repo" "-DserverId=target-repo" "-Drepo.username=$RepositoryUsername" "-Drepo.password=""$RepositoryPassword""" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
-
-    if ($LASTEXITCODE) {
-      Write-Information '##vso[task.logissue type=error]Staging to Maven Central failed. For troubleshooting, see https://aka.ms/azsdk/maven-central-tsg'
-      exit $LASTEXITCODE
-    }
+    mvn org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged-repository "--batch-mode" "-DnexusUrl=https://oss.sonatype.org" "$repositoryDirectoryOption" "$stagingProfileIdOption" "$stagingDescriptionOption" "-DrepositoryId=target-repo" "-DserverId=target-repo" "-Drepo.username=$RepositoryUsername" "-Drepo.password=""$RepositoryPassword""" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
 
     Write-Information "Reading staging properties."
-    $stagedRepositoryProperties = ConvertFrom-StringData (Get-Content "$localRepositoryDirectory\$($packageDetail.SonaTypeProfileID).properties" -Raw)
-
+    $stagedRepositoryProperties = ConvertFrom-StringData (Get-Content "$localRepositoryDirectory\$($packageDetails.SonaTypeProfileID).properties" -Raw)
+    
     $stagedRepositoryId = $stagedRepositoryProperties["stagingRepository.id"]
     Write-Information "Staging Repository ID is: $stagedRepositoryId"
 
     $stagedRepositoryUrl = $stagedRepositoryProperties["stagingRepository.url"]
     Write-Information "Staging Repository URL is: $stagedRepositoryUrl"
 
-    if ($releaseType -eq 'MavenCentralStaging') {
-      Write-Information "Skipping release of staging repository because Stage Only == true."
-      continue
+    if ($StageOnly) {
+      Write-Information "Skipping release of staging repository because stage only is set to false."
     }
-
-    $attempt = 0
-    $success = $false;
-
-    while ($attempt++ -lt 3) {
-      Write-Information "Releasing staging repostiory $stagedRepositoryId, attempt $attempt"
-      Write-Information "mvn $releaseGoal `"-DstagingRepositoryId=$stagedRepositoryId`" `"-DnexusUrl=https://oss.sonatype.org`" `"-DrepositoryId=target-repo`" `"-DserverId=target-repo`" `"-Drepo.username=$RepositoryUsername`" `"-Drepo.password=`"`"[redacted]`"`"`" `"--settings=$PSScriptRoot\..\maven.publish.settings.xml`""
-      mvn $releaseGoal "-DstagingRepositoryId=$stagedRepositoryId" "-DnexusUrl=https://oss.sonatype.org" "-DrepositoryId=target-repo" "-DserverId=target-repo" "-Drepo.username=$RepositoryUsername" "-Drepo.password=""$RepositoryPassword""" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"
-
-      if ($LASTEXITCODE -eq 0) {
-        Write-Information "Package $($packageDetail.FullyQualifiedName) deployed"
-        $success = $true
-        break
-      }
-
-      Write-Information "Release attempt $attempt exited with code $LASTEXITCODE"
-      Write-Information "Checking Maven Central to see if release was successful"
-
-      if (Test-ReleasedPackage -RepositoryUrl $packageReposityUrl -PackageDetail $packageDetail) {
-        Write-Information "Package $($packageDetail.FullyQualifiedName) deployed despite non-zero exit code."
-        $success = $true
-        break
-      }
-    }
-
-    if (!$success) {
-      Write-Information '##vso[task.logissue type=error]Release to Maven Central failed. For troubleshooting, see https://aka.ms/azsdk/maven-central-tsg'
-      exit 1
+    else {
+      Write-Information "Releasing staging repostiory $stagedRepositoryId"
+      mvn org.sonatype.plugins:nexus-staging-maven-plugin:rc-release "-DstagingRepositoryId=$stagedRepositoryId" "-DnexusUrl=https://oss.sonatype.org" "-DrepositoryId=target-repo" "-DserverId=target-repo" "-Drepo.username=$RepositoryUsername" "-Drepo.password=""$RepositoryPassword""" "--settings=$PSScriptRoot\..\maven.publish.settings.xml"  
     }
   }
-}
+  else {
+    throw "Repository URL must be either an Azure Artifacts feed, or a SonaType Nextus feed."
+  }
 
-exit 0
+}

@@ -14,6 +14,7 @@ import com.microsoft.azure.eventhubs.ProxyConfiguration;
 import com.microsoft.azure.eventhubs.RetryPolicy;
 import com.microsoft.azure.eventhubs.TimeoutException;
 import com.microsoft.azure.eventhubs.TransportType;
+
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.engine.BaseHandler;
@@ -24,7 +25,6 @@ import org.apache.qpid.proton.engine.Handler;
 import org.apache.qpid.proton.engine.HandlerException;
 import org.apache.qpid.proton.engine.Link;
 import org.apache.qpid.proton.engine.Session;
-import org.apache.qpid.proton.engine.SslDomain;
 import org.apache.qpid.proton.reactor.Reactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,8 +92,7 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
                      final ScheduledExecutorService executor,
                      final ReactorFactory reactorFactory,
                      final ProxyConfiguration proxyConfiguration,
-                     final Duration watchdogTriggerTime,
-                    final SslDomain.VerifyMode verifyMode) {
+                     final Duration watchdogTriggerTime) {
         super(StringUtil.getRandomString("MF"), null, executor);
 
         if (StringUtil.isNullOrWhiteSpace(hostname)) {
@@ -110,8 +109,7 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
         this.reactorFactory = reactorFactory;
         this.operationTimeout = operationTimeout;
         this.retryPolicy = retryPolicy;
-        this.connectionHandler = ConnectionHandler.create(transportType, this,
-            this.getClientId(), proxyConfiguration, verifyMode);
+        this.connectionHandler = ConnectionHandler.create(transportType, this, this.getClientId(), proxyConfiguration);
         this.tokenProvider = tokenProvider;
 
         this.registeredLinks = new LinkedList<>();
@@ -121,7 +119,7 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
 
         this.watchdogTriggerTime = watchdogTriggerTime;
         this.watchdogScanSeconds = watchdogTriggerTime.toMillis() / MessagingFactory.WATCHDOG_SCAN_DIVISOR / 1000;
-        this.watchdogReceivers = new LinkedList<>();
+        this.watchdogReceivers = new LinkedList<MessageReceiver>();
         this.watchdogSyncObject = new Object();
 
         this.closeTask = new CompletableFuture<>();
@@ -191,7 +189,6 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
         private ReactorFactory reactorFactory = new ReactorFactory();
         private ProxyConfiguration proxyConfiguration;
         private Duration watchdogTriggerTime = EventHubClientOptions.SILENT_OFF;
-        private SslDomain.VerifyMode verifyMode;
 
         public MessagingFactoryBuilder(final String hostname, final ITokenProvider tokenProvider, final ScheduledExecutorService executor) {
             if (StringUtil.isNullOrWhiteSpace(hostname)) {
@@ -241,31 +238,16 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
             return this;
         }
 
-        /**
-         * Package-private verify mode setter.
-         *
-         * @param verifyMode The verify mode to use.
-         * @return The updated {@link MessagingFactoryBuilder} object.
-         */
-         MessagingFactoryBuilder setVerifyMode(SslDomain.VerifyMode verifyMode) {
-            this.verifyMode = verifyMode;
-            return this;
-        }
-
         public CompletableFuture<MessagingFactory> build() throws IOException {
-            final SslDomain.VerifyMode mode = verifyMode != null
-                ? verifyMode
-                : SslDomain.VerifyMode.VERIFY_PEER_NAME;
             final MessagingFactory messagingFactory = new MessagingFactory(this.hostname,
-                this.operationTimeout,
-                this.transportType,
-                this.tokenProvider,
-                this.retryPolicy,
-                this.executor,
-                this.reactorFactory,
-                this.proxyConfiguration,
-                this.watchdogTriggerTime,
-                mode);
+                    this.operationTimeout,
+                    this.transportType,
+                    this.tokenProvider,
+                    this.retryPolicy,
+                    this.executor,
+                    this.reactorFactory,
+                    this.proxyConfiguration,
+                    this.watchdogTriggerTime);
             return MessagingFactory.factoryStartup(messagingFactory);
         }
     }

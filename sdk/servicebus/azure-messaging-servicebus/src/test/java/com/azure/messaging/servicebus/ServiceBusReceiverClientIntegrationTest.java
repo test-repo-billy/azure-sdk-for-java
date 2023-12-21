@@ -3,61 +3,58 @@
 
 package com.azure.messaging.servicebus;
 
-import com.azure.core.amqp.models.AmqpMessageBody;
 import com.azure.core.util.IterableStream;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.implementation.DispositionStatus;
 import com.azure.messaging.servicebus.implementation.MessagingEntityType;
-import com.azure.messaging.servicebus.models.AbandonOptions;
-import com.azure.messaging.servicebus.models.CompleteOptions;
 import com.azure.messaging.servicebus.models.DeadLetterOptions;
-import com.azure.messaging.servicebus.models.DeferOptions;
+import com.azure.messaging.servicebus.models.ReceiveMode;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Mono;
 
-import java.nio.charset.Charset;
 import java.time.Duration;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import static com.azure.messaging.servicebus.TestUtils.USE_CASE_PEEK_BATCH;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Integration tests for {@link com.azure.messaging.servicebus.ServiceBusReceiverClient} from queues or subscriptions.
+ * Integration tests for {@link ServiceBusReceiverClient} from queues or subscriptions.
  */
 @Tag("integration")
-@Execution(ExecutionMode.SAME_THREAD)
 class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
-    private static final ClientLogger LOGGER = new ClientLogger(ServiceBusReceiverClientIntegrationTest.class);
+
+    /* Sometime not all the messages are cleaned-up. This is buffer to ensure all the messages are cleaned-up.*/
+    private static final int BUFFER_MESSAGES_TO_REMOVE = 10;
 
     private final AtomicInteger messagesPending = new AtomicInteger();
     private final AtomicReference<List<Long>> messagesDeferred = new AtomicReference<>(new ArrayList<>());
+    private final ClientLogger logger = new ClientLogger(ServiceBusReceiverClientIntegrationTest.class);
 
     private ServiceBusReceiverClient receiver;
     private ServiceBusSenderClient sender;
-    private ServiceBusSessionReceiverClient sessionReceiver;
+
+    /**
+     * Receiver used to clean up resources in {@link #afterTest()}.
+     */
+    private ServiceBusReceiverClient receiveAndDeleteReceiver;
 
     protected ServiceBusReceiverClientIntegrationTest() {
         super(new ClientLogger(ServiceBusReceiverClientIntegrationTest.class));
@@ -70,7 +67,40 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
     @Override
     protected void afterTest() {
-        dispose(receiver, sender, sessionReceiver);
+        final int pending = messagesPending.get();
+        if (pending < 1 && messagesDeferred.get().size() < 1) {
+            dispose(receiver, sender, receiveAndDeleteReceiver);
+            return;
+        }
+
+        // In the case that this test failed... we're going to drain the queue or subscription.
+        if (pending > 0) {
+            try {
+                IterableStream<ServiceBusReceivedMessageContext> removedMessage = receiveAndDeleteReceiver.receive(
+                    pending, Duration.ofSeconds(15));
+
+                removedMessage.stream().forEach(context -> {
+                    ServiceBusReceivedMessage message = context.getMessage();
+                    logger.info("Removed Message Seq: {} ", message.getSequenceNumber());
+                });
+            } catch (Exception e) {
+                logger.warning("Error occurred when draining queue.", e);
+            }
+        }
+
+        if (messagesDeferred.get().size() > 0) {
+            try {
+                List<Long> listOfDeferredMessages = messagesDeferred.get();
+                for (Long seqNumber : listOfDeferredMessages) {
+                    ServiceBusReceivedMessage deferredMessages = receiver.receiveDeferredMessage(seqNumber);
+                    receiver.complete(deferredMessages);
+                }
+            } catch (Exception e) {
+                logger.warning("Error occurred when draining deferred messages Entity: {} ", receiver.getEntityPath(), e);
+            }
+        }
+
+        dispose(receiver, sender, receiveAndDeleteReceiver);
     }
 
     /**
@@ -80,32 +110,38 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void multipleReceiveByOneSubscriberMessageTimeout(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_MULTIPLE_RECEIVE_ONE_TIMEOUT, isSessionEnabled);
+        setSenderAndReceiver(entityType, TestUtils.USE_CASE_MULTIPLE_RECEIVE_ONE_TIMEOUT, isSessionEnabled);
         final int maxMessages = 2;
         final int totalReceive = 2;
         final Duration shortTimeOut = Duration.ofSeconds(7);
-        int receivedMessageCount;
-        int totalReceivedCount = 0;
+        final Duration longTimeOut = Duration.ofSeconds(10);
 
         final String messageId = UUID.randomUUID().toString();
         List<ServiceBusMessage> messageList = new ArrayList<>();
         for (int i = 0; i < totalReceive * maxMessages; ++i) {
             messageList.add(getMessage(messageId, isSessionEnabled));
         }
-        sendMessages(messageList);
 
-        setReceiver(entityType, TestUtils.USE_CASE_MULTIPLE_RECEIVE_ONE_TIMEOUT, isSessionEnabled);
-
-        List<ServiceBusReceivedMessage> messages;
+        Mono.just(true)
+            .delayElement(longTimeOut)
+            .map(aBoolean -> {
+                sendMessages(messageList);
+                return aBoolean;
+            })
+            .subscribe();
         // Act & Assert
+        IterableStream<ServiceBusReceivedMessageContext> messages = receiver.receive(maxMessages, shortTimeOut);
+        long received = messages.stream().count();
+        assertEquals(0, received);
+
+        int receivedMessageCount;
+        int totalReceivedCount = 0;
         for (int i = 0; i < totalReceive; ++i) {
-            IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessages, shortTimeOut);
-            messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+            messages = receiver.receive(maxMessages, shortTimeOut);
             receivedMessageCount = 0;
-            for (ServiceBusReceivedMessage receivedMessage : messages) {
+            for (ServiceBusReceivedMessageContext receivedMessage : messages) {
                 assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
-                receiver.complete(receivedMessage);
-                logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
+                receiver.complete(receivedMessage.getMessage());
                 messagesPending.decrementAndGet();
                 ++receivedMessageCount;
             }
@@ -123,7 +159,7 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void multipleReceiveByOneSubscriber(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
         final int maxMessagesEachReceive = 3;
         final int totalReceiver = 7;
         final Duration shortTimeOut = Duration.ofSeconds(8);
@@ -136,21 +172,17 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessages(messageList);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-
         // Act & Assert
-        List<ServiceBusReceivedMessage> messages;
+        IterableStream<ServiceBusReceivedMessageContext> messages;
 
         int receivedMessageCount;
         int totalReceivedCount = 0;
         for (int i = 0; i < totalReceiver; ++i) {
-            IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessagesEachReceive, shortTimeOut);
-            messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+            messages = receiver.receive(maxMessagesEachReceive, shortTimeOut);
             receivedMessageCount = 0;
-            for (ServiceBusReceivedMessage receivedMessage : messages) {
+            for (ServiceBusReceivedMessageContext receivedMessage : messages) {
                 assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
-                receiver.complete(receivedMessage);
-                logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
+                receiver.complete(receivedMessage.getMessage());
                 messagesPending.decrementAndGet();
                 ++receivedMessageCount;
             }
@@ -168,10 +200,10 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void parallelReceiveByOneSubscriber(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
         final int maxMessagesEachReceive = 3;
-        final int totalReceiver = 3;
-        final Duration shortTimeOut = Duration.ofSeconds(4);
+        final int totalReceiver = 6;
+        final Duration shortTimeOut = Duration.ofSeconds(8);
 
         final String messageId = UUID.randomUUID().toString();
         final List<ServiceBusMessage> messageList = new ArrayList<>();
@@ -181,29 +213,25 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessages(messageList);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-
         // Act & Assert
         AtomicInteger totalReceivedMessages = new AtomicInteger();
         List<Thread> receiverThreads = new ArrayList<>();
         for (int i = 0; i < totalReceiver; ++i) {
             Thread thread = new Thread(() -> {
-                IterableStream<ServiceBusReceivedMessage> received = receiver.
-                    receiveMessages(maxMessagesEachReceive, shortTimeOut);
-                List<ServiceBusReceivedMessage> messages1 = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+                IterableStream<ServiceBusReceivedMessageContext> messages1 = receiver.
+                    receive(maxMessagesEachReceive, shortTimeOut);
                 int receivedMessageCount = 0;
                 long lastSequenceReceiver = 0;
-                for (ServiceBusReceivedMessage receivedMessage : messages1) {
+                for (ServiceBusReceivedMessageContext receivedMessage : messages1) {
                     assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
-                    receiver.complete(receivedMessage);
-                    logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
-                    assertTrue(receivedMessage.getSequenceNumber() > lastSequenceReceiver);
-                    lastSequenceReceiver = receivedMessage.getSequenceNumber();
+                    receiver.complete(receivedMessage.getMessage());
+                    assertTrue(receivedMessage.getMessage().getSequenceNumber() > lastSequenceReceiver);
+                    lastSequenceReceiver = receivedMessage.getMessage().getSequenceNumber();
                     messagesPending.decrementAndGet();
                     ++receivedMessageCount;
                 }
                 totalReceivedMessages.addAndGet(receivedMessageCount);
-                assertTrue(receivedMessageCount >= 1);
+                assertEquals(maxMessagesEachReceive, receivedMessageCount);
             });
             receiverThreads.add(thread);
         }
@@ -212,12 +240,12 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         receiverThreads.forEach(t -> {
             try {
-                t.join(TIMEOUT.toMillis());
+                t.join();
             } catch (InterruptedException e) {
                 fail("Error in receiving messages: " + e.getMessage());
             }
         });
-        assertTrue(totalReceivedMessages.get() >= totalReceiver);
+        assertEquals(totalReceiver * maxMessagesEachReceive, totalReceivedMessages.get());
     }
 
     /**
@@ -227,37 +255,29 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveTwoMessagesAndComplete(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_RECEIVE_MORE_AND_COMPLETE, isSessionEnabled);
-        int maxMessages = 4;
-        int messagesToSend = 4;
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
+        int maxMessages = 2;
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
 
         sendMessage(message);
         sendMessage(message);
-        sendMessage(message);
-        sendMessage(message);
-
-        setReceiver(entityType, TestUtils.USE_CASE_RECEIVE_MORE_AND_COMPLETE, isSessionEnabled);
 
         // Act
-        IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessages, TIMEOUT);
-        List<ServiceBusReceivedMessage> messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+        IterableStream<ServiceBusReceivedMessageContext> messages = receiver.receive(maxMessages, TIMEOUT);
 
         // Assert
         int receivedMessageCount = 0;
-        final long startTime = System.currentTimeMillis();
-        for (ServiceBusReceivedMessage receivedMessage : messages) {
+        for (ServiceBusReceivedMessageContext context : messages) {
+            ServiceBusReceivedMessage receivedMessage = context.getMessage();
             assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
             receiver.complete(receivedMessage);
-            logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
             messagesPending.decrementAndGet();
             ++receivedMessageCount;
         }
-        final long endTime = System.currentTimeMillis();
-        assertEquals(messagesToSend, receivedMessageCount);
-        assertTrue(TIMEOUT.toMillis() > (endTime - startTime));
+
+        assertEquals(maxMessages, receivedMessageCount);
     }
 
     /**
@@ -267,16 +287,16 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     void receiveNoMessage() {
         // Arrange
         boolean isSessionEnabled = false;
-        setReceiver(MessagingEntityType.QUEUE, TestUtils.USE_CASE_RECEIVE_NO_MESSAGES, isSessionEnabled);
+        setSenderAndReceiver(MessagingEntityType.QUEUE, TestUtils.USE_CASE_RECEIVE_NO_MESSAGES, isSessionEnabled);
         int howManyMessage = 2;
         long noMessages = 0;
 
         // Act
-        final IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(howManyMessage,
+        final IterableStream<ServiceBusReceivedMessageContext> messages = receiver.receive(howManyMessage,
             Duration.ofSeconds(15));
-        List<ServiceBusReceivedMessage> messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+
         // Assert
-        assertEquals(noMessages, messages.size());
+        assertEquals(noMessages, messages.stream().count());
     }
 
     /**
@@ -285,10 +305,11 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     @EnumSource(DispositionStatus.class)
     void transactionMessageAndSettle(DispositionStatus dispositionStatus) {
+
         // Arrange
         final boolean isSessionEnabled = false;
         final MessagingEntityType entityType = MessagingEntityType.QUEUE;
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
         int maxMessages = 1;
         final String deadLetterReason = "testing";
 
@@ -297,48 +318,72 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
 
         sendMessage(message);
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
 
         // Act & Assert
-        final IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessages, TIMEOUT);
-        List<ServiceBusReceivedMessage> messageList = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+        final Stream<ServiceBusReceivedMessage> messages = receiver.receive(maxMessages, TIMEOUT)
+            .stream().map(ServiceBusReceivedMessageContext::getMessage);
 
         final ServiceBusTransactionContext transaction = receiver.createTransaction();
 
+        List<ServiceBusReceivedMessage> messageList = messages.collect(Collectors.toList());
         assertEquals(maxMessages, messageList.size());
 
         ServiceBusReceivedMessage receivedMessage = messageList.get(0);
 
         switch (dispositionStatus) {
             case COMPLETED:
-                receiver.complete(receivedMessage, new CompleteOptions().setTransactionContext(transaction));
-                logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
+                receiver.complete(receivedMessage, transaction);
                 messagesPending.decrementAndGet();
                 break;
             case ABANDONED:
-                receiver.abandon(receivedMessage, new AbandonOptions()
-                    .setTransactionContext(transaction));
-                logMessage(receivedMessage, receiver.getEntityPath(), "abandoned message");
+                receiver.abandon(receivedMessage, null, transaction);
                 break;
             case SUSPENDED:
-                DeadLetterOptions deadLetterOptions = new DeadLetterOptions()
-                    .setDeadLetterReason(deadLetterReason)
-                    .setTransactionContext(transaction);
-                receiver.deadLetter(receivedMessage, deadLetterOptions);
-                logMessage(receivedMessage, receiver.getEntityPath(), "deadLettered message");
+                DeadLetterOptions deadLetterOptions = new DeadLetterOptions().setDeadLetterReason(deadLetterReason);
+                receiver.deadLetter(receivedMessage, deadLetterOptions, transaction);
                 break;
             case DEFERRED:
-                receiver.defer(receivedMessage, new DeferOptions().setTransactionContext(transaction));
-                logMessage(receivedMessage, receiver.getEntityPath(), "deferred message");
-                break;
-            case RELEASED:
+                receiver.defer(receivedMessage, null, transaction);
                 break;
             default:
-                throw LOGGER.logExceptionAsWarning(new IllegalArgumentException(
+                throw logger.logExceptionAsError(new IllegalArgumentException(
                     "Disposition status not recognized for this test case: " + dispositionStatus));
         }
 
         receiver.commitTransaction(transaction);
+    }
+
+    /**
+     * Verifies that we can send, receive one message and settle on session entity.
+     */
+    @MethodSource("messagingEntityProvider")
+    @ParameterizedTest
+    void transactionReceiveAndCommitOnSessionEntity(MessagingEntityType entityType) {
+
+        // Arrange
+        boolean isSessionEnabled = true;
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
+        final int maxMessages = 1;
+
+        final String messageId = UUID.randomUUID().toString();
+        final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
+
+        sendMessage(message);
+
+        // Act & Assert
+        final Stream<ServiceBusReceivedMessage> messages = receiver.receive(maxMessages, TIMEOUT)
+            .stream().map(ServiceBusReceivedMessageContext::getMessage);
+
+        final ServiceBusTransactionContext transaction = receiver.createTransaction();
+
+        List<ServiceBusReceivedMessage> messageList = messages.collect(Collectors.toList());
+        assertEquals(maxMessages, messageList.size());
+
+        ServiceBusReceivedMessage receivedMessage = messageList.get(0);
+
+        receiver.complete(receivedMessage, sessionId, transaction);
+        receiver.commitTransaction(transaction);
+        messagesPending.decrementAndGet();
     }
 
     /**
@@ -348,29 +393,30 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveMessageAndComplete(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
         int maxMessages = 1;
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
 
         sendMessage(message);
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
 
         // Act
-        final IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessages, TIMEOUT);
-        List<ServiceBusReceivedMessage> messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+        final Stream<ServiceBusReceivedMessage> messages = receiver.receive(maxMessages, TIMEOUT)
+            .stream()
+            .map(ServiceBusReceivedMessageContext::getMessage);
+
         // Assert
         final AtomicInteger receivedMessageCount = new AtomicInteger();
         messages.forEach(receivedMessage -> {
             assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
             receiver.complete(receivedMessage);
-            logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
             messagesPending.decrementAndGet();
             receivedMessageCount.incrementAndGet();
         });
 
         assertEquals(maxMessages, receivedMessageCount.get());
+
     }
 
     /**
@@ -380,37 +426,18 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void peekMessage(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
 
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-
         // Act
-        ServiceBusReceivedMessage receivedMessage = receiver.peekMessage();
-        logMessage(receivedMessage, receiver.getEntityPath(), "peeked messages");
+        ServiceBusReceivedMessage receivedMessage = receiver.peek();
 
         // Assert
         assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
-    }
-
-    /**
-     * Verifies that an empty entity does not error when peeked.
-     */
-    @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityWithSessions")
-    @ParameterizedTest
-    void peekMessageEmptyEntity(MessagingEntityType entityType, boolean isSessionEnabled) {
-        // Arrange
-        setReceiver(entityType, TestUtils.USE_CASE_EMPTY_ENTITY, isSessionEnabled);
-
-        // Act
-        final ServiceBusReceivedMessage receivedMessage = receiver.peekMessage();
-
-        // Assert
-        assertNull(receivedMessage);
     }
 
     /**
@@ -420,7 +447,7 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void peekFromSequenceNumberMessage(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
@@ -428,26 +455,22 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
+        assertNotNull(context);
 
-        final IterableStream<ServiceBusReceivedMessage> received = receiver.receiveMessages(maxMessages, TIMEOUT);
-        assertNotNull(received);
-
-        List<ServiceBusReceivedMessage> messages = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
-        assertEquals(maxMessages, messages.size());
-        final ServiceBusReceivedMessage receivedMessage = messages.get(0);
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
+        assertEquals(maxMessages, asList.size());
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         // Act
-        final ServiceBusReceivedMessage receivedPeekMessage = receiver.peekMessage(receivedMessage.getSequenceNumber());
-        logMessage(receivedPeekMessage, receiver.getEntityPath(), "peeked message");
+        ServiceBusReceivedMessage receivedPeekMessage = receiver.peekAt(receivedMessage.getSequenceNumber());
 
         // Assert
         assertEquals(receivedMessage.getSequenceNumber(), receivedPeekMessage.getSequenceNumber());
         assertMessageEquals(receivedPeekMessage, messageId, isSessionEnabled);
 
         receiver.complete(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
         messagesPending.decrementAndGet();
     }
 
@@ -456,76 +479,22 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
      */
     @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityWithSessions")
     @ParameterizedTest
-    void peekMessages(MessagingEntityType entityType, boolean isSessionEnabled) throws InterruptedException {
+    void peekBatchMessages(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, USE_CASE_PEEK_BATCH, isSessionEnabled);
-        final byte[] payload = "peek-message".getBytes(Charset.defaultCharset());
-        final int maxMessages = 4;
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
-        List<ServiceBusMessage> messagesToSend = IntStream.range(0, maxMessages)
-            .mapToObj(i -> getMessage(String.format("%s-%s-%s", entityType, isSessionEnabled, i),
-                isSessionEnabled, AmqpMessageBody.fromData(payload)))
-            .collect(Collectors.toList());
-        Set<String> messageIds = messagesToSend.stream().map(ServiceBusMessage::getMessageId).collect(Collectors.toSet());
+        final String messageId = UUID.randomUUID().toString();
+        final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
+        final int maxMessages = 2;
 
-        setReceiver(entityType, USE_CASE_PEEK_BATCH, isSessionEnabled);
-        List<ServiceBusReceivedMessage> filtered = new ArrayList<>();
-        AtomicInteger iterations = new AtomicInteger(0);
+        sendMessage(message);
+        sendMessage(message);
 
         // Act
-        Thread peekMessages = new Thread(() -> {
-            // maxMessages are not always guaranteed, sometime, we get less than asked for, just trying two times is not enough, so we will try many times
-            // https://github.com/Azure/azure-sdk-for-java/issues/21168
-            while (iterations.getAndIncrement() < 10 && filtered.size() < maxMessages) {
-                receiver.peekMessages(maxMessages)
-                        .forEach(m -> {
-                            logMessage(m, receiver.getEntityPath(), "peeked messages");
-                            if (messageIds.contains(m.getMessageId())) {
-                                filtered.add(m);
-                            }
-                        });
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    fail();
-                }
-            }
-        });
-
-        peekMessages.start();
-        toClose((AutoCloseable) () -> peekMessages.interrupt());
-
-        messagesToSend.forEach(message -> sendMessage(message));
-        peekMessages.join(TIMEOUT.toMillis());
-
-        LOGGER.atInfo()
-            .addKeyValue("received", filtered.size())
-            .addKeyValue("iterations", iterations.get())
-            .addKeyValue("isSessionEnabled", isSessionEnabled)
-            .log("done receiving");
+        IterableStream<ServiceBusReceivedMessage> iterableMessages = receiver.peekBatch(maxMessages);
 
         // Assert
-        assertEquals(maxMessages, filtered.size());
-    }
-
-    /**
-     * Verifies that an empty entity does not error when a batch is peeked.
-     */
-    @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityWithSessions")
-    @ParameterizedTest
-    void peekMessagesEmptyEntity(MessagingEntityType entityType, boolean isSessionEnabled) {
-        // Arrange
-        setReceiver(entityType, TestUtils.USE_CASE_EMPTY_ENTITY, isSessionEnabled);
-        final int maxMessages = 10;
-
-        // Act
-        final IterableStream<ServiceBusReceivedMessage> received = receiver.peekMessages(maxMessages);
-        // Assert
-        assertNotNull(received);
-
-        List<ServiceBusReceivedMessage> messages = logReceivedMessages(received, receiver.getEntityPath(), "peeked messages");
-        final Optional<ServiceBusReceivedMessage> anyMessages = messages.stream().findAny();
-        assertFalse(anyMessages.isPresent());
+        Assertions.assertEquals(maxMessages, (int) iterableMessages.stream().count());
     }
 
     /**
@@ -533,9 +502,9 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
      */
     @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityProvider")
     @ParameterizedTest
-    void peekMessagesFromSequence(MessagingEntityType entityType) {
+    void peekBatchMessagesFromSequence(MessagingEntityType entityType) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, false);
+        setSenderAndReceiver(entityType, 0, false);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, false);
@@ -545,13 +514,11 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         sendMessage(message);
         sendMessage(message);
 
-        setReceiver(entityType, 0, false);
-
         // Act
-        IterableStream<ServiceBusReceivedMessage> iterableMessages = receiver.peekMessages(maxMessages, fromSequenceNumber);
+        IterableStream<ServiceBusReceivedMessage> iterableMessages = receiver.peekBatchAt(maxMessages, fromSequenceNumber);
 
         // Assert
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(iterableMessages, receiver.getEntityPath(), "peeked messages");
+        final List<ServiceBusReceivedMessage> asList = iterableMessages.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
 
         final ServiceBusReceivedMessage receivedMessage = asList.get(0);
@@ -566,7 +533,7 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void deadLetterMessage(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
@@ -574,19 +541,17 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(context, receiver.getEntityPath(), "received messages");
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         // Assert & Act
         receiver.deadLetter(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "deadLettered message");
+
         messagesPending.decrementAndGet();
     }
 
@@ -594,27 +559,25 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveAndComplete(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
         final int maxMessages = 1;
 
         sendMessage(message);
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
 
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(context, receiver.getEntityPath(), "received messages");
-
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         // Assert & Act
         receiver.complete(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
+
         messagesPending.decrementAndGet();
     }
 
@@ -623,9 +586,9 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
      */
     @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityProvider")
     @ParameterizedTest
-    void receiveAndRenewLock(MessagingEntityType entityType) throws InterruptedException {
+    void receiveAndRenewLock(MessagingEntityType entityType) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, false);
+        setSenderAndReceiver(entityType, 0, false);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, false);
@@ -634,31 +597,27 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         // Blocking here because it is not part of the scenario we want to test.
         sendMessage(message);
 
-        setReceiver(entityType, 0, false);
-
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = context.stream().collect(Collectors.toList());
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
         assertNotNull(receivedMessage.getLockedUntil());
 
-        final OffsetDateTime initialLock = receivedMessage.getLockedUntil();
-        logMessage(receivedMessage, receiver.getEntityPath(), "received message, locked until " + initialLock);
+        final Instant initialLock = receivedMessage.getLockedUntil();
+        logger.info("Received message. Seq: {}. lockedUntil: {}", receivedMessage.getSequenceNumber(), initialLock);
 
         // Assert & Act
         try {
-            TimeUnit.SECONDS.sleep(5); // Let some lock duration expire.
-            OffsetDateTime lockedUntil = receiver.renewMessageLock(receivedMessage);
-            logMessage(receivedMessage, receiver.getEntityPath(), "renewed lock");
+            Instant lockedUntil = receiver.renewMessageLock(receivedMessage);
             assertTrue(lockedUntil.isAfter(initialLock),
                 String.format("Updated lock is not after the initial Lock. updated: [%s]. initial:[%s]",
                     lockedUntil, initialLock));
         } finally {
+            logger.info("Completing message. Seq: {}.", receivedMessage.getSequenceNumber());
             receiver.complete(receivedMessage);
-            logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
             messagesPending.decrementAndGet();
         }
     }
@@ -667,7 +626,7 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveAndAbandon(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
@@ -675,23 +634,16 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(context, receiver.getEntityPath(), "received messages");
-
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         // Assert & Act
         receiver.abandon(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "abandoned message");
-        // Cleanup
-        int messagesCompleted = completeMessages(receiver, maxMessages);
-        messagesPending.addAndGet(-messagesCompleted);
     }
 
     /**
@@ -701,7 +653,7 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveDeferredMessageBySequenceNumber(MessagingEntityType entityType, DispositionStatus dispositionStatus) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, false);
+        setSenderAndReceiver(entityType, 0, false);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, false);
@@ -709,18 +661,16 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
 
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, false);
-
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(context, receiver.getEntityPath(), "received messages");
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         receiver.defer(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "deferred message");
+
         final ServiceBusReceivedMessage receivedDeferredMessage = receiver
             .receiveDeferredMessage(receivedMessage.getSequenceNumber());
 
@@ -731,19 +681,16 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         switch (dispositionStatus) {
             case ABANDONED:
                 receiver.abandon(receivedDeferredMessage);
-                logMessage(receivedMessage, receiver.getEntityPath(), "abandoned message");
                 messagesDeferred.get().add(receivedMessage.getSequenceNumber());
                 break;
             case SUSPENDED:
                 receiver.deadLetter(receivedDeferredMessage);
-                logMessage(receivedMessage, receiver.getEntityPath(), "deadLettered message");
                 break;
             case COMPLETED:
                 receiver.complete(receivedDeferredMessage);
-                logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
                 break;
             default:
-                throw LOGGER.logExceptionAsError(new IllegalArgumentException(
+                throw logger.logExceptionAsError(new IllegalArgumentException(
                     "Disposition status not recognized for this test case: " + dispositionStatus));
         }
 
@@ -756,46 +703,37 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void receiveAndDefer(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
+        setSenderAndReceiver(entityType, 0, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = getMessage(messageId, isSessionEnabled);
         final int maxMessages = 1;
+
         sendMessage(message);
 
-        setReceiver(entityType, TestUtils.USE_CASE_DEFAULT, isSessionEnabled);
-        final IterableStream<ServiceBusReceivedMessage> context = receiver.receiveMessages(maxMessages, TIMEOUT);
+        final IterableStream<ServiceBusReceivedMessageContext> context = receiver.receive(maxMessages, TIMEOUT);
         assertNotNull(context);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(context, receiver.getEntityPath(), "received messages");
+        final List<ServiceBusReceivedMessageContext> asList = context.stream().collect(Collectors.toList());
         assertEquals(maxMessages, asList.size());
-        final ServiceBusReceivedMessage receivedMessage = asList.get(0);
+        final ServiceBusReceivedMessage receivedMessage = asList.get(0).getMessage();
         assertNotNull(receivedMessage);
 
         // Act & Assert
         receiver.defer(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "deferred messages");
-
-        // cleanup
-        final ServiceBusReceivedMessage deferred;
-        deferred = receiver.receiveDeferredMessage(receivedMessage.getSequenceNumber());
-        logMessage(deferred, receiver.getEntityPath(), "received deffered messages");
-        receiver.complete(deferred);
-        logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
-        messagesPending.addAndGet(-maxMessages);
     }
 
     @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityWithSessions")
     @ParameterizedTest
     void sendReceiveMessageWithVariousPropertyTypes(MessagingEntityType entityType, boolean isSessionEnabled) {
         // Arrange
-        setSender(entityType, TestUtils.USE_CASE_SEND_RECEIVE_WITH_PROPERTIES, isSessionEnabled);
+        setSenderAndReceiver(entityType, TestUtils.USE_CASE_SEND_RECEIVE_WITH_PROPERTIES, isSessionEnabled);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage messageToSend = getMessage(messageId, isSessionEnabled);
         final int maxMessages = 1;
 
-        Map<String, Object> sentProperties = messageToSend.getApplicationProperties();
+        Map<String, Object> sentProperties = messageToSend.getProperties();
         sentProperties.put("NullProperty", null);
         sentProperties.put("BooleanProperty", true);
         sentProperties.put("ByteProperty", (byte) 1);
@@ -805,19 +743,19 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         sentProperties.put("FloatProperty", 5.5f);
         sentProperties.put("DoubleProperty", 6.6f);
         sentProperties.put("CharProperty", 'z');
-        sentProperties.put("UUIDProperty", UUID.fromString("38400000-8cf0-11bd-b23e-10b96e4ef00d"));
+        sentProperties.put("UUIDProperty", UUID.randomUUID());
         sentProperties.put("StringProperty", "string");
 
         sendMessage(messageToSend);
 
-        setReceiver(entityType, TestUtils.USE_CASE_SEND_RECEIVE_WITH_PROPERTIES, isSessionEnabled);
-
         // Assert & Act
-        final IterableStream<ServiceBusReceivedMessage> received =
-            receiver.receiveMessages(maxMessages, TIMEOUT);
-        assertNotNull(received);
+        final IterableStream<ServiceBusReceivedMessageContext> messages =
+            receiveAndDeleteReceiver.receive(maxMessages, TIMEOUT);
+        assertNotNull(messages);
 
-        final List<ServiceBusReceivedMessage> asList = logReceivedMessages(received, receiver.getEntityPath(), "received messages");
+        final List<ServiceBusReceivedMessage> asList = messages.stream()
+            .map(ServiceBusReceivedMessageContext::getMessage)
+            .collect(Collectors.toList());
 
         assertEquals(maxMessages, asList.size());
         final ServiceBusReceivedMessage receivedMessage = asList.get(0);
@@ -826,73 +764,67 @@ class ServiceBusReceiverClientIntegrationTest extends IntegrationTestBase {
         messagesPending.decrementAndGet();
         assertMessageEquals(receivedMessage, messageId, isSessionEnabled);
 
-        final Map<String, Object> receivedProps = receivedMessage.getApplicationProperties();
+        final Map<String, Object> received = receivedMessage.getProperties();
 
-        assertEquals(sentProperties.size(), receivedProps.size());
+        assertEquals(sentProperties.size(), received.size());
 
         for (Map.Entry<String, Object> sentEntry : sentProperties.entrySet()) {
             if (sentEntry.getValue() != null && sentEntry.getValue().getClass().isArray()) {
-                assertArrayEquals((Object[]) sentEntry.getValue(), (Object[]) receivedProps.get(sentEntry.getKey()));
-            } else if (!sentEntry.getKey().equals("traceparent") && !sentEntry.getKey().equals("Diagnostic-Id")) {
+                assertArrayEquals((Object[]) sentEntry.getValue(), (Object[]) received.get(sentEntry.getKey()));
+            } else {
                 final Object expected = sentEntry.getValue();
-                final Object actual = receivedProps.get(sentEntry.getKey());
+                final Object actual = received.get(sentEntry.getKey());
 
                 assertEquals(expected, actual, String.format(
                     "Key '%s' does not match. Expected: '%s'. Actual: '%s'", sentEntry.getKey(), expected,
                     actual));
             }
         }
-        receiver.complete(receivedMessage);
-        logMessage(receivedMessage, receiver.getEntityPath(), "completed message");
     }
 
-    private void setReceiver(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled) {
-        setReceiver(entityType, entityIndex, isSessionEnabled, false);
+    /**
+     * Sets the sender and receiver. If session is enabled, then a single-named session receiver is created.
+     */
+    private void setSenderAndReceiver(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled) {
+        setSenderAndReceiver(entityType, entityIndex, isSessionEnabled, false);
     }
 
-    private void setSender(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled) {
-        setSender(entityType, entityIndex, isSessionEnabled, false);
-    }
-
-    private void setSender(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled, boolean sharedConnection) {
-        this.sender = toClose(getSenderBuilder(false, entityType, entityIndex, isSessionEnabled, sharedConnection).buildClient());
-    }
-
-    private void setReceiver(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled, boolean sharedConnection) {
+    /**
+     * Sets the sender and receiver. If session is enabled, then a single-named session receiver is created.
+     */
+    private void setSenderAndReceiver(MessagingEntityType entityType, int entityIndex, boolean isSessionEnabled,
+        boolean sharedConnection) {
+        this.sender = getSenderBuilder(false, entityType, entityIndex, isSessionEnabled, sharedConnection).buildClient();
 
         if (isSessionEnabled) {
             assertNotNull(sessionId, "'sessionId' should have been set.");
-            this.sessionReceiver = toClose(getSessionReceiverBuilder(false, entityType, entityIndex, sharedConnection, null)
-                .buildClient());
-            this.receiver = toClose(this.sessionReceiver.acceptSession(sessionId));
+            this.receiver = getSessionReceiverBuilder(false, entityType, entityIndex, Function.identity(), sharedConnection)
+                .sessionId(sessionId)
+                .buildClient();
+            this.receiveAndDeleteReceiver = getSessionReceiverBuilder(false, entityType, entityIndex,
+                Function.identity(), sharedConnection)
+                .sessionId(sessionId)
+                .receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+                .buildClient();
         } else {
-            this.receiver = toClose(getReceiverBuilder(false, entityType, entityIndex, sharedConnection)
-                .buildClient());
+            this.receiver = getReceiverBuilder(false, entityType, entityIndex, Function.identity(), sharedConnection)
+                .buildClient();
+            this.receiveAndDeleteReceiver = getReceiverBuilder(false, entityType, entityIndex,
+                Function.identity(), sharedConnection)
+                .receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+                .buildClient();
         }
     }
 
     private void sendMessages(List<ServiceBusMessage> messageList) {
-        sender.sendMessages(messageList);
+        sender.send(messageList);
         int number = messagesPending.getAndSet(messageList.size());
-        logMessages(messageList, sender.getEntityPath(), "sendMessages");
-        LOGGER.atInfo().addKeyValue("number", number).log("message sent");
+        logger.info("Number sent: {}", number);
     }
 
     private void sendMessage(ServiceBusMessage message) {
-        sender.sendMessage(message);
-        logMessage(message, sender.getEntityPath(), "sent");
-        LOGGER.atInfo()
-            .addKeyValue("number", messagesPending.incrementAndGet())
-            .log("message sent");
-    }
-
-    private int completeMessages(ServiceBusReceiverClient client, int totalMessages) {
-        final IterableStream<ServiceBusReceivedMessage> contextStream = client.receiveMessages(totalMessages, TIMEOUT);
-        final List<ServiceBusReceivedMessage> asList = contextStream.stream().collect(Collectors.toList());
-        for (ServiceBusReceivedMessage message : asList) {
-            receiver.complete(message);
-            logMessage(message, receiver.getEntityPath(), "received and completed");
-        }
-        return asList.size();
+        sender.send(message);
+        int number = messagesPending.incrementAndGet();
+        logger.info("Number sent: {}", number);
     }
 }

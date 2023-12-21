@@ -5,13 +5,15 @@
 package com.azure.storage.queue.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.core.util.BinaryData;
 import com.azure.core.util.DateTimeRfc1123;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.time.OffsetDateTime;
 
-/** The object returned in the QueueMessageList array when calling Get Messages on a Queue. */
+/**
+ * The object returned in the QueueMessageList array when calling Get Messages
+ * on a Queue.
+ */
 @JacksonXmlRootElement(localName = "QueueMessage")
 @Fluent
 public final class QueueMessageItem {
@@ -55,7 +57,8 @@ public final class QueueMessageItem {
     /*
      * The content of the Message.
      */
-    private BinaryData body;
+    @JsonProperty(value = "MessageText", required = true)
+    private String messageText;
 
     /**
      * Get the messageId property: The Id of the Message.
@@ -78,7 +81,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Get the insertionTime property: The time the Message was inserted into the Queue.
+     * Get the insertionTime property: The time the Message was inserted into
+     * the Queue.
      *
      * @return the insertionTime value.
      */
@@ -90,7 +94,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Set the insertionTime property: The time the Message was inserted into the Queue.
+     * Set the insertionTime property: The time the Message was inserted into
+     * the Queue.
      *
      * @param insertionTime the insertionTime value to set.
      * @return the QueueMessageItem object itself.
@@ -105,7 +110,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Get the expirationTime property: The time that the Message will expire and be automatically deleted.
+     * Get the expirationTime property: The time that the Message will expire
+     * and be automatically deleted.
      *
      * @return the expirationTime value.
      */
@@ -117,7 +123,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Set the expirationTime property: The time that the Message will expire and be automatically deleted.
+     * Set the expirationTime property: The time that the Message will expire
+     * and be automatically deleted.
      *
      * @param expirationTime the expirationTime value to set.
      * @return the QueueMessageItem object itself.
@@ -132,8 +139,9 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Get the popReceipt property: This value is required to delete the Message. If deletion fails using this
-     * popreceipt then the message has been dequeued by another client.
+     * Get the popReceipt property: This value is required to delete the
+     * Message. If deletion fails using this popreceipt then the message has
+     * been dequeued by another client.
      *
      * @return the popReceipt value.
      */
@@ -142,8 +150,9 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Set the popReceipt property: This value is required to delete the Message. If deletion fails using this
-     * popreceipt then the message has been dequeued by another client.
+     * Set the popReceipt property: This value is required to delete the
+     * Message. If deletion fails using this popreceipt then the message has
+     * been dequeued by another client.
      *
      * @param popReceipt the popReceipt value to set.
      * @return the QueueMessageItem object itself.
@@ -154,7 +163,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Get the timeNextVisible property: The time that the message will again become visible in the Queue.
+     * Get the timeNextVisible property: The time that the message will again
+     * become visible in the Queue.
      *
      * @return the timeNextVisible value.
      */
@@ -166,7 +176,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Set the timeNextVisible property: The time that the message will again become visible in the Queue.
+     * Set the timeNextVisible property: The time that the message will again
+     * become visible in the Queue.
      *
      * @param timeNextVisible the timeNextVisible value to set.
      * @return the QueueMessageItem object itself.
@@ -181,7 +192,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Get the dequeueCount property: The number of times the message has been dequeued.
+     * Get the dequeueCount property: The number of times the message has been
+     * dequeued.
      *
      * @return the dequeueCount value.
      */
@@ -190,7 +202,8 @@ public final class QueueMessageItem {
     }
 
     /**
-     * Set the dequeueCount property: The number of times the message has been dequeued.
+     * Set the dequeueCount property: The number of times the message has been
+     * dequeued.
      *
      * @param dequeueCount the dequeueCount value to set.
      * @return the QueueMessageItem object itself.
@@ -204,11 +217,9 @@ public final class QueueMessageItem {
      * Get the messageText property: The content of the Message.
      *
      * @return the messageText value.
-     * @deprecated use {@link #getBody()} instead.
      */
-    @Deprecated
     public String getMessageText() {
-        return this.body == null ? null : this.body.toString();
+        return this.messageText;
     }
 
     /**
@@ -216,31 +227,9 @@ public final class QueueMessageItem {
      *
      * @param messageText the messageText value to set.
      * @return the QueueMessageItem object itself.
-     * @deprecated use {@link #setBody(BinaryData)} instead.
      */
-    @Deprecated
     public QueueMessageItem setMessageText(String messageText) {
-        this.body = messageText == null ? null : BinaryData.fromString(messageText);
-        return this;
-    }
-
-    /**
-     * Get the body property: The content of the Message.
-     *
-     * @return the body value.
-     */
-    public BinaryData getBody() {
-        return this.body;
-    }
-
-    /**
-     * Set the body property: The content of the Message.
-     *
-     * @param body the body value to set.
-     * @return the QueueMessageItem object itself.
-     */
-    public QueueMessageItem setBody(BinaryData body) {
-        this.body = body;
+        this.messageText = messageText;
         return this;
     }
 }

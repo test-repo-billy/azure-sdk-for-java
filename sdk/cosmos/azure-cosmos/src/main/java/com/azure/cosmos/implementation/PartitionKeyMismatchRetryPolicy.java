@@ -3,8 +3,8 @@
 package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.caches.RxClientCollectionCache;
+import com.azure.cosmos.CosmosException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -91,14 +91,5 @@ public class PartitionKeyMismatchRetryPolicy extends DocumentClientRetryPolicy {
     public void onBeforeSendRequest(RxDocumentServiceRequest request) {
         this.request = request;
         this.nextRetryPolicy.onBeforeSendRequest(request);
-    }
-
-    @Override
-    public RetryContext getRetryContext() {
-        if (this.nextRetryPolicy != null) {
-            return this.nextRetryPolicy.getRetryContext();
-        } else {
-            return null;
-        }
     }
 }

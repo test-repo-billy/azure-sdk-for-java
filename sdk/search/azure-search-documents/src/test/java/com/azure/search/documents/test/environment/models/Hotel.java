@@ -2,77 +2,61 @@
 // Licensed under the MIT License.
 package com.azure.search.documents.test.environment.models;
 
-import com.azure.core.models.GeoPoint;
-import com.azure.search.documents.indexes.FieldBuilderIgnore;
-import com.azure.search.documents.indexes.SearchableField;
-import com.azure.search.documents.indexes.SimpleField;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.azure.search.documents.indexes.FieldIgnore;
+import com.azure.search.documents.indexes.SearchableFieldProperty;
+import com.azure.search.documents.indexes.SimpleFieldProperty;
+import com.azure.search.documents.models.GeoPoint;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@SuppressWarnings("UseOfObsoleteDateTimeApi")
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Hotel {
-    @SimpleField(isKey = true, isSortable = true)
+    @SimpleFieldProperty(isKey = true, isSortable = true)
     @JsonProperty(value = "HotelId")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String hotelId;
 
-    @SearchableField(isSortable = true, analyzerName = "en.lucene")
+    @SearchableFieldProperty(isSortable = true, analyzerName = "en.lucene")
     @JsonProperty(value = "HotelName")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String hotelName;
 
-    @SimpleField
+    @SimpleFieldProperty
     @JsonProperty(value = "Description")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String description;
 
-    @FieldBuilderIgnore
+    @FieldIgnore
     @JsonProperty(value = "Description_fr")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String descriptionFr;
 
-    @SimpleField
+    @SimpleFieldProperty
     @JsonProperty(value = "Category")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String category;
 
-    @SearchableField
+    @SearchableFieldProperty
     @JsonProperty(value = "Tags")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<String> tags;
 
     @JsonProperty(value = "ParkingIncluded")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Boolean parkingIncluded;
 
     @JsonProperty(value = "SmokingAllowed")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Boolean smokingAllowed;
 
     @JsonProperty(value = "LastRenovationDate")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Date lastRenovationDate;
 
     @JsonProperty(value = "Rating")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer rating;
 
+    @SimpleFieldProperty
     @JsonProperty(value = "Location")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private GeoPoint location;
 
     @JsonProperty(value = "Address")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private HotelAddress address;
 
     @JsonProperty(value = "Rooms")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<HotelRoom> rooms;
 
     public Hotel() {
@@ -126,11 +110,11 @@ public class Hotel {
     }
 
     public List<String> tags() {
-        return (this.tags == null) ? null : new ArrayList<>(this.tags);
+        return this.tags;
     }
 
     public Hotel tags(List<String> tags) {
-        this.tags = (tags == null) ? null : new ArrayList<>(tags);
+        this.tags = tags;
         return this;
     }
 
@@ -154,20 +138,11 @@ public class Hotel {
     }
 
     public Date lastRenovationDate() {
-        return (this.lastRenovationDate == null) ? null : (Date) this.lastRenovationDate.clone();
+        return this.lastRenovationDate;
     }
 
     public Hotel lastRenovationDate(Date lastRenovationDate) {
-        this.lastRenovationDate = (lastRenovationDate == null) ? null : (Date) lastRenovationDate.clone();
-        return this;
-    }
-
-    public GeoPoint location() {
-        return location;
-    }
-
-    public Hotel location(GeoPoint location) {
-        this.location = location;
+        this.lastRenovationDate = lastRenovationDate;
         return this;
     }
 
@@ -177,6 +152,15 @@ public class Hotel {
 
     public Hotel rating(Integer rating) {
         this.rating = rating;
+        return this;
+    }
+
+    public GeoPoint location() {
+        return this.location;
+    }
+
+    public Hotel location(GeoPoint location) {
+        this.location = location;
         return this;
     }
 

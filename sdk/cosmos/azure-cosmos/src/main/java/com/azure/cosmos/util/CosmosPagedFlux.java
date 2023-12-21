@@ -7,31 +7,23 @@ import com.azure.core.util.Context;
 import com.azure.core.util.FluxUtil;
 import com.azure.core.util.IterableStream;
 import com.azure.core.util.paging.ContinuablePagedFlux;
-import com.azure.cosmos.CosmosDiagnostics;
-import com.azure.cosmos.CosmosDiagnosticsContext;
 import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
-import com.azure.cosmos.implementation.DiagnosticsProvider;
-import com.azure.cosmos.implementation.FeedOperationState;
-import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.HttpConstants;
+import com.azure.cosmos.implementation.TracerProvider;
 import com.azure.cosmos.models.FeedResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Signal;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Cosmos implementation of {@link ContinuablePagedFlux}.
  * <p>
- * This type is a Flux that provides the ability to operate on pages of type {@link FeedResponse} and individual items
- * in such pages. This type supports {@link String} type continuation tokens, allowing for restarting from a
- * previously-retrieved continuation token.
+ * This type is a Flux that provides the ability to operate on pages of type {@link FeedResponse}
+ * and individual items in such pages. This type supports {@link String} type continuation tokens,
+ * allowing for restarting from a previously-retrieved continuation token.
  * <p>
  * For more information on the base type, refer {@link ContinuablePagedFlux}
  *
@@ -41,84 +33,69 @@ import java.util.function.Function;
  * @see FeedResponse
  */
 public final class CosmosPagedFlux<T> extends ContinuablePagedFlux<String, T, FeedResponse<T>> {
-    private final static ImplementationBridgeHelpers.CosmosDiagnosticsHelper.CosmosDiagnosticsAccessor cosmosDiagnosticsAccessor =
-        ImplementationBridgeHelpers.CosmosDiagnosticsHelper.getCosmosDiagnosticsAccessor();
-    private static final ImplementationBridgeHelpers.CosmosDiagnosticsContextHelper.CosmosDiagnosticsContextAccessor ctxAccessor =
-        ImplementationBridgeHelpers.CosmosDiagnosticsContextHelper.getCosmosDiagnosticsContextAccessor();
 
     private final Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> optionsFluxFunction;
-    private final Consumer<FeedResponse<T>> feedResponseConsumer;
-    private final int defaultPageSize;
-
-    CosmosPagedFlux(Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> optionsFluxFunction) {
-        this(optionsFluxFunction, null, -1);
-    }
+    private final boolean isTracerEnabled;
 
     CosmosPagedFlux(Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> optionsFluxFunction,
-                    Consumer<FeedResponse<T>> feedResponseConsumer) {
-        this(optionsFluxFunction, feedResponseConsumer, -1);
-    }
-
-    CosmosPagedFlux(Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> optionsFluxFunction,
-                    Consumer<FeedResponse<T>> feedResponseConsumer,
-                    int defaultPageSize) {
+                    boolean isTracerEnable) {
         this.optionsFluxFunction = optionsFluxFunction;
-        this.feedResponseConsumer = feedResponseConsumer;
-        this.defaultPageSize = defaultPageSize;
-    }
-
-    /**
-     * Handle for invoking "side-effects" on each FeedResponse returned by CosmosPagedFlux
-     *
-     * @param newFeedResponseConsumer handler
-     * @return CosmosPagedFlux instance with attached handler
-     */
-    public CosmosPagedFlux<T> handle(Consumer<FeedResponse<T>> newFeedResponseConsumer) {
-        if (this.feedResponseConsumer != null) {
-            return new CosmosPagedFlux<>(
-                this.optionsFluxFunction,
-                this.feedResponseConsumer.andThen(newFeedResponseConsumer));
-        } else {
-            return new CosmosPagedFlux<>(this.optionsFluxFunction, newFeedResponseConsumer);
-        }
+        this.isTracerEnabled = isTracerEnable;
     }
 
     @Override
     public Flux<FeedResponse<T>> byPage() {
-        CosmosPagedFluxOptions cosmosPagedFluxOptions = this.createCosmosPagedFluxOptions();
+        CosmosPagedFluxOptions cosmosPagedFluxOptions = new CosmosPagedFluxOptions();
+        if (!this.isTracerEnabled) {
+            return this.optionsFluxFunction.apply(cosmosPagedFluxOptions);
+        }
+
         return FluxUtil.fluxContext(context -> byPage(cosmosPagedFluxOptions, context));
     }
 
     @Override
     public Flux<FeedResponse<T>> byPage(String continuationToken) {
-        CosmosPagedFluxOptions cosmosPagedFluxOptions = this.createCosmosPagedFluxOptions();
+        CosmosPagedFluxOptions cosmosPagedFluxOptions = new CosmosPagedFluxOptions();
         cosmosPagedFluxOptions.setRequestContinuation(continuationToken);
+        if (!this.isTracerEnabled) {
+            return this.optionsFluxFunction.apply(cosmosPagedFluxOptions);
+        }
+
         return FluxUtil.fluxContext(context -> byPage(cosmosPagedFluxOptions, context));
     }
 
     @Override
     public Flux<FeedResponse<T>> byPage(int preferredPageSize) {
-        CosmosPagedFluxOptions cosmosPagedFluxOptions = this.createCosmosPagedFluxOptions();
+        CosmosPagedFluxOptions cosmosPagedFluxOptions = new CosmosPagedFluxOptions();
         cosmosPagedFluxOptions.setMaxItemCount(preferredPageSize);
+        if (!this.isTracerEnabled) {
+            return this.optionsFluxFunction.apply(cosmosPagedFluxOptions);
+        }
+
         return FluxUtil.fluxContext(context -> byPage(cosmosPagedFluxOptions, context));
     }
 
     @Override
     public Flux<FeedResponse<T>> byPage(String continuationToken, int preferredPageSize) {
-        CosmosPagedFluxOptions cosmosPagedFluxOptions = this.createCosmosPagedFluxOptions();
+        CosmosPagedFluxOptions cosmosPagedFluxOptions = new CosmosPagedFluxOptions();
         cosmosPagedFluxOptions.setRequestContinuation(continuationToken);
         cosmosPagedFluxOptions.setMaxItemCount(preferredPageSize);
+        if (!this.isTracerEnabled) {
+            return this.optionsFluxFunction.apply(cosmosPagedFluxOptions);
+        }
+
         return FluxUtil.fluxContext(context -> byPage(cosmosPagedFluxOptions, context));
     }
 
     /**
-     * Subscribe to consume all items of type {@code T} in the sequence respectively. This is recommended for most
-     * common scenarios. This will seamlessly fetch next page when required and provide with a {@link Flux} of items.
+     * Subscribe to consume all items of type {@code T} in the sequence respectively.
+     * This is recommended for most common scenarios. This will seamlessly fetch next
+     * page when required and provide with a {@link Flux} of items.
      *
      * @param coreSubscriber The subscriber for this {@link CosmosPagedFlux}
      */
     @Override
-    public void subscribe(@SuppressWarnings("NullableProblems") CoreSubscriber<? super T> coreSubscriber) {
+    public void subscribe(CoreSubscriber<? super T> coreSubscriber) {
         Flux<FeedResponse<T>> pagedResponse = this.byPage();
         pagedResponse.flatMap(tFeedResponse -> {
             IterableStream<T> elements = tFeedResponse.getElements();
@@ -129,203 +106,18 @@ public final class CosmosPagedFlux<T> extends ContinuablePagedFlux<String, T, Fe
         }).subscribe(coreSubscriber);
     }
 
-    CosmosPagedFlux<T> withDefaultPageSize(int pageSize) {
-        return new CosmosPagedFlux<>(this.optionsFluxFunction, this.feedResponseConsumer, pageSize);
-    }
-
-    private CosmosPagedFluxOptions createCosmosPagedFluxOptions() {
-        CosmosPagedFluxOptions cosmosPagedFluxOptions = new CosmosPagedFluxOptions();
-
-        if (this.defaultPageSize > 0) {
-            cosmosPagedFluxOptions.setMaxItemCount(this.defaultPageSize);
-        }
-
-        return cosmosPagedFluxOptions;
-    }
-
-    private Flux<FeedResponse<T>>  wrapWithTracingIfEnabled(CosmosPagedFluxOptions pagedFluxOptions,
-                                                             Flux<FeedResponse<T>> publisher,
-                                                             AtomicLong feedResponseConsumerLatencyInNanos,
-                                                             Context context) {
-        FeedOperationState state = pagedFluxOptions.getFeedOperationState();
-        DiagnosticsProvider tracerProvider = state != null ? state.getDiagnosticsProvider() : null;
-        Object lockHolder = new Object();
-        if (tracerProvider == null ||
-            !tracerProvider.isEnabled()
-            || tracerProvider.shouldSampleOutOperation(pagedFluxOptions)) {
-
-            return publisher
-                .doOnEach(signal -> {
-                    FeedResponse<T> response = signal.get();
-                    synchronized (lockHolder) {
-                        switch (signal.getType()) {
-                            case ON_COMPLETE:
-                            case ON_NEXT:
-                                this.recordFeedResponse(pagedFluxOptions, tracerProvider, response, feedResponseConsumerLatencyInNanos);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                });
-        }
-
-        Flux<FeedResponse<T>> result = tracerProvider
-            .runUnderSpanInContext(publisher)
-            .doOnEach(signal -> {
-                FeedResponse<T> response = signal.get();
-                Context traceCtx = DiagnosticsProvider.getContextFromReactorOrNull(signal.getContextView());
-
-                synchronized (lockHolder) {
-                    switch (signal.getType()) {
-                        case ON_COMPLETE:
-                            if (response != null) {
-                                this.recordFeedResponse(pagedFluxOptions, tracerProvider, response, feedResponseConsumerLatencyInNanos);
-                            }
-                            state.mergeDiagnosticsContext();
-
-                            CosmosDiagnosticsContext ctxSnapshot = state.getDiagnosticsContextSnapshot();
-                            tracerProvider.recordFeedResponseConsumerLatency(
-                                signal,
-                                ctxSnapshot,
-                                Duration.ofNanos(feedResponseConsumerLatencyInNanos.get()));
-
-                            tracerProvider.endSpan(ctxSnapshot, traceCtx, ctxAccessor.isEmptyCompletion(ctxSnapshot));
-
-                            break;
-                        case ON_NEXT:
-                            this.recordFeedResponse(pagedFluxOptions, tracerProvider, response, feedResponseConsumerLatencyInNanos);
-                            state.mergeDiagnosticsContext();
-                            tracerProvider.endSpan(state.getDiagnosticsContextSnapshot(), traceCtx, false);
-                            state.resetDiagnosticsContext();
-
-                            DiagnosticsProvider.setContextInReactor(tracerProvider.startSpan(
-                                state.getSpanName(),
-                                state.getDiagnosticsContextSnapshot(),
-                                traceCtx));
-
-                            break;
-
-                        case ON_ERROR:
-                            state.mergeDiagnosticsContext();
-                            tracerProvider.recordFeedResponseConsumerLatency(
-                                signal,
-                                state.getDiagnosticsContextSnapshot(),
-                                Duration.ofNanos(feedResponseConsumerLatencyInNanos.get()));
-
-                            // all info is extracted from CosmosException when applicable
-                            tracerProvider.endSpan(
-                                state.getDiagnosticsContextSnapshot(),
-                                traceCtx,
-                                signal.getThrowable()
-                            );
-
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-            });
-
-        return Flux
-            .deferContextual(reactorCtx -> result
-                .doOnCancel(() -> {
-                    Context traceCtx = DiagnosticsProvider.getContextFromReactorOrNull(reactorCtx);
-                    synchronized (lockHolder) {
-                        state.mergeDiagnosticsContext();
-
-                        tracerProvider.endSpan(state.getDiagnosticsContextSnapshot(), traceCtx, false);
-                    }
-                })
-                .doOnComplete(() -> {
-                    Context traceCtx = DiagnosticsProvider.getContextFromReactorOrNull(reactorCtx);
-                    synchronized(lockHolder) {
-                        state.mergeDiagnosticsContext();
-
-                        CosmosDiagnosticsContext ctxSnapshot = state.getDiagnosticsContextSnapshot();
-                        tracerProvider.endSpan(ctxSnapshot, traceCtx, ctxAccessor.isEmptyCompletion(ctxSnapshot));
-                    }
-                }))
-            .contextWrite(DiagnosticsProvider.setContextInReactor(
-                tracerProvider.startSpan(
-                    state.getSpanName(),
-                    state.getDiagnosticsContextSnapshot(),
-                    context)
-            ));
-    }
-
-    private void recordFeedResponse(
-        CosmosPagedFluxOptions pagedFluxOptions,
-        DiagnosticsProvider tracerProvider,
-        FeedResponse<T> response,
-        AtomicLong feedResponseConsumerLatencyInNanos) {
-
-        CosmosDiagnostics diagnostics = response != null ? response.getCosmosDiagnostics() : null;
-
-        Integer actualItemCount = response != null && response.getResults() != null ?
-            response.getResults().size() : null;
-
-        if (diagnostics != null &&
-            cosmosDiagnosticsAccessor
-                .isDiagnosticsCapturedInPagedFlux(diagnostics)
-                .compareAndSet(false, true)) {
-
-            if (pagedFluxOptions.getSamplingRateSnapshot() < 1) {
-                cosmosDiagnosticsAccessor
-                    .setSamplingRateSnapshot(diagnostics, pagedFluxOptions.getSamplingRateSnapshot());
-            }
-
-            if (isTracerEnabled(tracerProvider)) {
-                tracerProvider.recordPage(
-                    pagedFluxOptions.getFeedOperationState().getDiagnosticsContextSnapshot(),
-                    diagnostics,
-                    actualItemCount,
-                    response.getRequestCharge());
-            }
-
-            //  If the user has passed feedResponseConsumer, then call it with each feedResponse
-            if (feedResponseConsumer != null) {
-                // NOTE this call is happening in a span counted against client telemetry / metric latency
-                // So, the latency of the user's callback is accumulated here to correct the latency
-                // reported to client telemetry and client metrics
-                Instant feedResponseConsumerStart = Instant.now();
-                feedResponseConsumer.accept(response);
-                feedResponseConsumerLatencyInNanos.addAndGet(
-                    Duration.between(Instant.now(), feedResponseConsumerStart).toNanos());
-            }
-        }
-    }
-
     private Flux<FeedResponse<T>> byPage(CosmosPagedFluxOptions pagedFluxOptions, Context context) {
-        AtomicReference<Instant> startTime = new AtomicReference<>();
-        AtomicLong feedResponseConsumerLatencyInNanos = new AtomicLong(0);
-
-        Flux<FeedResponse<T>> result =
-            wrapWithTracingIfEnabled(
-                pagedFluxOptions,
-                this.optionsFluxFunction.apply(pagedFluxOptions),
-                feedResponseConsumerLatencyInNanos,
-                context)
-                .doOnSubscribe(ignoredValue -> {
-                    startTime.set(Instant.now());
-                    feedResponseConsumerLatencyInNanos.set(0);
-                });
-
-        return result;
+        final AtomicReference<Context> parentContext = new AtomicReference<>(Context.NONE);
+        return this.optionsFluxFunction.apply(pagedFluxOptions).doOnSubscribe(ignoredValue -> {
+            parentContext.set(pagedFluxOptions.getTracerProvider().startSpan(pagedFluxOptions.getTracerSpanName(),
+                pagedFluxOptions.getDatabaseId(), pagedFluxOptions.getServiceEndpoint(),
+                context));
+        }).doOnComplete(() -> {
+            pagedFluxOptions.getTracerProvider().endSpan(parentContext.get(), Signal.complete(),
+                HttpConstants.StatusCodes.OK);
+        }).doOnError(throwable -> {
+            pagedFluxOptions.getTracerProvider().endSpan(parentContext.get(), Signal.error(throwable),
+                TracerProvider.ERROR_CODE);
+        });
     }
-
-    private boolean isTracerEnabled(DiagnosticsProvider tracerProvider) {
-        return tracerProvider != null;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // the following helper/accessor only helps to access this class outside of this package.//
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    static void initialize() {
-        ImplementationBridgeHelpers.CosmosPageFluxHelper.setCosmosPageFluxAccessor(
-            (ImplementationBridgeHelpers.CosmosPageFluxHelper.CosmosPageFluxAccessor) CosmosPagedFlux::new);
-    }
-
-    static { initialize(); }
 }

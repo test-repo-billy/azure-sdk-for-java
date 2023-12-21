@@ -32,7 +32,7 @@
     },
     "searchSku": {
       "type": "string",
-      "defaultValue": "basic",
+      "defaultValue": "free",
       "allowedValues": [
         "free",
         "basic",
@@ -46,8 +46,9 @@
   "variables": {
     "searchServiceName": "[concat('azs-java-', parameters('baseName'))]",
     "searchApiVersion": "2020-03-13",
-    "storageAccountName": "[concat('search', parameters('baseName'))]",
-    "storageApiVersion": "2022-05-01"
+    "storageAccountName": "[concat('azsstg', parameters('baseName'))]",
+    "storageContainerName": "[concat('azscontainer', parameters('baseName'))]",
+    "storageApiVersion": "2019-06-01"
   },
   "resources": [
     {
@@ -61,7 +62,7 @@
       "properties": {
         "replicaCount": 1,
         "partitionCount": 1,
-        "hostingMode": "Default",
+        "hostingMode": "default",
         "publicNetworkAccess": "Enabled",
         "networkRuleSet": {
           "ipRules": []
@@ -75,8 +76,7 @@
       "location": "[parameters('location')]",
       "properties": {
         "accessTier": "Hot",
-        "supportsHttpsTrafficOnly": true,
-        "minimumTlsVersion": "TLS1_2"
+        "supportsHttpsTrafficOnly": true
       },
       "sku": {
         "name": "Standard_LRS",
@@ -85,8 +85,8 @@
       "kind": "StorageV2",
       "resources": [
         {
-          "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-          "name": "[concat(variables('storageAccountName'), '/default/', 'searchcontainer')]",
+          "type": "blobServices/containers",
+          "name": "[concat('default/', variables('storageContainerName'))]",
           "apiVersion": "[variables('storageApiVersion')]",
           "properties": {},
           "dependsOn": [
@@ -112,6 +112,10 @@
     "SEARCH_STORAGE_CONNECTION_STRING": {
       "type": "string",
       "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountName'), variables('storageApiVersion')).keys[0].value, ';EndpointSuffix=', parameters('storageEndpointSuffix'))]"
+    },
+    "SEARCH_STORAGE_CONTAINER_NAME": {
+      "type": "string",
+      "value": "[variables('storageContainerName')]"
     }
   }
 }

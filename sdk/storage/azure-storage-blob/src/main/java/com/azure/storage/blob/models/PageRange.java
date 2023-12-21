@@ -8,27 +8,26 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** The PageRange model. */
+/**
+ * The PageRange model.
+ */
 @JacksonXmlRootElement(localName = "PageRange")
 @Fluent
 public final class PageRange {
     /*
-     * The Start property.
+     * The start property.
      */
     @JsonProperty(value = "Start", required = true)
     private long start;
 
     /*
-     * The End property.
+     * The end property.
      */
     @JsonProperty(value = "End", required = true)
     private long end;
 
-    /** Creates an instance of PageRange class. */
-    public PageRange() {}
-
     /**
-     * Get the start property: The Start property.
+     * Get the start property: The start property.
      *
      * @return the start value.
      */
@@ -37,7 +36,7 @@ public final class PageRange {
     }
 
     /**
-     * Set the start property: The Start property.
+     * Set the start property: The start property.
      *
      * @param start the start value to set.
      * @return the PageRange object itself.
@@ -48,7 +47,7 @@ public final class PageRange {
     }
 
     /**
-     * Get the end property: The End property.
+     * Get the end property: The end property.
      *
      * @return the end value.
      */
@@ -57,7 +56,7 @@ public final class PageRange {
     }
 
     /**
-     * Set the end property: The End property.
+     * Set the end property: The end property.
      *
      * @param end the end value to set.
      * @return the PageRange object itself.

@@ -13,17 +13,13 @@ import com.microsoft.azure.cognitiveservices.vision.computervision.models.TagIma
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.RecognizePrintedTextInStreamOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.AnalyzeImageByDomainInStreamOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.GenerateThumbnailInStreamOptionalParameter;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.DetectObjectsInStreamOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.DescribeImageInStreamOptionalParameter;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.GetAreaOfInterestInStreamOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.AnalyzeImageInStreamOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.ReadOptionalParameter;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.GetAreaOfInterestOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.GenerateThumbnailOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.TagImageOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.RecognizePrintedTextOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.AnalyzeImageByDomainOptionalParameter;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.DetectObjectsOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.DescribeImageOptionalParameter;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.AnalyzeImageOptionalParameter;
 import retrofit2.Retrofit;
@@ -32,8 +28,7 @@ import com.google.common.base.Joiner;
 import com.google.common.reflect.TypeToken;
 import com.microsoft.azure.CloudException;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.AreaOfInterestResult;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.ComputerVisionErrorResponseException;
-import com.microsoft.azure.cognitiveservices.vision.computervision.models.ComputerVisionOcrErrorException;
+import com.microsoft.azure.cognitiveservices.vision.computervision.models.ComputerVisionErrorException;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.DescriptionExclude;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.Details;
 import com.microsoft.azure.cognitiveservices.vision.computervision.models.DetectResult;
@@ -103,40 +98,40 @@ public class ComputerVisionImpl implements ComputerVision {
     interface ComputerVisionService {
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision readInStream" })
         @POST("read/analyze")
-        Observable<Response<ResponseBody>> readInStream(@Query("language") OcrDetectionLanguage language, @Body RequestBody image, @Query("pages") String pages, @Query("model-version") String modelVersion, @Query("readingOrder") String readingOrder, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> readInStream(@Query("language") OcrDetectionLanguage language, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision tagImageInStream" })
         @POST("tag")
-        Observable<Response<ResponseBody>> tagImageInStream(@Query("language") String language, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> tagImageInStream(@Query("language") String language, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision recognizePrintedTextInStream" })
         @POST("ocr")
-        Observable<Response<ResponseBody>> recognizePrintedTextInStream(@Query("detectOrientation") boolean detectOrientation, @Query("language") OcrLanguages language, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> recognizePrintedTextInStream(@Query("detectOrientation") boolean detectOrientation, @Query("language") OcrLanguages language, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision analyzeImageByDomainInStream" })
         @POST("models/{model}/analyze")
-        Observable<Response<ResponseBody>> analyzeImageByDomainInStream(@Path("model") String model, @Query("language") String language, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> analyzeImageByDomainInStream(@Path("model") String model, @Query("language") String language, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision generateThumbnailInStream" })
         @POST("generateThumbnail")
         @Streaming
-        Observable<Response<ResponseBody>> generateThumbnailInStream(@Query("width") int width, @Query("height") int height, @Query("smartCropping") Boolean smartCropping, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> generateThumbnailInStream(@Query("width") int width, @Query("height") int height, @Query("smartCropping") Boolean smartCropping, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision detectObjectsInStream" })
         @POST("detect")
-        Observable<Response<ResponseBody>> detectObjectsInStream(@Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> detectObjectsInStream(@Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision describeImageInStream" })
         @POST("describe")
-        Observable<Response<ResponseBody>> describeImageInStream(@Query("maxCandidates") Integer maxCandidates, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> describeImageInStream(@Query("maxCandidates") Integer maxCandidates, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision getAreaOfInterestInStream" })
         @POST("areaOfInterest")
-        Observable<Response<ResponseBody>> getAreaOfInterestInStream(@Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> getAreaOfInterestInStream(@Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/octet-stream", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision analyzeImageInStream" })
         @POST("analyze")
-        Observable<Response<ResponseBody>> analyzeImageInStream(@Query("visualFeatures") String visualFeatures, @Query("details") String details, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Body RequestBody image, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> analyzeImageInStream(@Query("visualFeatures") String visualFeatures, @Query("details") String details, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Body RequestBody image, @Header("accept-language") String acceptLanguage, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision getReadResult" })
         @GET("read/analyzeResults/{operationId}")
@@ -144,28 +139,28 @@ public class ComputerVisionImpl implements ComputerVision {
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision read" })
         @POST("read/analyze")
-        Observable<Response<ResponseBody>> read(@Query("language") OcrDetectionLanguage language, @Query("pages") String pages, @Query("model-version") String modelVersion, @Query("readingOrder") String readingOrder, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> read(@Query("language") OcrDetectionLanguage language, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision getAreaOfInterest" })
         @POST("areaOfInterest")
-        Observable<Response<ResponseBody>> getAreaOfInterest(@Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> getAreaOfInterest(@Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision generateThumbnail" })
         @POST("generateThumbnail")
         @Streaming
-        Observable<Response<ResponseBody>> generateThumbnail(@Query("width") int width, @Query("height") int height, @Query("smartCropping") Boolean smartCropping, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> generateThumbnail(@Query("width") int width, @Query("height") int height, @Query("smartCropping") Boolean smartCropping, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision tagImage" })
         @POST("tag")
-        Observable<Response<ResponseBody>> tagImage(@Query("language") String language, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> tagImage(@Query("language") String language, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision recognizePrintedText" })
         @POST("ocr")
-        Observable<Response<ResponseBody>> recognizePrintedText(@Query("detectOrientation") boolean detectOrientation, @Query("language") OcrLanguages language, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> recognizePrintedText(@Query("detectOrientation") boolean detectOrientation, @Query("language") OcrLanguages language, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision analyzeImageByDomain" })
         @POST("models/{model}/analyze")
-        Observable<Response<ResponseBody>> analyzeImageByDomain(@Path("model") String model, @Query("language") String language, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> analyzeImageByDomain(@Path("model") String model, @Query("language") String language, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision listModels" })
         @GET("models")
@@ -173,15 +168,15 @@ public class ComputerVisionImpl implements ComputerVision {
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision detectObjects" })
         @POST("detect")
-        Observable<Response<ResponseBody>> detectObjects(@Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> detectObjects(@Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision describeImage" })
         @POST("describe")
-        Observable<Response<ResponseBody>> describeImage(@Query("maxCandidates") Integer maxCandidates, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> describeImage(@Query("maxCandidates") Integer maxCandidates, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.cognitiveservices.vision.computervision.ComputerVision analyzeImage" })
         @POST("analyze")
-        Observable<Response<ResponseBody>> analyzeImage(@Query("visualFeatures") String visualFeatures, @Query("details") String details, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Query("model-version") String modelVersion, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+        Observable<Response<ResponseBody>> analyzeImage(@Query("visualFeatures") String visualFeatures, @Query("details") String details, @Query("language") String language, @Query("descriptionExclude") String descriptionExclude1, @Header("accept-language") String acceptLanguage, @Body ImageUrl imageUrl, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
 
     }
 
@@ -192,7 +187,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param readInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionOcrErrorException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      */
     public void readInStream(byte[] image, ReadInStreamOptionalParameter readInStreamOptionalParameter) {
@@ -245,36 +240,28 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
         final OcrDetectionLanguage language = readInStreamOptionalParameter != null ? readInStreamOptionalParameter.language() : null;
-        final List<String> pages = readInStreamOptionalParameter != null ? readInStreamOptionalParameter.pages() : null;
-        final String modelVersion = readInStreamOptionalParameter != null ? readInStreamOptionalParameter.modelVersion() : null;
-        final String readingOrder = readInStreamOptionalParameter != null ? readInStreamOptionalParameter.readingOrder() : null;
 
-        return readInStreamWithServiceResponseAsync(image, language, pages, modelVersion, readingOrder);
+        return readInStreamWithServiceResponseAsync(image, language);
     }
 
     /**
      * Use this interface to get the result of a Read operation, employing the state-of-the-art Optical Character Recognition (OCR) algorithms optimized for text-heavy documents. When you use the Read interface, the response contains a field called 'Operation-Location'. The 'Operation-Location' field contains the URL that you must use for your 'GetReadResult' operation to access OCR results.​.
      *
      * @param image An image stream.
-     * @param language The BCP-47 language code of the text in the document. Read supports auto language identification and multi-language documents, so only provide a language code if you would like to force the document to be processed in that specific language. See https://aka.ms/ocr-languages for list of supported languages. Possible values include: 'af', 'ast', 'bi', 'br', 'ca', 'ceb', 'ch', 'co', 'crh', 'cs', 'csb', 'da', 'de', 'en', 'es', 'et', 'eu', 'fi', 'fil', 'fj', 'fr', 'fur', 'fy', 'ga', 'gd', 'gil', 'gl', 'gv', 'hni', 'hsb', 'ht', 'hu', 'ia', 'id', 'it', 'iu', 'ja', 'jv', 'kaa', 'kac', 'kea', 'kha', 'kl', 'ko', 'ku', 'kw', 'lb', 'ms', 'mww', 'nap', 'nl', 'no', 'oc', 'pl', 'pt', 'quc', 'rm', 'sco', 'sl', 'sq', 'sv', 'sw', 'tet', 'tr', 'tt', 'uz', 'vo', 'wae', 'yua', 'za', 'zh-Hans', 'zh-Hant', 'zu'
-     * @param pages Custom page numbers for multi-page documents(PDF/TIFF), input the number of the pages you want to get OCR result. For a range of pages, use a hyphen. Separate each page or range with a comma.
-     * @param modelVersion Optional parameter to specify the version of the OCR model used for text extraction. Accepted values are: "latest", "latest-preview", "2021-04-12". Defaults to "latest".
-     * @param readingOrder Optional parameter to specify which reading order algorithm should be applied when ordering the extract text elements. Can be either 'basic' or 'natural'. Will default to 'basic' if not specified
+     * @param language The BCP-47 language code of the text to be detected in the image. In future versions, when language parameter is not passed, language detection will be used to determine the language. However, in the current version, missing language parameter will cause English to be used. To ensure that your document is always parsed in English without the use of language detection in the future, pass “en” in the language parameter. Possible values include: 'en', 'es', 'fr', 'de', 'it', 'nl', 'pt'
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceResponseWithHeaders} object if successful.
      */
-    public Observable<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>> readInStreamWithServiceResponseAsync(byte[] image, OcrDetectionLanguage language, List<String> pages, String modelVersion, String readingOrder) {
+    public Observable<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>> readInStreamWithServiceResponseAsync(byte[] image, OcrDetectionLanguage language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
         if (image == null) {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
-        Validator.validate(pages);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        String pagesConverted = this.client.serializerAdapter().serializeList(pages, CollectionFormat.CSV);
-        return service.readInStream(language, imageConverted, pagesConverted, modelVersion, readingOrder, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.readInStream(language, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>>>() {
                 @Override
                 public Observable<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>> call(Response<ResponseBody> response) {
@@ -288,10 +275,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponseWithHeaders<Void, ReadInStreamHeaders> readInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionOcrErrorException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<Void, ComputerVisionOcrErrorException>newInstance(this.client.serializerAdapter())
+    private ServiceResponseWithHeaders<Void, ReadInStreamHeaders> readInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<Void, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(202, new TypeToken<Void>() { }.getType())
-                .registerError(ComputerVisionOcrErrorException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .buildWithHeaders(response, ReadInStreamHeaders.class);
     }
 
@@ -307,9 +294,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private ComputerVisionImpl parent;
         private byte[] image;
         private OcrDetectionLanguage language;
-        private List<String> pages;
-        private String modelVersion;
-        private String readingOrder;
 
         /**
          * Constructor.
@@ -332,31 +316,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionReadInStreamParameters withPages(List<String> pages) {
-            this.pages = pages;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionReadInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionReadInStreamParameters withReadingOrder(String readingOrder) {
-            this.readingOrder = readingOrder;
-            return this;
-        }
-
-        @Override
         public void execute() {
-        readInStreamWithServiceResponseAsync(image, language, pages, modelVersion, readingOrder).toBlocking().single().body();
+        readInStreamWithServiceResponseAsync(image, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<Void> executeAsync() {
-            return readInStreamWithServiceResponseAsync(image, language, pages, modelVersion, readingOrder).map(new Func1<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>, Void>() {
+            return readInStreamWithServiceResponseAsync(image, language).map(new Func1<ServiceResponseWithHeaders<Void, ReadInStreamHeaders>, Void>() {
                 @Override
                 public Void call(ServiceResponseWithHeaders<Void, ReadInStreamHeaders> response) {
                     return response.body();
@@ -374,7 +340,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param tagImageInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the TagResult object if successful.
      */
@@ -434,9 +400,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
         final String language = tagImageInStreamOptionalParameter != null ? tagImageInStreamOptionalParameter.language() : null;
-        final String modelVersion = tagImageInStreamOptionalParameter != null ? tagImageInStreamOptionalParameter.modelVersion() : null;
 
-        return tagImageInStreamWithServiceResponseAsync(image, language, modelVersion);
+        return tagImageInStreamWithServiceResponseAsync(image, language);
     }
 
     /**
@@ -446,11 +411,10 @@ public class ComputerVisionImpl implements ComputerVision {
      *
      * @param image An image stream.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the TagResult object
      */
-    public Observable<ServiceResponse<TagResult>> tagImageInStreamWithServiceResponseAsync(byte[] image, String language, String modelVersion) {
+    public Observable<ServiceResponse<TagResult>> tagImageInStreamWithServiceResponseAsync(byte[] image, String language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -459,7 +423,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.tagImageInStream(language, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.tagImageInStream(language, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<TagResult>>>() {
                 @Override
                 public Observable<ServiceResponse<TagResult>> call(Response<ResponseBody> response) {
@@ -473,10 +437,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<TagResult> tagImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<TagResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<TagResult> tagImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<TagResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<TagResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -492,7 +456,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private ComputerVisionImpl parent;
         private byte[] image;
         private String language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -515,19 +478,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionTagImageInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public TagResult execute() {
-        return tagImageInStreamWithServiceResponseAsync(image, language, modelVersion).toBlocking().single().body();
+        return tagImageInStreamWithServiceResponseAsync(image, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<TagResult> executeAsync() {
-            return tagImageInStreamWithServiceResponseAsync(image, language, modelVersion).map(new Func1<ServiceResponse<TagResult>, TagResult>() {
+            return tagImageInStreamWithServiceResponseAsync(image, language).map(new Func1<ServiceResponse<TagResult>, TagResult>() {
                 @Override
                 public TagResult call(ServiceResponse<TagResult> response) {
                     return response.body();
@@ -546,7 +503,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param recognizePrintedTextInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the OcrResult object if successful.
      */
@@ -609,9 +566,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
         final OcrLanguages language = recognizePrintedTextInStreamOptionalParameter != null ? recognizePrintedTextInStreamOptionalParameter.language() : null;
-        final String modelVersion = recognizePrintedTextInStreamOptionalParameter != null ? recognizePrintedTextInStreamOptionalParameter.modelVersion() : null;
 
-        return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language, modelVersion);
+        return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language);
     }
 
     /**
@@ -622,11 +578,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param detectOrientation Whether detect the text orientation in the image. With detectOrientation=true the OCR service tries to detect the image orientation and correct it before further processing (e.g. if it's upside-down).
      * @param image An image stream.
      * @param language The BCP-47 language code of the text to be detected in the image. The default value is 'unk'. Possible values include: 'unk', 'zh-Hans', 'zh-Hant', 'cs', 'da', 'nl', 'en', 'fi', 'fr', 'de', 'el', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'pt', 'ru', 'es', 'sv', 'tr', 'ar', 'ro', 'sr-Cyrl', 'sr-Latn', 'sk'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the OcrResult object
      */
-    public Observable<ServiceResponse<OcrResult>> recognizePrintedTextInStreamWithServiceResponseAsync(boolean detectOrientation, byte[] image, OcrLanguages language, String modelVersion) {
+    public Observable<ServiceResponse<OcrResult>> recognizePrintedTextInStreamWithServiceResponseAsync(boolean detectOrientation, byte[] image, OcrLanguages language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -635,7 +590,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.recognizePrintedTextInStream(detectOrientation, language, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.recognizePrintedTextInStream(detectOrientation, language, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<OcrResult>>>() {
                 @Override
                 public Observable<ServiceResponse<OcrResult>> call(Response<ResponseBody> response) {
@@ -649,10 +604,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<OcrResult> recognizePrintedTextInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<OcrResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<OcrResult> recognizePrintedTextInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<OcrResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<OcrResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -669,7 +624,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private boolean detectOrientation;
         private byte[] image;
         private OcrLanguages language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -698,19 +652,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionRecognizePrintedTextInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public OcrResult execute() {
-        return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language, modelVersion).toBlocking().single().body();
+        return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<OcrResult> executeAsync() {
-            return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language, modelVersion).map(new Func1<ServiceResponse<OcrResult>, OcrResult>() {
+            return recognizePrintedTextInStreamWithServiceResponseAsync(detectOrientation, image, language).map(new Func1<ServiceResponse<OcrResult>, OcrResult>() {
                 @Override
                 public OcrResult call(ServiceResponse<OcrResult> response) {
                     return response.body();
@@ -730,7 +678,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param analyzeImageByDomainInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DomainModelResults object if successful.
      */
@@ -799,9 +747,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
         final String language = analyzeImageByDomainInStreamOptionalParameter != null ? analyzeImageByDomainInStreamOptionalParameter.language() : null;
-        final String modelVersion = analyzeImageByDomainInStreamOptionalParameter != null ? analyzeImageByDomainInStreamOptionalParameter.modelVersion() : null;
 
-        return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language, modelVersion);
+        return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language);
     }
 
     /**
@@ -813,11 +760,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param model The domain-specific content to recognize.
      * @param image An image stream.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DomainModelResults object
      */
-    public Observable<ServiceResponse<DomainModelResults>> analyzeImageByDomainInStreamWithServiceResponseAsync(String model, byte[] image, String language, String modelVersion) {
+    public Observable<ServiceResponse<DomainModelResults>> analyzeImageByDomainInStreamWithServiceResponseAsync(String model, byte[] image, String language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -829,7 +775,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.analyzeImageByDomainInStream(model, language, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.analyzeImageByDomainInStream(model, language, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DomainModelResults>>>() {
                 @Override
                 public Observable<ServiceResponse<DomainModelResults>> call(Response<ResponseBody> response) {
@@ -843,10 +789,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<DomainModelResults> analyzeImageByDomainInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<DomainModelResults, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<DomainModelResults> analyzeImageByDomainInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<DomainModelResults, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<DomainModelResults>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -863,7 +809,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private String model;
         private byte[] image;
         private String language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -892,19 +837,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionAnalyzeImageByDomainInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public DomainModelResults execute() {
-        return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language, modelVersion).toBlocking().single().body();
+        return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<DomainModelResults> executeAsync() {
-            return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language, modelVersion).map(new Func1<ServiceResponse<DomainModelResults>, DomainModelResults>() {
+            return analyzeImageByDomainInStreamWithServiceResponseAsync(model, image, language).map(new Func1<ServiceResponse<DomainModelResults>, DomainModelResults>() {
                 @Override
                 public DomainModelResults call(ServiceResponse<DomainModelResults> response) {
                     return response.body();
@@ -990,9 +929,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter image is required and cannot be null.");
         }
         final Boolean smartCropping = generateThumbnailInStreamOptionalParameter != null ? generateThumbnailInStreamOptionalParameter.smartCropping() : null;
-        final String modelVersion = generateThumbnailInStreamOptionalParameter != null ? generateThumbnailInStreamOptionalParameter.modelVersion() : null;
 
-        return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping, modelVersion);
+        return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping);
     }
 
     /**
@@ -1004,11 +942,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param height Height of the thumbnail, in pixels. It must be between 1 and 1024. Recommended minimum of 50.
      * @param image An image stream.
      * @param smartCropping Boolean flag for enabling smart cropping.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the InputStream object
      */
-    public Observable<ServiceResponse<InputStream>> generateThumbnailInStreamWithServiceResponseAsync(int width, int height, byte[] image, Boolean smartCropping, String modelVersion) {
+    public Observable<ServiceResponse<InputStream>> generateThumbnailInStreamWithServiceResponseAsync(int width, int height, byte[] image, Boolean smartCropping) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -1017,7 +954,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.generateThumbnailInStream(width, height, smartCropping, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.generateThumbnailInStream(width, height, smartCropping, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<InputStream>>>() {
                 @Override
                 public Observable<ServiceResponse<InputStream>> call(Response<ResponseBody> response) {
@@ -1052,7 +989,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private int height;
         private byte[] image;
         private Boolean smartCropping;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -1087,19 +1023,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionGenerateThumbnailInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public InputStream execute() {
-        return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping, modelVersion).toBlocking().single().body();
+        return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping).toBlocking().single().body();
     }
 
         @Override
         public Observable<InputStream> executeAsync() {
-            return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping, modelVersion).map(new Func1<ServiceResponse<InputStream>, InputStream>() {
+            return generateThumbnailInStreamWithServiceResponseAsync(width, height, image, smartCropping).map(new Func1<ServiceResponse<InputStream>, InputStream>() {
                 @Override
                 public InputStream call(ServiceResponse<InputStream> response) {
                     return response.body();
@@ -1108,21 +1038,19 @@ public class ComputerVisionImpl implements ComputerVision {
         }
     }
 
-
     /**
      * Performs object detection on the specified image.
      Two input methods are supported -- (1) Uploading an image or (2) specifying an image URL.
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param image An image stream.
-     * @param detectObjectsInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DetectResult object if successful.
      */
-    public DetectResult detectObjectsInStream(byte[] image, DetectObjectsInStreamOptionalParameter detectObjectsInStreamOptionalParameter) {
-        return detectObjectsInStreamWithServiceResponseAsync(image, detectObjectsInStreamOptionalParameter).toBlocking().single().body();
+    public DetectResult detectObjectsInStream(byte[] image) {
+        return detectObjectsInStreamWithServiceResponseAsync(image).toBlocking().single().body();
     }
 
     /**
@@ -1131,13 +1059,12 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param image An image stream.
-     * @param detectObjectsInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<DetectResult> detectObjectsInStreamAsync(byte[] image, DetectObjectsInStreamOptionalParameter detectObjectsInStreamOptionalParameter, final ServiceCallback<DetectResult> serviceCallback) {
-        return ServiceFuture.fromResponse(detectObjectsInStreamWithServiceResponseAsync(image, detectObjectsInStreamOptionalParameter), serviceCallback);
+    public ServiceFuture<DetectResult> detectObjectsInStreamAsync(byte[] image, final ServiceCallback<DetectResult> serviceCallback) {
+        return ServiceFuture.fromResponse(detectObjectsInStreamWithServiceResponseAsync(image), serviceCallback);
     }
 
     /**
@@ -1146,12 +1073,11 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param image An image stream.
-     * @param detectObjectsInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DetectResult object
      */
-    public Observable<DetectResult> detectObjectsInStreamAsync(byte[] image, DetectObjectsInStreamOptionalParameter detectObjectsInStreamOptionalParameter) {
-        return detectObjectsInStreamWithServiceResponseAsync(image, detectObjectsInStreamOptionalParameter).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
+    public Observable<DetectResult> detectObjectsInStreamAsync(byte[] image) {
+        return detectObjectsInStreamWithServiceResponseAsync(image).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
             @Override
             public DetectResult call(ServiceResponse<DetectResult> response) {
                 return response.body();
@@ -1165,33 +1091,10 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param image An image stream.
-     * @param detectObjectsInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DetectResult object
      */
-    public Observable<ServiceResponse<DetectResult>> detectObjectsInStreamWithServiceResponseAsync(byte[] image, DetectObjectsInStreamOptionalParameter detectObjectsInStreamOptionalParameter) {
-        if (this.client.endpoint() == null) {
-            throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
-        }
-        if (image == null) {
-            throw new IllegalArgumentException("Parameter image is required and cannot be null.");
-        }
-        final String modelVersion = detectObjectsInStreamOptionalParameter != null ? detectObjectsInStreamOptionalParameter.modelVersion() : null;
-
-        return detectObjectsInStreamWithServiceResponseAsync(image, modelVersion);
-    }
-
-    /**
-     * Performs object detection on the specified image.
-     Two input methods are supported -- (1) Uploading an image or (2) specifying an image URL.
-     A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
-     *
-     * @param image An image stream.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the DetectResult object
-     */
-    public Observable<ServiceResponse<DetectResult>> detectObjectsInStreamWithServiceResponseAsync(byte[] image, String modelVersion) {
+    public Observable<ServiceResponse<DetectResult>> detectObjectsInStreamWithServiceResponseAsync(byte[] image) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -1200,7 +1103,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.detectObjectsInStream(imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.detectObjectsInStream(imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DetectResult>>>() {
                 @Override
                 public Observable<ServiceResponse<DetectResult>> call(Response<ResponseBody> response) {
@@ -1214,60 +1117,11 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<DetectResult> detectObjectsInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<DetectResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<DetectResult> detectObjectsInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<DetectResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<DetectResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
-    }
-
-    @Override
-    public ComputerVisionDetectObjectsInStreamParameters detectObjectsInStream() {
-        return new ComputerVisionDetectObjectsInStreamParameters(this);
-    }
-
-    /**
-     * Internal class implementing ComputerVisionDetectObjectsInStreamDefinition.
-     */
-    class ComputerVisionDetectObjectsInStreamParameters implements ComputerVisionDetectObjectsInStreamDefinition {
-        private ComputerVisionImpl parent;
-        private byte[] image;
-        private String modelVersion;
-
-        /**
-         * Constructor.
-         * @param parent the parent object.
-         */
-        ComputerVisionDetectObjectsInStreamParameters(ComputerVisionImpl parent) {
-            this.parent = parent;
-        }
-
-        @Override
-        public ComputerVisionDetectObjectsInStreamParameters withImage(byte[] image) {
-            this.image = image;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionDetectObjectsInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public DetectResult execute() {
-        return detectObjectsInStreamWithServiceResponseAsync(image, modelVersion).toBlocking().single().body();
-    }
-
-        @Override
-        public Observable<DetectResult> executeAsync() {
-            return detectObjectsInStreamWithServiceResponseAsync(image, modelVersion).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
-                @Override
-                public DetectResult call(ServiceResponse<DetectResult> response) {
-                    return response.body();
-                }
-            });
-        }
     }
 
 
@@ -1279,7 +1133,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param describeImageInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ImageDescription object if successful.
      */
@@ -1341,9 +1195,8 @@ public class ComputerVisionImpl implements ComputerVision {
         final Integer maxCandidates = describeImageInStreamOptionalParameter != null ? describeImageInStreamOptionalParameter.maxCandidates() : null;
         final String language = describeImageInStreamOptionalParameter != null ? describeImageInStreamOptionalParameter.language() : null;
         final List<DescriptionExclude> descriptionExclude = describeImageInStreamOptionalParameter != null ? describeImageInStreamOptionalParameter.descriptionExclude() : null;
-        final String modelVersion = describeImageInStreamOptionalParameter != null ? describeImageInStreamOptionalParameter.modelVersion() : null;
 
-        return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude, modelVersion);
+        return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude);
     }
 
     /**
@@ -1355,11 +1208,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param maxCandidates Maximum number of candidate descriptions to be returned.  The default is 1.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
      * @param descriptionExclude Turn off specified domain models when generating the description.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the ImageDescription object
      */
-    public Observable<ServiceResponse<ImageDescription>> describeImageInStreamWithServiceResponseAsync(byte[] image, Integer maxCandidates, String language, List<DescriptionExclude> descriptionExclude, String modelVersion) {
+    public Observable<ServiceResponse<ImageDescription>> describeImageInStreamWithServiceResponseAsync(byte[] image, Integer maxCandidates, String language, List<DescriptionExclude> descriptionExclude) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -1370,7 +1222,7 @@ public class ComputerVisionImpl implements ComputerVision {
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         String descriptionExcludeConverted = this.client.serializerAdapter().serializeList(descriptionExclude, CollectionFormat.CSV);
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.describeImageInStream(maxCandidates, language, descriptionExcludeConverted, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.describeImageInStream(maxCandidates, language, descriptionExcludeConverted, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ImageDescription>>>() {
                 @Override
                 public Observable<ServiceResponse<ImageDescription>> call(Response<ResponseBody> response) {
@@ -1384,10 +1236,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ImageDescription> describeImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ImageDescription, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ImageDescription> describeImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ImageDescription, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ImageDescription>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -1405,7 +1257,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private Integer maxCandidates;
         private String language;
         private List<DescriptionExclude> descriptionExclude;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -1440,19 +1291,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionDescribeImageInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public ImageDescription execute() {
-        return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude, modelVersion).toBlocking().single().body();
+        return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude).toBlocking().single().body();
     }
 
         @Override
         public Observable<ImageDescription> executeAsync() {
-            return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude, modelVersion).map(new Func1<ServiceResponse<ImageDescription>, ImageDescription>() {
+            return describeImageInStreamWithServiceResponseAsync(image, maxCandidates, language, descriptionExclude).map(new Func1<ServiceResponse<ImageDescription>, ImageDescription>() {
                 @Override
                 public ImageDescription call(ServiceResponse<ImageDescription> response) {
                     return response.body();
@@ -1461,21 +1306,19 @@ public class ComputerVisionImpl implements ComputerVision {
         }
     }
 
-
     /**
      * This operation returns a bounding box around the most important area of the image.
      A successful response will be returned in JSON. If the request failed, the response contains an error code and a message to help determine what went wrong.
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param image An image stream.
-     * @param getAreaOfInterestInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the AreaOfInterestResult object if successful.
      */
-    public AreaOfInterestResult getAreaOfInterestInStream(byte[] image, GetAreaOfInterestInStreamOptionalParameter getAreaOfInterestInStreamOptionalParameter) {
-        return getAreaOfInterestInStreamWithServiceResponseAsync(image, getAreaOfInterestInStreamOptionalParameter).toBlocking().single().body();
+    public AreaOfInterestResult getAreaOfInterestInStream(byte[] image) {
+        return getAreaOfInterestInStreamWithServiceResponseAsync(image).toBlocking().single().body();
     }
 
     /**
@@ -1484,13 +1327,12 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param image An image stream.
-     * @param getAreaOfInterestInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<AreaOfInterestResult> getAreaOfInterestInStreamAsync(byte[] image, GetAreaOfInterestInStreamOptionalParameter getAreaOfInterestInStreamOptionalParameter, final ServiceCallback<AreaOfInterestResult> serviceCallback) {
-        return ServiceFuture.fromResponse(getAreaOfInterestInStreamWithServiceResponseAsync(image, getAreaOfInterestInStreamOptionalParameter), serviceCallback);
+    public ServiceFuture<AreaOfInterestResult> getAreaOfInterestInStreamAsync(byte[] image, final ServiceCallback<AreaOfInterestResult> serviceCallback) {
+        return ServiceFuture.fromResponse(getAreaOfInterestInStreamWithServiceResponseAsync(image), serviceCallback);
     }
 
     /**
@@ -1499,12 +1341,11 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param image An image stream.
-     * @param getAreaOfInterestInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the AreaOfInterestResult object
      */
-    public Observable<AreaOfInterestResult> getAreaOfInterestInStreamAsync(byte[] image, GetAreaOfInterestInStreamOptionalParameter getAreaOfInterestInStreamOptionalParameter) {
-        return getAreaOfInterestInStreamWithServiceResponseAsync(image, getAreaOfInterestInStreamOptionalParameter).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
+    public Observable<AreaOfInterestResult> getAreaOfInterestInStreamAsync(byte[] image) {
+        return getAreaOfInterestInStreamWithServiceResponseAsync(image).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
             @Override
             public AreaOfInterestResult call(ServiceResponse<AreaOfInterestResult> response) {
                 return response.body();
@@ -1518,33 +1359,10 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param image An image stream.
-     * @param getAreaOfInterestInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the AreaOfInterestResult object
      */
-    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestInStreamWithServiceResponseAsync(byte[] image, GetAreaOfInterestInStreamOptionalParameter getAreaOfInterestInStreamOptionalParameter) {
-        if (this.client.endpoint() == null) {
-            throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
-        }
-        if (image == null) {
-            throw new IllegalArgumentException("Parameter image is required and cannot be null.");
-        }
-        final String modelVersion = getAreaOfInterestInStreamOptionalParameter != null ? getAreaOfInterestInStreamOptionalParameter.modelVersion() : null;
-
-        return getAreaOfInterestInStreamWithServiceResponseAsync(image, modelVersion);
-    }
-
-    /**
-     * This operation returns a bounding box around the most important area of the image.
-     A successful response will be returned in JSON. If the request failed, the response contains an error code and a message to help determine what went wrong.
-     Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
-     *
-     * @param image An image stream.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the AreaOfInterestResult object
-     */
-    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestInStreamWithServiceResponseAsync(byte[] image, String modelVersion) {
+    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestInStreamWithServiceResponseAsync(byte[] image) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -1553,7 +1371,7 @@ public class ComputerVisionImpl implements ComputerVision {
         }
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.getAreaOfInterestInStream(imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.getAreaOfInterestInStream(imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<AreaOfInterestResult>>>() {
                 @Override
                 public Observable<ServiceResponse<AreaOfInterestResult>> call(Response<ResponseBody> response) {
@@ -1567,60 +1385,11 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<AreaOfInterestResult> getAreaOfInterestInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<AreaOfInterestResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<AreaOfInterestResult> getAreaOfInterestInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<AreaOfInterestResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<AreaOfInterestResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
-    }
-
-    @Override
-    public ComputerVisionGetAreaOfInterestInStreamParameters getAreaOfInterestInStream() {
-        return new ComputerVisionGetAreaOfInterestInStreamParameters(this);
-    }
-
-    /**
-     * Internal class implementing ComputerVisionGetAreaOfInterestInStreamDefinition.
-     */
-    class ComputerVisionGetAreaOfInterestInStreamParameters implements ComputerVisionGetAreaOfInterestInStreamDefinition {
-        private ComputerVisionImpl parent;
-        private byte[] image;
-        private String modelVersion;
-
-        /**
-         * Constructor.
-         * @param parent the parent object.
-         */
-        ComputerVisionGetAreaOfInterestInStreamParameters(ComputerVisionImpl parent) {
-            this.parent = parent;
-        }
-
-        @Override
-        public ComputerVisionGetAreaOfInterestInStreamParameters withImage(byte[] image) {
-            this.image = image;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionGetAreaOfInterestInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public AreaOfInterestResult execute() {
-        return getAreaOfInterestInStreamWithServiceResponseAsync(image, modelVersion).toBlocking().single().body();
-    }
-
-        @Override
-        public Observable<AreaOfInterestResult> executeAsync() {
-            return getAreaOfInterestInStreamWithServiceResponseAsync(image, modelVersion).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
-                @Override
-                public AreaOfInterestResult call(ServiceResponse<AreaOfInterestResult> response) {
-                    return response.body();
-                }
-            });
-        }
     }
 
 
@@ -1632,7 +1401,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param image An image stream.
      * @param analyzeImageInStreamOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ImageAnalysis object if successful.
      */
@@ -1695,9 +1464,8 @@ public class ComputerVisionImpl implements ComputerVision {
         final List<Details> details = analyzeImageInStreamOptionalParameter != null ? analyzeImageInStreamOptionalParameter.details() : null;
         final String language = analyzeImageInStreamOptionalParameter != null ? analyzeImageInStreamOptionalParameter.language() : null;
         final List<DescriptionExclude> descriptionExclude = analyzeImageInStreamOptionalParameter != null ? analyzeImageInStreamOptionalParameter.descriptionExclude() : null;
-        final String modelVersion = analyzeImageInStreamOptionalParameter != null ? analyzeImageInStreamOptionalParameter.modelVersion() : null;
 
-        return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude, modelVersion);
+        return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude);
     }
 
     /**
@@ -1710,11 +1478,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param details A string indicating which domain-specific details to return. Multiple values should be comma-separated. Valid visual feature types include: Celebrities - identifies celebrities if detected in the image, Landmarks - identifies notable landmarks in the image.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
      * @param descriptionExclude Turn off specified domain models when generating the description.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the ImageAnalysis object
      */
-    public Observable<ServiceResponse<ImageAnalysis>> analyzeImageInStreamWithServiceResponseAsync(byte[] image, List<VisualFeatureTypes> visualFeatures, List<Details> details, String language, List<DescriptionExclude> descriptionExclude, String modelVersion) {
+    public Observable<ServiceResponse<ImageAnalysis>> analyzeImageInStreamWithServiceResponseAsync(byte[] image, List<VisualFeatureTypes> visualFeatures, List<Details> details, String language, List<DescriptionExclude> descriptionExclude) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -1729,7 +1496,7 @@ public class ComputerVisionImpl implements ComputerVision {
         String detailsConverted = this.client.serializerAdapter().serializeList(details, CollectionFormat.CSV);
         String descriptionExcludeConverted = this.client.serializerAdapter().serializeList(descriptionExclude, CollectionFormat.CSV);
         RequestBody imageConverted = RequestBody.create(MediaType.parse("application/octet-stream"), image);
-        return service.analyzeImageInStream(visualFeaturesConverted, detailsConverted, language, descriptionExcludeConverted, imageConverted, modelVersion, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
+        return service.analyzeImageInStream(visualFeaturesConverted, detailsConverted, language, descriptionExcludeConverted, imageConverted, this.client.acceptLanguage(), parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ImageAnalysis>>>() {
                 @Override
                 public Observable<ServiceResponse<ImageAnalysis>> call(Response<ResponseBody> response) {
@@ -1743,10 +1510,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ImageAnalysis> analyzeImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ImageAnalysis, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ImageAnalysis> analyzeImageInStreamDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ImageAnalysis, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ImageAnalysis>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -1765,7 +1532,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private List<Details> details;
         private String language;
         private List<DescriptionExclude> descriptionExclude;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -1806,19 +1572,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionAnalyzeImageInStreamParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public ImageAnalysis execute() {
-        return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude, modelVersion).toBlocking().single().body();
+        return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude).toBlocking().single().body();
     }
 
         @Override
         public Observable<ImageAnalysis> executeAsync() {
-            return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude, modelVersion).map(new Func1<ServiceResponse<ImageAnalysis>, ImageAnalysis>() {
+            return analyzeImageInStreamWithServiceResponseAsync(image, visualFeatures, details, language, descriptionExclude).map(new Func1<ServiceResponse<ImageAnalysis>, ImageAnalysis>() {
                 @Override
                 public ImageAnalysis call(ServiceResponse<ImageAnalysis> response) {
                     return response.body();
@@ -1832,7 +1592,7 @@ public class ComputerVisionImpl implements ComputerVision {
      *
      * @param operationId Id of read operation returned in the response of the 'Read' interface.
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionOcrErrorException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ReadOperationResult object if successful.
      */
@@ -1897,10 +1657,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ReadOperationResult> getReadResultDelegate(Response<ResponseBody> response) throws ComputerVisionOcrErrorException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ReadOperationResult, ComputerVisionOcrErrorException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ReadOperationResult> getReadResultDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ReadOperationResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ReadOperationResult>() { }.getType())
-                .registerError(ComputerVisionOcrErrorException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -1911,7 +1671,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param readOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionOcrErrorException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      */
     public void read(String url, ReadOptionalParameter readOptionalParameter) {
@@ -1964,37 +1724,29 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
         final OcrDetectionLanguage language = readOptionalParameter != null ? readOptionalParameter.language() : null;
-        final List<String> pages = readOptionalParameter != null ? readOptionalParameter.pages() : null;
-        final String modelVersion = readOptionalParameter != null ? readOptionalParameter.modelVersion() : null;
-        final String readingOrder = readOptionalParameter != null ? readOptionalParameter.readingOrder() : null;
 
-        return readWithServiceResponseAsync(url, language, pages, modelVersion, readingOrder);
+        return readWithServiceResponseAsync(url, language);
     }
 
     /**
      * Use this interface to get the result of a Read operation, employing the state-of-the-art Optical Character Recognition (OCR) algorithms optimized for text-heavy documents. When you use the Read interface, the response contains a field called 'Operation-Location'. The 'Operation-Location' field contains the URL that you must use for your 'GetReadResult' operation to access OCR results.​.
      *
      * @param url Publicly reachable URL of an image.
-     * @param language The BCP-47 language code of the text in the document. Read supports auto language identification and multi-language documents, so only provide a language code if you would like to force the document to be processed in that specific language. See https://aka.ms/ocr-languages for list of supported languages. Possible values include: 'af', 'ast', 'bi', 'br', 'ca', 'ceb', 'ch', 'co', 'crh', 'cs', 'csb', 'da', 'de', 'en', 'es', 'et', 'eu', 'fi', 'fil', 'fj', 'fr', 'fur', 'fy', 'ga', 'gd', 'gil', 'gl', 'gv', 'hni', 'hsb', 'ht', 'hu', 'ia', 'id', 'it', 'iu', 'ja', 'jv', 'kaa', 'kac', 'kea', 'kha', 'kl', 'ko', 'ku', 'kw', 'lb', 'ms', 'mww', 'nap', 'nl', 'no', 'oc', 'pl', 'pt', 'quc', 'rm', 'sco', 'sl', 'sq', 'sv', 'sw', 'tet', 'tr', 'tt', 'uz', 'vo', 'wae', 'yua', 'za', 'zh-Hans', 'zh-Hant', 'zu'
-     * @param pages Custom page numbers for multi-page documents(PDF/TIFF), input the number of the pages you want to get OCR result. For a range of pages, use a hyphen. Separate each page or range with a comma.
-     * @param modelVersion Optional parameter to specify the version of the OCR model used for text extraction. Accepted values are: "latest", "latest-preview", "2021-04-12". Defaults to "latest".
-     * @param readingOrder Optional parameter to specify which reading order algorithm should be applied when ordering the extract text elements. Can be either 'basic' or 'natural'. Will default to 'basic' if not specified
+     * @param language The BCP-47 language code of the text to be detected in the image. In future versions, when language parameter is not passed, language detection will be used to determine the language. However, in the current version, missing language parameter will cause English to be used. To ensure that your document is always parsed in English without the use of language detection in the future, pass “en” in the language parameter. Possible values include: 'en', 'es', 'fr', 'de', 'it', 'nl', 'pt'
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceResponseWithHeaders} object if successful.
      */
-    public Observable<ServiceResponseWithHeaders<Void, ReadHeaders>> readWithServiceResponseAsync(String url, OcrDetectionLanguage language, List<String> pages, String modelVersion, String readingOrder) {
+    public Observable<ServiceResponseWithHeaders<Void, ReadHeaders>> readWithServiceResponseAsync(String url, OcrDetectionLanguage language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
         if (url == null) {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
-        Validator.validate(pages);
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        String pagesConverted = this.client.serializerAdapter().serializeList(pages, CollectionFormat.CSV);
-        return service.read(language, pagesConverted, modelVersion, readingOrder, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.read(language, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<Void, ReadHeaders>>>() {
                 @Override
                 public Observable<ServiceResponseWithHeaders<Void, ReadHeaders>> call(Response<ResponseBody> response) {
@@ -2008,10 +1760,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponseWithHeaders<Void, ReadHeaders> readDelegate(Response<ResponseBody> response) throws ComputerVisionOcrErrorException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<Void, ComputerVisionOcrErrorException>newInstance(this.client.serializerAdapter())
+    private ServiceResponseWithHeaders<Void, ReadHeaders> readDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<Void, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(202, new TypeToken<Void>() { }.getType())
-                .registerError(ComputerVisionOcrErrorException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .buildWithHeaders(response, ReadHeaders.class);
     }
 
@@ -2027,9 +1779,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private ComputerVisionImpl parent;
         private String url;
         private OcrDetectionLanguage language;
-        private List<String> pages;
-        private String modelVersion;
-        private String readingOrder;
 
         /**
          * Constructor.
@@ -2052,31 +1801,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionReadParameters withPages(List<String> pages) {
-            this.pages = pages;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionReadParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionReadParameters withReadingOrder(String readingOrder) {
-            this.readingOrder = readingOrder;
-            return this;
-        }
-
-        @Override
         public void execute() {
-        readWithServiceResponseAsync(url, language, pages, modelVersion, readingOrder).toBlocking().single().body();
+        readWithServiceResponseAsync(url, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<Void> executeAsync() {
-            return readWithServiceResponseAsync(url, language, pages, modelVersion, readingOrder).map(new Func1<ServiceResponseWithHeaders<Void, ReadHeaders>, Void>() {
+            return readWithServiceResponseAsync(url, language).map(new Func1<ServiceResponseWithHeaders<Void, ReadHeaders>, Void>() {
                 @Override
                 public Void call(ServiceResponseWithHeaders<Void, ReadHeaders> response) {
                     return response.body();
@@ -2085,21 +1816,19 @@ public class ComputerVisionImpl implements ComputerVision {
         }
     }
 
-
     /**
      * This operation returns a bounding box around the most important area of the image.
      A successful response will be returned in JSON. If the request failed, the response contains an error code and a message to help determine what went wrong.
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param url Publicly reachable URL of an image.
-     * @param getAreaOfInterestOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the AreaOfInterestResult object if successful.
      */
-    public AreaOfInterestResult getAreaOfInterest(String url, GetAreaOfInterestOptionalParameter getAreaOfInterestOptionalParameter) {
-        return getAreaOfInterestWithServiceResponseAsync(url, getAreaOfInterestOptionalParameter).toBlocking().single().body();
+    public AreaOfInterestResult getAreaOfInterest(String url) {
+        return getAreaOfInterestWithServiceResponseAsync(url).toBlocking().single().body();
     }
 
     /**
@@ -2108,13 +1837,12 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param url Publicly reachable URL of an image.
-     * @param getAreaOfInterestOptionalParameter the object representing the optional parameters to be set before calling this API
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<AreaOfInterestResult> getAreaOfInterestAsync(String url, GetAreaOfInterestOptionalParameter getAreaOfInterestOptionalParameter, final ServiceCallback<AreaOfInterestResult> serviceCallback) {
-        return ServiceFuture.fromResponse(getAreaOfInterestWithServiceResponseAsync(url, getAreaOfInterestOptionalParameter), serviceCallback);
+    public ServiceFuture<AreaOfInterestResult> getAreaOfInterestAsync(String url, final ServiceCallback<AreaOfInterestResult> serviceCallback) {
+        return ServiceFuture.fromResponse(getAreaOfInterestWithServiceResponseAsync(url), serviceCallback);
     }
 
     /**
@@ -2123,12 +1851,11 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param url Publicly reachable URL of an image.
-     * @param getAreaOfInterestOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the AreaOfInterestResult object
      */
-    public Observable<AreaOfInterestResult> getAreaOfInterestAsync(String url, GetAreaOfInterestOptionalParameter getAreaOfInterestOptionalParameter) {
-        return getAreaOfInterestWithServiceResponseAsync(url, getAreaOfInterestOptionalParameter).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
+    public Observable<AreaOfInterestResult> getAreaOfInterestAsync(String url) {
+        return getAreaOfInterestWithServiceResponseAsync(url).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
             @Override
             public AreaOfInterestResult call(ServiceResponse<AreaOfInterestResult> response) {
                 return response.body();
@@ -2142,33 +1869,10 @@ public class ComputerVisionImpl implements ComputerVision {
      Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
      *
      * @param url Publicly reachable URL of an image.
-     * @param getAreaOfInterestOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the AreaOfInterestResult object
      */
-    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestWithServiceResponseAsync(String url, GetAreaOfInterestOptionalParameter getAreaOfInterestOptionalParameter) {
-        if (this.client.endpoint() == null) {
-            throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
-        }
-        if (url == null) {
-            throw new IllegalArgumentException("Parameter url is required and cannot be null.");
-        }
-        final String modelVersion = getAreaOfInterestOptionalParameter != null ? getAreaOfInterestOptionalParameter.modelVersion() : null;
-
-        return getAreaOfInterestWithServiceResponseAsync(url, modelVersion);
-    }
-
-    /**
-     * This operation returns a bounding box around the most important area of the image.
-     A successful response will be returned in JSON. If the request failed, the response contains an error code and a message to help determine what went wrong.
-     Upon failure, the error code and an error message are returned. The error code could be one of InvalidImageUrl, InvalidImageFormat, InvalidImageSize, NotSupportedImage, FailedToProcess, Timeout, or InternalServerError.
-     *
-     * @param url Publicly reachable URL of an image.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the AreaOfInterestResult object
-     */
-    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestWithServiceResponseAsync(String url, String modelVersion) {
+    public Observable<ServiceResponse<AreaOfInterestResult>> getAreaOfInterestWithServiceResponseAsync(String url) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -2178,7 +1882,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.getAreaOfInterest(modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.getAreaOfInterest(this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<AreaOfInterestResult>>>() {
                 @Override
                 public Observable<ServiceResponse<AreaOfInterestResult>> call(Response<ResponseBody> response) {
@@ -2192,60 +1896,11 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<AreaOfInterestResult> getAreaOfInterestDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<AreaOfInterestResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<AreaOfInterestResult> getAreaOfInterestDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<AreaOfInterestResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<AreaOfInterestResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
-    }
-
-    @Override
-    public ComputerVisionGetAreaOfInterestParameters getAreaOfInterest() {
-        return new ComputerVisionGetAreaOfInterestParameters(this);
-    }
-
-    /**
-     * Internal class implementing ComputerVisionGetAreaOfInterestDefinition.
-     */
-    class ComputerVisionGetAreaOfInterestParameters implements ComputerVisionGetAreaOfInterestDefinition {
-        private ComputerVisionImpl parent;
-        private String url;
-        private String modelVersion;
-
-        /**
-         * Constructor.
-         * @param parent the parent object.
-         */
-        ComputerVisionGetAreaOfInterestParameters(ComputerVisionImpl parent) {
-            this.parent = parent;
-        }
-
-        @Override
-        public ComputerVisionGetAreaOfInterestParameters withUrl(String url) {
-            this.url = url;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionGetAreaOfInterestParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public AreaOfInterestResult execute() {
-        return getAreaOfInterestWithServiceResponseAsync(url, modelVersion).toBlocking().single().body();
-    }
-
-        @Override
-        public Observable<AreaOfInterestResult> executeAsync() {
-            return getAreaOfInterestWithServiceResponseAsync(url, modelVersion).map(new Func1<ServiceResponse<AreaOfInterestResult>, AreaOfInterestResult>() {
-                @Override
-                public AreaOfInterestResult call(ServiceResponse<AreaOfInterestResult> response) {
-                    return response.body();
-                }
-            });
-        }
     }
 
 
@@ -2325,9 +1980,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
         final Boolean smartCropping = generateThumbnailOptionalParameter != null ? generateThumbnailOptionalParameter.smartCropping() : null;
-        final String modelVersion = generateThumbnailOptionalParameter != null ? generateThumbnailOptionalParameter.modelVersion() : null;
 
-        return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping, modelVersion);
+        return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping);
     }
 
     /**
@@ -2339,11 +1993,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param height Height of the thumbnail, in pixels. It must be between 1 and 1024. Recommended minimum of 50.
      * @param url Publicly reachable URL of an image.
      * @param smartCropping Boolean flag for enabling smart cropping.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the InputStream object
      */
-    public Observable<ServiceResponse<InputStream>> generateThumbnailWithServiceResponseAsync(int width, int height, String url, Boolean smartCropping, String modelVersion) {
+    public Observable<ServiceResponse<InputStream>> generateThumbnailWithServiceResponseAsync(int width, int height, String url, Boolean smartCropping) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -2353,7 +2006,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.generateThumbnail(width, height, smartCropping, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.generateThumbnail(width, height, smartCropping, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<InputStream>>>() {
                 @Override
                 public Observable<ServiceResponse<InputStream>> call(Response<ResponseBody> response) {
@@ -2388,7 +2041,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private int height;
         private String url;
         private Boolean smartCropping;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -2423,19 +2075,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionGenerateThumbnailParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public InputStream execute() {
-        return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping, modelVersion).toBlocking().single().body();
+        return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping).toBlocking().single().body();
     }
 
         @Override
         public Observable<InputStream> executeAsync() {
-            return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping, modelVersion).map(new Func1<ServiceResponse<InputStream>, InputStream>() {
+            return generateThumbnailWithServiceResponseAsync(width, height, url, smartCropping).map(new Func1<ServiceResponse<InputStream>, InputStream>() {
                 @Override
                 public InputStream call(ServiceResponse<InputStream> response) {
                     return response.body();
@@ -2453,7 +2099,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param tagImageOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the TagResult object if successful.
      */
@@ -2513,9 +2159,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
         final String language = tagImageOptionalParameter != null ? tagImageOptionalParameter.language() : null;
-        final String modelVersion = tagImageOptionalParameter != null ? tagImageOptionalParameter.modelVersion() : null;
 
-        return tagImageWithServiceResponseAsync(url, language, modelVersion);
+        return tagImageWithServiceResponseAsync(url, language);
     }
 
     /**
@@ -2525,11 +2170,10 @@ public class ComputerVisionImpl implements ComputerVision {
      *
      * @param url Publicly reachable URL of an image.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the TagResult object
      */
-    public Observable<ServiceResponse<TagResult>> tagImageWithServiceResponseAsync(String url, String language, String modelVersion) {
+    public Observable<ServiceResponse<TagResult>> tagImageWithServiceResponseAsync(String url, String language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -2539,7 +2183,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.tagImage(language, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.tagImage(language, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<TagResult>>>() {
                 @Override
                 public Observable<ServiceResponse<TagResult>> call(Response<ResponseBody> response) {
@@ -2553,10 +2197,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<TagResult> tagImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<TagResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<TagResult> tagImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<TagResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<TagResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -2572,7 +2216,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private ComputerVisionImpl parent;
         private String url;
         private String language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -2595,19 +2238,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionTagImageParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public TagResult execute() {
-        return tagImageWithServiceResponseAsync(url, language, modelVersion).toBlocking().single().body();
+        return tagImageWithServiceResponseAsync(url, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<TagResult> executeAsync() {
-            return tagImageWithServiceResponseAsync(url, language, modelVersion).map(new Func1<ServiceResponse<TagResult>, TagResult>() {
+            return tagImageWithServiceResponseAsync(url, language).map(new Func1<ServiceResponse<TagResult>, TagResult>() {
                 @Override
                 public TagResult call(ServiceResponse<TagResult> response) {
                     return response.body();
@@ -2626,7 +2263,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param recognizePrintedTextOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the OcrResult object if successful.
      */
@@ -2689,9 +2326,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
         final OcrLanguages language = recognizePrintedTextOptionalParameter != null ? recognizePrintedTextOptionalParameter.language() : null;
-        final String modelVersion = recognizePrintedTextOptionalParameter != null ? recognizePrintedTextOptionalParameter.modelVersion() : null;
 
-        return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language, modelVersion);
+        return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language);
     }
 
     /**
@@ -2702,11 +2338,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param detectOrientation Whether detect the text orientation in the image. With detectOrientation=true the OCR service tries to detect the image orientation and correct it before further processing (e.g. if it's upside-down).
      * @param url Publicly reachable URL of an image.
      * @param language The BCP-47 language code of the text to be detected in the image. The default value is 'unk'. Possible values include: 'unk', 'zh-Hans', 'zh-Hant', 'cs', 'da', 'nl', 'en', 'fi', 'fr', 'de', 'el', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'pt', 'ru', 'es', 'sv', 'tr', 'ar', 'ro', 'sr-Cyrl', 'sr-Latn', 'sk'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the OcrResult object
      */
-    public Observable<ServiceResponse<OcrResult>> recognizePrintedTextWithServiceResponseAsync(boolean detectOrientation, String url, OcrLanguages language, String modelVersion) {
+    public Observable<ServiceResponse<OcrResult>> recognizePrintedTextWithServiceResponseAsync(boolean detectOrientation, String url, OcrLanguages language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -2716,7 +2351,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.recognizePrintedText(detectOrientation, language, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.recognizePrintedText(detectOrientation, language, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<OcrResult>>>() {
                 @Override
                 public Observable<ServiceResponse<OcrResult>> call(Response<ResponseBody> response) {
@@ -2730,10 +2365,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<OcrResult> recognizePrintedTextDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<OcrResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<OcrResult> recognizePrintedTextDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<OcrResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<OcrResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -2750,7 +2385,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private boolean detectOrientation;
         private String url;
         private OcrLanguages language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -2779,19 +2413,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionRecognizePrintedTextParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public OcrResult execute() {
-        return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language, modelVersion).toBlocking().single().body();
+        return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<OcrResult> executeAsync() {
-            return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language, modelVersion).map(new Func1<ServiceResponse<OcrResult>, OcrResult>() {
+            return recognizePrintedTextWithServiceResponseAsync(detectOrientation, url, language).map(new Func1<ServiceResponse<OcrResult>, OcrResult>() {
                 @Override
                 public OcrResult call(ServiceResponse<OcrResult> response) {
                     return response.body();
@@ -2811,7 +2439,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param analyzeImageByDomainOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DomainModelResults object if successful.
      */
@@ -2880,9 +2508,8 @@ public class ComputerVisionImpl implements ComputerVision {
             throw new IllegalArgumentException("Parameter url is required and cannot be null.");
         }
         final String language = analyzeImageByDomainOptionalParameter != null ? analyzeImageByDomainOptionalParameter.language() : null;
-        final String modelVersion = analyzeImageByDomainOptionalParameter != null ? analyzeImageByDomainOptionalParameter.modelVersion() : null;
 
-        return analyzeImageByDomainWithServiceResponseAsync(model, url, language, modelVersion);
+        return analyzeImageByDomainWithServiceResponseAsync(model, url, language);
     }
 
     /**
@@ -2894,11 +2521,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param model The domain-specific content to recognize.
      * @param url Publicly reachable URL of an image.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DomainModelResults object
      */
-    public Observable<ServiceResponse<DomainModelResults>> analyzeImageByDomainWithServiceResponseAsync(String model, String url, String language, String modelVersion) {
+    public Observable<ServiceResponse<DomainModelResults>> analyzeImageByDomainWithServiceResponseAsync(String model, String url, String language) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -2911,7 +2537,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.analyzeImageByDomain(model, language, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.analyzeImageByDomain(model, language, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DomainModelResults>>>() {
                 @Override
                 public Observable<ServiceResponse<DomainModelResults>> call(Response<ResponseBody> response) {
@@ -2925,10 +2551,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<DomainModelResults> analyzeImageByDomainDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<DomainModelResults, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<DomainModelResults> analyzeImageByDomainDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<DomainModelResults, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<DomainModelResults>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -2945,7 +2571,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private String model;
         private String url;
         private String language;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -2974,19 +2599,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionAnalyzeImageByDomainParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public DomainModelResults execute() {
-        return analyzeImageByDomainWithServiceResponseAsync(model, url, language, modelVersion).toBlocking().single().body();
+        return analyzeImageByDomainWithServiceResponseAsync(model, url, language).toBlocking().single().body();
     }
 
         @Override
         public Observable<DomainModelResults> executeAsync() {
-            return analyzeImageByDomainWithServiceResponseAsync(model, url, language, modelVersion).map(new Func1<ServiceResponse<DomainModelResults>, DomainModelResults>() {
+            return analyzeImageByDomainWithServiceResponseAsync(model, url, language).map(new Func1<ServiceResponse<DomainModelResults>, DomainModelResults>() {
                 @Override
                 public DomainModelResults call(ServiceResponse<DomainModelResults> response) {
                     return response.body();
@@ -3000,7 +2619,7 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ListModelsResult object if successful.
      */
@@ -3062,28 +2681,26 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ListModelsResult> listModelsDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ListModelsResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ListModelsResult> listModelsDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ListModelsResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ListModelsResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
-
     /**
      * Performs object detection on the specified image.
      Two input methods are supported -- (1) Uploading an image or (2) specifying an image URL.
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param url Publicly reachable URL of an image.
-     * @param detectObjectsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the DetectResult object if successful.
      */
-    public DetectResult detectObjects(String url, DetectObjectsOptionalParameter detectObjectsOptionalParameter) {
-        return detectObjectsWithServiceResponseAsync(url, detectObjectsOptionalParameter).toBlocking().single().body();
+    public DetectResult detectObjects(String url) {
+        return detectObjectsWithServiceResponseAsync(url).toBlocking().single().body();
     }
 
     /**
@@ -3092,13 +2709,12 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param url Publicly reachable URL of an image.
-     * @param detectObjectsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<DetectResult> detectObjectsAsync(String url, DetectObjectsOptionalParameter detectObjectsOptionalParameter, final ServiceCallback<DetectResult> serviceCallback) {
-        return ServiceFuture.fromResponse(detectObjectsWithServiceResponseAsync(url, detectObjectsOptionalParameter), serviceCallback);
+    public ServiceFuture<DetectResult> detectObjectsAsync(String url, final ServiceCallback<DetectResult> serviceCallback) {
+        return ServiceFuture.fromResponse(detectObjectsWithServiceResponseAsync(url), serviceCallback);
     }
 
     /**
@@ -3107,12 +2723,11 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param url Publicly reachable URL of an image.
-     * @param detectObjectsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DetectResult object
      */
-    public Observable<DetectResult> detectObjectsAsync(String url, DetectObjectsOptionalParameter detectObjectsOptionalParameter) {
-        return detectObjectsWithServiceResponseAsync(url, detectObjectsOptionalParameter).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
+    public Observable<DetectResult> detectObjectsAsync(String url) {
+        return detectObjectsWithServiceResponseAsync(url).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
             @Override
             public DetectResult call(ServiceResponse<DetectResult> response) {
                 return response.body();
@@ -3126,33 +2741,10 @@ public class ComputerVisionImpl implements ComputerVision {
      A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
      *
      * @param url Publicly reachable URL of an image.
-     * @param detectObjectsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the DetectResult object
      */
-    public Observable<ServiceResponse<DetectResult>> detectObjectsWithServiceResponseAsync(String url, DetectObjectsOptionalParameter detectObjectsOptionalParameter) {
-        if (this.client.endpoint() == null) {
-            throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
-        }
-        if (url == null) {
-            throw new IllegalArgumentException("Parameter url is required and cannot be null.");
-        }
-        final String modelVersion = detectObjectsOptionalParameter != null ? detectObjectsOptionalParameter.modelVersion() : null;
-
-        return detectObjectsWithServiceResponseAsync(url, modelVersion);
-    }
-
-    /**
-     * Performs object detection on the specified image.
-     Two input methods are supported -- (1) Uploading an image or (2) specifying an image URL.
-     A successful response will be returned in JSON. If the request failed, the response will contain an error code and a message to help understand what went wrong.
-     *
-     * @param url Publicly reachable URL of an image.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
-     * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the DetectResult object
-     */
-    public Observable<ServiceResponse<DetectResult>> detectObjectsWithServiceResponseAsync(String url, String modelVersion) {
+    public Observable<ServiceResponse<DetectResult>> detectObjectsWithServiceResponseAsync(String url) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -3162,7 +2754,7 @@ public class ComputerVisionImpl implements ComputerVision {
         ImageUrl imageUrl = new ImageUrl();
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
-        return service.detectObjects(modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.detectObjects(this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<DetectResult>>>() {
                 @Override
                 public Observable<ServiceResponse<DetectResult>> call(Response<ResponseBody> response) {
@@ -3176,60 +2768,11 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<DetectResult> detectObjectsDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<DetectResult, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<DetectResult> detectObjectsDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<DetectResult, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<DetectResult>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
-    }
-
-    @Override
-    public ComputerVisionDetectObjectsParameters detectObjects() {
-        return new ComputerVisionDetectObjectsParameters(this);
-    }
-
-    /**
-     * Internal class implementing ComputerVisionDetectObjectsDefinition.
-     */
-    class ComputerVisionDetectObjectsParameters implements ComputerVisionDetectObjectsDefinition {
-        private ComputerVisionImpl parent;
-        private String url;
-        private String modelVersion;
-
-        /**
-         * Constructor.
-         * @param parent the parent object.
-         */
-        ComputerVisionDetectObjectsParameters(ComputerVisionImpl parent) {
-            this.parent = parent;
-        }
-
-        @Override
-        public ComputerVisionDetectObjectsParameters withUrl(String url) {
-            this.url = url;
-            return this;
-        }
-
-        @Override
-        public ComputerVisionDetectObjectsParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
-        public DetectResult execute() {
-        return detectObjectsWithServiceResponseAsync(url, modelVersion).toBlocking().single().body();
-    }
-
-        @Override
-        public Observable<DetectResult> executeAsync() {
-            return detectObjectsWithServiceResponseAsync(url, modelVersion).map(new Func1<ServiceResponse<DetectResult>, DetectResult>() {
-                @Override
-                public DetectResult call(ServiceResponse<DetectResult> response) {
-                    return response.body();
-                }
-            });
-        }
     }
 
 
@@ -3241,7 +2784,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param describeImageOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ImageDescription object if successful.
      */
@@ -3303,9 +2846,8 @@ public class ComputerVisionImpl implements ComputerVision {
         final Integer maxCandidates = describeImageOptionalParameter != null ? describeImageOptionalParameter.maxCandidates() : null;
         final String language = describeImageOptionalParameter != null ? describeImageOptionalParameter.language() : null;
         final List<DescriptionExclude> descriptionExclude = describeImageOptionalParameter != null ? describeImageOptionalParameter.descriptionExclude() : null;
-        final String modelVersion = describeImageOptionalParameter != null ? describeImageOptionalParameter.modelVersion() : null;
 
-        return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude, modelVersion);
+        return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude);
     }
 
     /**
@@ -3317,11 +2859,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param maxCandidates Maximum number of candidate descriptions to be returned.  The default is 1.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
      * @param descriptionExclude Turn off specified domain models when generating the description.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the ImageDescription object
      */
-    public Observable<ServiceResponse<ImageDescription>> describeImageWithServiceResponseAsync(String url, Integer maxCandidates, String language, List<DescriptionExclude> descriptionExclude, String modelVersion) {
+    public Observable<ServiceResponse<ImageDescription>> describeImageWithServiceResponseAsync(String url, Integer maxCandidates, String language, List<DescriptionExclude> descriptionExclude) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -3333,7 +2874,7 @@ public class ComputerVisionImpl implements ComputerVision {
         imageUrl.withUrl(url);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         String descriptionExcludeConverted = this.client.serializerAdapter().serializeList(descriptionExclude, CollectionFormat.CSV);
-        return service.describeImage(maxCandidates, language, descriptionExcludeConverted, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.describeImage(maxCandidates, language, descriptionExcludeConverted, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ImageDescription>>>() {
                 @Override
                 public Observable<ServiceResponse<ImageDescription>> call(Response<ResponseBody> response) {
@@ -3347,10 +2888,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ImageDescription> describeImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ImageDescription, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ImageDescription> describeImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ImageDescription, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ImageDescription>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -3368,7 +2909,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private Integer maxCandidates;
         private String language;
         private List<DescriptionExclude> descriptionExclude;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -3403,19 +2943,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionDescribeImageParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public ImageDescription execute() {
-        return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude, modelVersion).toBlocking().single().body();
+        return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude).toBlocking().single().body();
     }
 
         @Override
         public Observable<ImageDescription> executeAsync() {
-            return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude, modelVersion).map(new Func1<ServiceResponse<ImageDescription>, ImageDescription>() {
+            return describeImageWithServiceResponseAsync(url, maxCandidates, language, descriptionExclude).map(new Func1<ServiceResponse<ImageDescription>, ImageDescription>() {
                 @Override
                 public ImageDescription call(ServiceResponse<ImageDescription> response) {
                     return response.body();
@@ -3433,7 +2967,7 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param url Publicly reachable URL of an image.
      * @param analyzeImageOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @throws ComputerVisionErrorResponseException thrown if the request is rejected by server
+     * @throws ComputerVisionErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
      * @return the ImageAnalysis object if successful.
      */
@@ -3496,9 +3030,8 @@ public class ComputerVisionImpl implements ComputerVision {
         final List<Details> details = analyzeImageOptionalParameter != null ? analyzeImageOptionalParameter.details() : null;
         final String language = analyzeImageOptionalParameter != null ? analyzeImageOptionalParameter.language() : null;
         final List<DescriptionExclude> descriptionExclude = analyzeImageOptionalParameter != null ? analyzeImageOptionalParameter.descriptionExclude() : null;
-        final String modelVersion = analyzeImageOptionalParameter != null ? analyzeImageOptionalParameter.modelVersion() : null;
 
-        return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude, modelVersion);
+        return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude);
     }
 
     /**
@@ -3511,11 +3044,10 @@ public class ComputerVisionImpl implements ComputerVision {
      * @param details A string indicating which domain-specific details to return. Multiple values should be comma-separated. Valid visual feature types include: Celebrities - identifies celebrities if detected in the image, Landmarks - identifies notable landmarks in the image.
      * @param language The desired language for output generation. If this parameter is not specified, the default value is &amp;quot;en&amp;quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese, zh - Simplified Chinese. Possible values include: 'en', 'es', 'ja', 'pt', 'zh'
      * @param descriptionExclude Turn off specified domain models when generating the description.
-     * @param modelVersion Optional parameter to specify the version of the AI model. Accepted values are: "latest", "2021-04-01". Defaults to "latest".
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the observable to the ImageAnalysis object
      */
-    public Observable<ServiceResponse<ImageAnalysis>> analyzeImageWithServiceResponseAsync(String url, List<VisualFeatureTypes> visualFeatures, List<Details> details, String language, List<DescriptionExclude> descriptionExclude, String modelVersion) {
+    public Observable<ServiceResponse<ImageAnalysis>> analyzeImageWithServiceResponseAsync(String url, List<VisualFeatureTypes> visualFeatures, List<Details> details, String language, List<DescriptionExclude> descriptionExclude) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -3531,7 +3063,7 @@ public class ComputerVisionImpl implements ComputerVision {
         String visualFeaturesConverted = this.client.serializerAdapter().serializeList(visualFeatures, CollectionFormat.CSV);
         String detailsConverted = this.client.serializerAdapter().serializeList(details, CollectionFormat.CSV);
         String descriptionExcludeConverted = this.client.serializerAdapter().serializeList(descriptionExclude, CollectionFormat.CSV);
-        return service.analyzeImage(visualFeaturesConverted, detailsConverted, language, descriptionExcludeConverted, modelVersion, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
+        return service.analyzeImage(visualFeaturesConverted, detailsConverted, language, descriptionExcludeConverted, this.client.acceptLanguage(), imageUrl, parameterizedHost, this.client.userAgent())
             .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<ImageAnalysis>>>() {
                 @Override
                 public Observable<ServiceResponse<ImageAnalysis>> call(Response<ResponseBody> response) {
@@ -3545,10 +3077,10 @@ public class ComputerVisionImpl implements ComputerVision {
             });
     }
 
-    private ServiceResponse<ImageAnalysis> analyzeImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<ImageAnalysis, ComputerVisionErrorResponseException>newInstance(this.client.serializerAdapter())
+    private ServiceResponse<ImageAnalysis> analyzeImageDelegate(Response<ResponseBody> response) throws ComputerVisionErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<ImageAnalysis, ComputerVisionErrorException>newInstance(this.client.serializerAdapter())
                 .register(200, new TypeToken<ImageAnalysis>() { }.getType())
-                .registerError(ComputerVisionErrorResponseException.class)
+                .registerError(ComputerVisionErrorException.class)
                 .build(response);
     }
 
@@ -3567,7 +3099,6 @@ public class ComputerVisionImpl implements ComputerVision {
         private List<Details> details;
         private String language;
         private List<DescriptionExclude> descriptionExclude;
-        private String modelVersion;
 
         /**
          * Constructor.
@@ -3608,19 +3139,13 @@ public class ComputerVisionImpl implements ComputerVision {
         }
 
         @Override
-        public ComputerVisionAnalyzeImageParameters withModelVersion(String modelVersion) {
-            this.modelVersion = modelVersion;
-            return this;
-        }
-
-        @Override
         public ImageAnalysis execute() {
-        return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude, modelVersion).toBlocking().single().body();
+        return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude).toBlocking().single().body();
     }
 
         @Override
         public Observable<ImageAnalysis> executeAsync() {
-            return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude, modelVersion).map(new Func1<ServiceResponse<ImageAnalysis>, ImageAnalysis>() {
+            return analyzeImageWithServiceResponseAsync(url, visualFeatures, details, language, descriptionExclude).map(new Func1<ServiceResponse<ImageAnalysis>, ImageAnalysis>() {
                 @Override
                 public ImageAnalysis call(ServiceResponse<ImageAnalysis> response) {
                     return response.body();

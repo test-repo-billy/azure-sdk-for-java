@@ -122,13 +122,21 @@ public final class StorageEndpoint {
             final URI primaryUri;
             final URI secondaryUri;
             try {
-                primaryUri = new URI(protocol + "://" + accountName + "." + service + "." + endpointSuffix);
+                primaryUri = new URI(String.format("%s://%s.%s.%s",
+                        protocol,
+                        accountName,
+                        service,
+                        endpointSuffix));
             } catch (URISyntaxException use) {
                 throw logger.logExceptionAsError(new RuntimeException(use));
             }
 
             try {
-                secondaryUri = new URI(protocol + "://" + accountName + "-secondary." + service + "." + endpointSuffix);
+                secondaryUri = new URI(String.format("%s://%s-secondary.%s.%s",
+                        protocol,
+                        accountName,
+                        service,
+                        endpointSuffix));
             } catch (URISyntaxException use) {
                 throw logger.logExceptionAsError(new RuntimeException(use));
             }

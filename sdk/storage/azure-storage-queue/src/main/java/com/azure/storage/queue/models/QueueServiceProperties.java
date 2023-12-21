@@ -12,7 +12,9 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Storage Service Properties. */
+/**
+ * Storage Service Properties.
+ */
 @JacksonXmlRootElement(localName = "StorageServiceProperties")
 @Fluent
 public final class QueueServiceProperties {
@@ -23,13 +25,15 @@ public final class QueueServiceProperties {
     private QueueAnalyticsLogging analyticsLogging;
 
     /*
-     * A summary of request statistics grouped by API in hourly aggregates for queues
+     * A summary of request statistics grouped by API in hourly aggregates for
+     * queues
      */
     @JsonProperty(value = "HourMetrics")
     private QueueMetrics hourMetrics;
 
     /*
-     * a summary of request statistics grouped by API in minute aggregates for queues
+     * a summary of request statistics grouped by API in minute aggregates for
+     * queues
      */
     @JsonProperty(value = "MinuteMetrics")
     private QueueMetrics minuteMetrics;
@@ -49,9 +53,6 @@ public final class QueueServiceProperties {
      */
     @JsonProperty(value = "Cors")
     private CorsWrapper cors;
-
-    /** Creates an instance of QueueServiceProperties class. */
-    public QueueServiceProperties() {}
 
     /**
      * Get the analyticsLogging property: Azure Analytics Logging settings.
@@ -74,7 +75,8 @@ public final class QueueServiceProperties {
     }
 
     /**
-     * Get the hourMetrics property: A summary of request statistics grouped by API in hourly aggregates for queues.
+     * Get the hourMetrics property: A summary of request statistics grouped by
+     * API in hourly aggregates for queues.
      *
      * @return the hourMetrics value.
      */
@@ -83,7 +85,8 @@ public final class QueueServiceProperties {
     }
 
     /**
-     * Set the hourMetrics property: A summary of request statistics grouped by API in hourly aggregates for queues.
+     * Set the hourMetrics property: A summary of request statistics grouped by
+     * API in hourly aggregates for queues.
      *
      * @param hourMetrics the hourMetrics value to set.
      * @return the QueueServiceProperties object itself.
@@ -94,7 +97,8 @@ public final class QueueServiceProperties {
     }
 
     /**
-     * Get the minuteMetrics property: a summary of request statistics grouped by API in minute aggregates for queues.
+     * Get the minuteMetrics property: a summary of request statistics grouped
+     * by API in minute aggregates for queues.
      *
      * @return the minuteMetrics value.
      */
@@ -103,7 +107,8 @@ public final class QueueServiceProperties {
     }
 
     /**
-     * Set the minuteMetrics property: a summary of request statistics grouped by API in minute aggregates for queues.
+     * Set the minuteMetrics property: a summary of request statistics grouped
+     * by API in minute aggregates for queues.
      *
      * @param minuteMetrics the minuteMetrics value to set.
      * @return the QueueServiceProperties object itself.

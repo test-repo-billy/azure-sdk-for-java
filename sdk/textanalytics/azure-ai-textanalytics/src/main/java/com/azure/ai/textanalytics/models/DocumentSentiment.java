@@ -7,18 +7,18 @@ import com.azure.core.annotation.Immutable;
 import com.azure.core.util.IterableStream;
 
 /**
- * The {@code DocumentSentiment} model that contains sentiment label of a document, confidence score of the
+ * The {@link DocumentSentiment} model that contains sentiment label of a document, confidence score of the
  * sentiment label, and a list of {@link SentenceSentiment}.
  */
 @Immutable
 public final class DocumentSentiment {
     private final TextSentiment sentiment;
     private final SentimentConfidenceScores confidenceScores;
-    private final IterableStream<SentenceSentiment> sentences;
+    private final IterableStream<com.azure.ai.textanalytics.models.SentenceSentiment> sentences;
     private final IterableStream<TextAnalyticsWarning> warnings;
 
     /**
-     * Creates a {@code DocumentSentiment} model that describes the sentiment of the document.
+     * Creates a {@link DocumentSentiment} model that describes the sentiment of the document.
      *
      * @param sentiment The sentiment label of the document.
      * @param confidenceScores The sentiment confidence score (Softmax score) between 0 and 1, for each sentiment label.
@@ -35,7 +35,7 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Gets the text sentiment label: POSITIVE, NEGATIVE, NEUTRAL, or MIXED.
+     * Get the text sentiment label: POSITIVE, NEGATIVE, NEUTRAL, or MIXED.
      *
      * @return The {@link TextSentiment}.
      */
@@ -44,7 +44,7 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Gets the sentiment confidence score (Softmax score) between 0 and 1, for each sentiment label.
+     * Get the sentiment confidence score (Softmax score) between 0 and 1, for each sentiment label.
      * Higher values signify higher confidence.
      *
      * @return The {@link SentimentConfidenceScores}.
@@ -54,7 +54,7 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Gets a list of sentence sentiments.
+     * Get a list of sentence sentiments.
      *
      * @return A list of sentence sentiments.
      */
@@ -63,7 +63,7 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Gets the {@link IterableStream} of {@link TextAnalyticsWarning Text Analytics warnings}.
+     * Get the {@link IterableStream} of {@link TextAnalyticsWarning Text Analytics warnings}.
      *
      * @return An {@link IterableStream} of {@link TextAnalyticsWarning}.
      */

@@ -5,13 +5,7 @@ package com.azure.cosmos;
 
 import com.azure.cosmos.implementation.AsyncDocumentClient;
 import com.azure.cosmos.implementation.ConnectionPolicy;
-import com.azure.cosmos.implementation.Strings;
 import com.azure.cosmos.implementation.Warning;
-import com.azure.cosmos.implementation.query.Transformer;
-import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
-import com.azure.cosmos.util.CosmosPagedFlux;
-import com.azure.cosmos.util.UtilBridgeInternal;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import static com.azure.cosmos.implementation.Warning.INTERNAL_USE_ONLY_WARNING;
 
@@ -80,65 +74,24 @@ public final class CosmosBridgeInternal {
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
     public static CosmosClientBuilder cloneCosmosClientBuilder(CosmosClientBuilder builder) {
         CosmosClientBuilder copy = new CosmosClientBuilder();
-        if (!Strings.isNullOrEmpty(builder.getEndpoint())) {
-            copy.endpoint(builder.getEndpoint());
-        }
 
-        if (!Strings.isNullOrEmpty(builder.getKey())) {
-            copy.key(builder.getKey());
-        }
-
-        if (!Strings.isNullOrEmpty(builder.getResourceToken())) {
-            copy.resourceToken(builder.getResourceToken());
-        }
-
-        if (builder.getCredential() != null) {
-            copy.credential(builder.getCredential());
-        }
-
-        if (builder.getTokenCredential() != null) {
-            copy.credential(builder.getTokenCredential());
-        }
-
-        if (builder.getPermissions() != null) {
-            copy.permissions(builder.getPermissions());
-        }
-
-        if (builder.getAuthorizationTokenResolver() != null) {
-            copy.authorizationTokenResolver(builder.getAuthorizationTokenResolver());
-        }
-
-        copy
+        copy.endpoint(builder.getEndpoint())
+            .key(builder.getKey())
             .directMode(builder.getDirectConnectionConfig())
             .gatewayMode(builder.getGatewayConnectionConfig())
             .consistencyLevel(builder.getConsistencyLevel())
+            .credential(builder.getCredential())
+            .permissions(builder.getPermissions())
+            .authorizationTokenResolver(builder.getAuthorizationTokenResolver())
+            .resourceToken(builder.getResourceToken())
             .contentResponseOnWriteEnabled(builder.isContentResponseOnWriteEnabled())
             .userAgentSuffix(builder.getUserAgentSuffix())
             .throttlingRetryOptions(builder.getThrottlingRetryOptions())
             .preferredRegions(builder.getPreferredRegions())
             .endpointDiscoveryEnabled(builder.isEndpointDiscoveryEnabled())
             .multipleWriteRegionsEnabled(builder.isMultipleWriteRegionsEnabled())
-            .readRequestsFallbackEnabled(builder.isReadRequestsFallbackEnabled())
-            .clientTelemetryEnabled(builder.isClientTelemetryEnabled());
+            .readRequestsFallbackEnabled(builder.isReadRequestsFallbackEnabled());
 
         return copy;
-    }
-
-    @Warning(value = INTERNAL_USE_ONLY_WARNING)
-    public static CosmosException cosmosException(int statusCode, Exception innerException) {
-        return new CosmosException(statusCode, innerException);
-    }
-
-    @Warning(value = INTERNAL_USE_ONLY_WARNING)
-    public static <T> CosmosPagedFlux<T> queryChangeFeedInternal(
-        CosmosAsyncContainer container,
-        CosmosChangeFeedRequestOptions changeFeedRequestOptions,
-        Transformer<T> transformer) {
-
-        return UtilBridgeInternal.createCosmosPagedFlux(
-            transformer.transform(
-                container.queryChangeFeedInternalFunc(
-                    changeFeedRequestOptions,
-                    JsonNode.class)));
     }
 }

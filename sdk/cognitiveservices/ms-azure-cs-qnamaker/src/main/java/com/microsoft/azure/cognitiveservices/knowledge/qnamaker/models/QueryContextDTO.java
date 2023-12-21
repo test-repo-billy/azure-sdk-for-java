@@ -18,7 +18,7 @@ public class QueryContextDTO {
      * Previous QnA Id - qnaId of the top result.
      */
     @JsonProperty(value = "previousQnaId")
-    private Integer previousQnaId;
+    private String previousQnaId;
 
     /**
      * Previous user query.
@@ -31,7 +31,7 @@ public class QueryContextDTO {
      *
      * @return the previousQnaId value
      */
-    public Integer previousQnaId() {
+    public String previousQnaId() {
         return this.previousQnaId;
     }
 
@@ -41,7 +41,7 @@ public class QueryContextDTO {
      * @param previousQnaId the previousQnaId value to set
      * @return the QueryContextDTO object itself.
      */
-    public QueryContextDTO withPreviousQnaId(Integer previousQnaId) {
+    public QueryContextDTO withPreviousQnaId(String previousQnaId) {
         this.previousQnaId = previousQnaId;
         return this;
     }

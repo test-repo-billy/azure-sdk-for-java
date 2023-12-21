@@ -14,23 +14,6 @@ import java.util.List;
 @Immutable
 public class ManagementError {
     /**
-     * Constructs a new {@link ManagementError} object.
-     */
-    public ManagementError() {
-    }
-
-    /**
-     * Constructs a new {@link ManagementError} object.
-     *
-     * @param code the error code.
-     * @param message the error message.
-     */
-    public ManagementError(String code, String message) {
-        this.code = code;
-        this.message = message;
-    }
-
-    /**
      * The error code parsed from the body of the http error response.
      */
     @JsonProperty(value = "code", access = JsonProperty.Access.WRITE_ONLY)
@@ -61,8 +44,6 @@ public class ManagementError {
     private List<AdditionalInfo> additionalInfo;
 
     /**
-     * Gets the error code parsed from the body of the http error response.
-     *
      * @return the error code parsed from the body of the http error response.
      */
     public String getCode() {
@@ -70,8 +51,6 @@ public class ManagementError {
     }
 
     /**
-     * Gets the error message.
-     *
      * @return the error message.
      */
     public String getMessage() {
@@ -79,8 +58,6 @@ public class ManagementError {
     }
 
     /**
-     * Gets the target of the error.
-     *
      * @return the target of the error.
      */
     public String getTarget() {
@@ -88,8 +65,6 @@ public class ManagementError {
     }
 
     /**
-     * Gets the details for the error.
-     *
      * @return the details for the error.
      */
     public List<? extends ManagementError> getDetails() {
@@ -97,8 +72,6 @@ public class ManagementError {
     }
 
     /**
-     * Gets the additional info for the error.
-     *
      * @return the additional info for the error.
      */
     public List<AdditionalInfo> getAdditionalInfo() {

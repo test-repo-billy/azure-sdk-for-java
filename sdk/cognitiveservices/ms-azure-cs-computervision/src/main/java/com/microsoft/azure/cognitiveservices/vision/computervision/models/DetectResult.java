@@ -34,12 +34,6 @@ public class DetectResult {
     private ImageMetadata metadata;
 
     /**
-     * The modelVersion property.
-     */
-    @JsonProperty(value = "modelVersion")
-    private String modelVersion;
-
-    /**
      * Get the objects value.
      *
      * @return the objects value
@@ -85,26 +79,6 @@ public class DetectResult {
      */
     public DetectResult withMetadata(ImageMetadata metadata) {
         this.metadata = metadata;
-        return this;
-    }
-
-    /**
-     * Get the modelVersion value.
-     *
-     * @return the modelVersion value
-     */
-    public String modelVersion() {
-        return this.modelVersion;
-    }
-
-    /**
-     * Set the modelVersion value.
-     *
-     * @param modelVersion the modelVersion value to set
-     * @return the DetectResult object itself.
-     */
-    public DetectResult withModelVersion(String modelVersion) {
-        this.modelVersion = modelVersion;
         return this;
     }
 

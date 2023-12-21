@@ -15,18 +15,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class ContainerRegistry {
     /**
-     * The user name to log into the registry server.
-     */
-    @JsonProperty(value = "username")
-    private String userName;
-
-    /**
-     * The password to log into the registry server.
-     */
-    @JsonProperty(value = "password")
-    private String password;
-
-    /**
      * The registry URL.
      * If omitted, the default is "docker.io".
      */
@@ -34,11 +22,36 @@ public class ContainerRegistry {
     private String registryServer;
 
     /**
-     * The reference to the user assigned identity to use to access an Azure
-     * Container Registry instead of username and password.
+     * The user name to log into the registry server.
      */
-    @JsonProperty(value = "identityReference")
-    private ComputeNodeIdentityReference identityReference;
+    @JsonProperty(value = "username", required = true)
+    private String userName;
+
+    /**
+     * The password to log into the registry server.
+     */
+    @JsonProperty(value = "password", required = true)
+    private String password;
+
+    /**
+     * Get if omitted, the default is "docker.io".
+     *
+     * @return the registryServer value
+     */
+    public String registryServer() {
+        return this.registryServer;
+    }
+
+    /**
+     * Set if omitted, the default is "docker.io".
+     *
+     * @param registryServer the registryServer value to set
+     * @return the ContainerRegistry object itself.
+     */
+    public ContainerRegistry withRegistryServer(String registryServer) {
+        this.registryServer = registryServer;
+        return this;
+    }
 
     /**
      * Get the userName value.
@@ -77,46 +90,6 @@ public class ContainerRegistry {
      */
     public ContainerRegistry withPassword(String password) {
         this.password = password;
-        return this;
-    }
-
-    /**
-     * Get if omitted, the default is "docker.io".
-     *
-     * @return the registryServer value
-     */
-    public String registryServer() {
-        return this.registryServer;
-    }
-
-    /**
-     * Set if omitted, the default is "docker.io".
-     *
-     * @param registryServer the registryServer value to set
-     * @return the ContainerRegistry object itself.
-     */
-    public ContainerRegistry withRegistryServer(String registryServer) {
-        this.registryServer = registryServer;
-        return this;
-    }
-
-    /**
-     * Get the identityReference value.
-     *
-     * @return the identityReference value
-     */
-    public ComputeNodeIdentityReference identityReference() {
-        return this.identityReference;
-    }
-
-    /**
-     * Set the identityReference value.
-     *
-     * @param identityReference the identityReference value to set
-     * @return the ContainerRegistry object itself.
-     */
-    public ContainerRegistry withIdentityReference(ComputeNodeIdentityReference identityReference) {
-        this.identityReference = identityReference;
         return this;
     }
 

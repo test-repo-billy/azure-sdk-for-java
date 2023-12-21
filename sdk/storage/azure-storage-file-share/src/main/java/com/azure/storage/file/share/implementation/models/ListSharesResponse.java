@@ -5,6 +5,7 @@
 package com.azure.storage.file.share.implementation.models;
 
 import com.azure.core.annotation.Fluent;
+import com.azure.storage.file.share.models.ShareItem;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -12,61 +13,60 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** An enumeration of shares. */
+/**
+ * An enumeration of shares.
+ */
 @JacksonXmlRootElement(localName = "EnumerationResults")
 @Fluent
 public final class ListSharesResponse {
     /*
-     * The ServiceEndpoint property.
+     * The serviceEndpoint property.
      */
     @JacksonXmlProperty(localName = "ServiceEndpoint", isAttribute = true)
     private String serviceEndpoint;
 
     /*
-     * The Prefix property.
+     * The prefix property.
      */
     @JsonProperty(value = "Prefix")
     private String prefix;
 
     /*
-     * The Marker property.
+     * The marker property.
      */
     @JsonProperty(value = "Marker")
     private String marker;
 
     /*
-     * The MaxResults property.
+     * The maxResults property.
      */
     @JsonProperty(value = "MaxResults")
     private Integer maxResults;
 
     private static final class SharesWrapper {
         @JacksonXmlProperty(localName = "Share")
-        private final List<ShareItemInternal> items;
+        private final List<ShareItem> items;
 
         @JsonCreator
-        private SharesWrapper(@JacksonXmlProperty(localName = "Share") List<ShareItemInternal> items) {
+        private SharesWrapper(@JacksonXmlProperty(localName = "Share") List<ShareItem> items) {
             this.items = items;
         }
     }
 
     /*
-     * The ShareItems property.
+     * The shareItems property.
      */
     @JsonProperty(value = "Shares")
     private SharesWrapper shareItems;
 
     /*
-     * The NextMarker property.
+     * The nextMarker property.
      */
     @JsonProperty(value = "NextMarker", required = true)
     private String nextMarker;
 
-    /** Creates an instance of ListSharesResponse class. */
-    public ListSharesResponse() {}
-
     /**
-     * Get the serviceEndpoint property: The ServiceEndpoint property.
+     * Get the serviceEndpoint property: The serviceEndpoint property.
      *
      * @return the serviceEndpoint value.
      */
@@ -75,7 +75,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Set the serviceEndpoint property: The ServiceEndpoint property.
+     * Set the serviceEndpoint property: The serviceEndpoint property.
      *
      * @param serviceEndpoint the serviceEndpoint value to set.
      * @return the ListSharesResponse object itself.
@@ -86,7 +86,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Get the prefix property: The Prefix property.
+     * Get the prefix property: The prefix property.
      *
      * @return the prefix value.
      */
@@ -95,7 +95,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Set the prefix property: The Prefix property.
+     * Set the prefix property: The prefix property.
      *
      * @param prefix the prefix value to set.
      * @return the ListSharesResponse object itself.
@@ -106,7 +106,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Get the marker property: The Marker property.
+     * Get the marker property: The marker property.
      *
      * @return the marker value.
      */
@@ -115,7 +115,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Set the marker property: The Marker property.
+     * Set the marker property: The marker property.
      *
      * @param marker the marker value to set.
      * @return the ListSharesResponse object itself.
@@ -126,7 +126,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Get the maxResults property: The MaxResults property.
+     * Get the maxResults property: The maxResults property.
      *
      * @return the maxResults value.
      */
@@ -135,7 +135,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Set the maxResults property: The MaxResults property.
+     * Set the maxResults property: The maxResults property.
      *
      * @param maxResults the maxResults value to set.
      * @return the ListSharesResponse object itself.
@@ -146,30 +146,30 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Get the shareItems property: The ShareItems property.
+     * Get the shareItems property: The shareItems property.
      *
      * @return the shareItems value.
      */
-    public List<ShareItemInternal> getShareItems() {
+    public List<ShareItem> getShareItems() {
         if (this.shareItems == null) {
-            this.shareItems = new SharesWrapper(new ArrayList<ShareItemInternal>());
+            this.shareItems = new SharesWrapper(new ArrayList<ShareItem>());
         }
         return this.shareItems.items;
     }
 
     /**
-     * Set the shareItems property: The ShareItems property.
+     * Set the shareItems property: The shareItems property.
      *
      * @param shareItems the shareItems value to set.
      * @return the ListSharesResponse object itself.
      */
-    public ListSharesResponse setShareItems(List<ShareItemInternal> shareItems) {
+    public ListSharesResponse setShareItems(List<ShareItem> shareItems) {
         this.shareItems = new SharesWrapper(shareItems);
         return this;
     }
 
     /**
-     * Get the nextMarker property: The NextMarker property.
+     * Get the nextMarker property: The nextMarker property.
      *
      * @return the nextMarker value.
      */
@@ -178,7 +178,7 @@ public final class ListSharesResponse {
     }
 
     /**
-     * Set the nextMarker property: The NextMarker property.
+     * Set the nextMarker property: The nextMarker property.
      *
      * @param nextMarker the nextMarker value to set.
      * @return the ListSharesResponse object itself.

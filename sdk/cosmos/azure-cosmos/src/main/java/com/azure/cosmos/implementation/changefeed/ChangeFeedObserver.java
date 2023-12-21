@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 package com.azure.cosmos.implementation.changefeed;
 
+import com.azure.cosmos.implementation.CosmosItemProperties;
+import com.fasterxml.jackson.databind.JsonNode;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -9,13 +11,13 @@ import java.util.List;
 /**
  * The interface used to deliver change events to document feed observers.
  */
-public interface ChangeFeedObserver<T> {
+public interface ChangeFeedObserver {
     /**
      * This is called when change feed observer is opened.
      *
      * @param context the context specifying partition for this observer, etc.
      */
-    void open(ChangeFeedObserverContext<T> context);
+    void open(ChangeFeedObserverContext context);
 
     /**
      * This is called when change feed observer is closed.
@@ -23,7 +25,7 @@ public interface ChangeFeedObserver<T> {
      * @param context the context specifying partition for this observer, etc.
      * @param reason the reason the observer is closed.
      */
-    void close(ChangeFeedObserverContext<T> context, ChangeFeedObserverCloseReason reason);
+    void close(ChangeFeedObserverContext context, ChangeFeedObserverCloseReason reason);
 
     /**
      * This is called when document changes are available on change feed.
@@ -32,5 +34,5 @@ public interface ChangeFeedObserver<T> {
      * @param docs the documents changed.
      * @return a deferred operation of this call.
      */
-    Mono<Void> processChanges(ChangeFeedObserverContext<T> context, List<T> docs);
+    Mono<Void> processChanges(ChangeFeedObserverContext context, List<JsonNode> docs);
 }

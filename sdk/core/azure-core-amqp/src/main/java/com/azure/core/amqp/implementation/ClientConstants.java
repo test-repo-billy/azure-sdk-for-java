@@ -3,39 +3,18 @@
 
 package com.azure.core.amqp.implementation;
 
-import java.time.Duration;
-
 public final class ClientConstants {
     public static final String NOT_APPLICABLE = "n/a";
     public static final String PLATFORM_INFO = getOSInformation();
     public static final String FRAMEWORK_INFO = getFrameworkInfo();
-    // Base sleep wait time.
-    public static final Duration SERVER_BUSY_WAIT_TIME = Duration.ofSeconds(4);
 
-    // Logging context keys
-    public static final String CONNECTION_ID_KEY = "connectionId";
-    public static final String LINK_NAME_KEY = "linkName";
-    public static final String ENTITY_PATH_KEY = "entityPath";
-    public static final String ENTITY_NAME_KEY = "entityName";
-    public static final String UPDATED_LINK_CREDIT_KEY = "updatedLinkCredit";
-    public static final String REMOTE_CREDIT_KEY = "remoteCredit";
-    public static final String IS_PARTIAL_DELIVERY_KEY = "delivery.isPartial";
-    public static final String IS_SETTLED_DELIVERY_KEY = "delivery.isSettled";
-    public static final String SESSION_NAME_KEY = "sessionName";
-    public static final String FULLY_QUALIFIED_NAMESPACE_KEY = "namespace";
-    public static final String OPERATION_NAME_KEY = "amqpOperation";
-    public static final String DELIVERY_KEY = "delivery";
-    public static final String DELIVERY_STATE_KEY = "deliveryState";
-    public static final String DELIVERY_TAG_KEY = "lockToken";
-    public static final String ERROR_CONDITION_KEY = "errorCondition";
-    public static final String ERROR_DESCRIPTION_KEY = "errorDescription";
-    public static final String EMIT_RESULT_KEY = "emitResult";
-    public static final String SIGNAL_TYPE_KEY = "signalType";
-    public static final String HOSTNAME_KEY = "hostName";
-    public static final String INTERVAL_KEY = "intervalMs";
-    public static final String SUBSCRIBER_ID_KEY = "subscriberId";
-    public static final String PUMP_ID_KEY = "pumpId";
-    public static final String CALL_SITE_KEY = "callSite";
+    /**
+     * Gets the USER AGENT string as defined in:
+     * $/core/azure-core/src/main/java/com/azure/core/http/policy/UserAgentPolicy.java
+     * TODO (conniey): Extract logic from UserAgentPolicy into something we can use here.
+     */
+    public static final String USER_AGENT_TEMPLATE =
+        "%s/%s " + System.getProperty("java.version") + ";" + PLATFORM_INFO;
 
     /**
      * The default maximum allowable size, in bytes, for a batch to be sent.

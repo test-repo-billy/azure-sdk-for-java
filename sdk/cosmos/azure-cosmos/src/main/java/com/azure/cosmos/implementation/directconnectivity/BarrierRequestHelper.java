@@ -3,9 +3,7 @@
 
 package com.azure.cosmos.implementation.directconnectivity;
 
-import com.azure.cosmos.implementation.AadTokenAuthorizationHelper;
 import com.azure.cosmos.implementation.AuthorizationTokenType;
-import com.azure.cosmos.implementation.DiagnosticsClientContext;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.IAuthorizationTokenProvider;
 import com.azure.cosmos.implementation.InternalServerErrorException;
@@ -27,7 +25,6 @@ public class BarrierRequestHelper {
     private final static Logger logger = LoggerFactory.getLogger(BarrierRequestHelper.class);
 
     public static Mono<RxDocumentServiceRequest> createAsync(
-            DiagnosticsClientContext clientContext,
             RxDocumentServiceRequest request,
             IAuthorizationTokenProvider authorizationTokenProvider,
             Long targetLsn,
@@ -39,10 +36,6 @@ public class BarrierRequestHelper {
 
         AuthorizationTokenType originalRequestTokenType = request.authorizationTokenType;
 
-        if (authorizationTokenProvider != null && authorizationTokenProvider.getAuthorizationTokenType() != null) {
-            originalRequestTokenType = authorizationTokenProvider.getAuthorizationTokenType();
-        }
-
         if (originalRequestTokenType == AuthorizationTokenType.Invalid) {
             String message = "AuthorizationTokenType not set for the read request";
             assert false : message;
@@ -53,31 +46,27 @@ public class BarrierRequestHelper {
         RxDocumentServiceRequest barrierLsnRequest = null;
         if (!isCollectionHeadRequest) {
             // DB Feed
-            barrierLsnRequest = RxDocumentServiceRequest.create(clientContext,
+            barrierLsnRequest = RxDocumentServiceRequest.create(
                 OperationType.HeadFeed,
                 null,
                 ResourceType.Database,
-                null,
-                originalRequestTokenType);
+                null);
         } else if (request.getIsNameBased()) {
             // Name based server request
 
             // get the collection full name
             // dbs/{id}/colls/{collid}/
             String collectionLink = PathsHelper.getCollectionPath(request.getResourceAddress());
-            barrierLsnRequest = RxDocumentServiceRequest.createFromName(clientContext,
+            barrierLsnRequest = RxDocumentServiceRequest.createFromName(
                     OperationType.Head,
                     collectionLink,
-                    ResourceType.DocumentCollection,
-                    originalRequestTokenType);
+                    ResourceType.DocumentCollection);
         } else {
             // RID based Server request
-            barrierLsnRequest = RxDocumentServiceRequest.create(clientContext,
+            barrierLsnRequest = RxDocumentServiceRequest.create(
                     OperationType.Head,
                     ResourceId.parse(request.getResourceId()).getDocumentCollectionId().toString(),
-                    ResourceType.DocumentCollection,
-                    null,
-                    originalRequestTokenType);
+                    ResourceType.DocumentCollection, null);
         }
 
         barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.X_DATE, Utils.nowAsRFC1123());
@@ -90,7 +79,6 @@ public class BarrierRequestHelper {
             barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.TARGET_GLOBAL_COMMITTED_LSN, targetGlobalCommittedLsn.toString());
         }
 
-        boolean hasAadToken = false;
         switch (originalRequestTokenType) {
             case PrimaryMasterKey:
             case PrimaryReadonlyMasterKey:
@@ -110,23 +98,14 @@ public class BarrierRequestHelper {
                 authorizationToken = request.getHeaders().get(HttpConstants.HttpHeaders.AUTHORIZATION);
                 break;
 
-            case AadToken:
-                hasAadToken = true;
-                break;
-
             default:
-                String unknownAuthToken =
-                    "Unknown authorization token kind '" + originalRequestTokenType + "' for read request";
+                String unknownAuthToken = "Unknown authorization token kind for read request";
                 assert false : unknownAuthToken;
                 logger.error(unknownAuthToken);
-                throw Exceptions.propagate(
-                    new InternalServerErrorException(unknownAuthToken + " - " + RMResources.InternalServerError));
+                throw Exceptions.propagate(new InternalServerErrorException(RMResources.InternalServerError));
         }
 
-        if (!hasAadToken) {
-            barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.AUTHORIZATION, authorizationToken);
-        }
-
+        barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.AUTHORIZATION, authorizationToken);
         barrierLsnRequest.requestContext = request.requestContext.clone();
 
         if (request.getPartitionKeyRangeIdentity() != null) {
@@ -140,11 +119,7 @@ public class BarrierRequestHelper {
             barrierLsnRequest.getHeaders().put(WFConstants.BackendHeaders.COLLECTION_RID, request.getHeaders().get(WFConstants.BackendHeaders.COLLECTION_RID));
         }
 
-        if (hasAadToken) {
-            return authorizationTokenProvider.populateAuthorizationHeader(barrierLsnRequest);
-        } else {
-            return Mono.just(barrierLsnRequest);
-        }
+        return Mono.just(barrierLsnRequest);
     }
 
     static boolean isCollectionHeadBarrierRequest(ResourceType resourceType, OperationType operationType) {

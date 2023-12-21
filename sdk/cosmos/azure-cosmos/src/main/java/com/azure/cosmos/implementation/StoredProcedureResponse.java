@@ -83,7 +83,7 @@ public final class StoredProcedureResponse {
     public double getRequestCharge() {
         String value = this.response.getResponseHeaders().get(HttpConstants.HttpHeaders.REQUEST_CHARGE);
         try {
-            return Double.parseDouble(value);
+            return Double.valueOf(value);
         } catch (NumberFormatException e) {
             logger.warn("INVALID x-ms-request-charge value {}.", value);
             return 0;
@@ -123,8 +123,7 @@ public final class StoredProcedureResponse {
      * @return the output string from the stored procedure console.log() statements.
      */
     public String getScriptLog() {
-        String scriptLog = this.response.getResponseHeaders().get(HttpConstants.HttpHeaders.SCRIPT_LOG_RESULTS);
-        return Utils.decodeAsUTF8String(scriptLog);
+        return this.response.getResponseHeaders().get(HttpConstants.HttpHeaders.SCRIPT_LOG_RESULTS);
     }
 
     /**
@@ -134,9 +133,5 @@ public final class StoredProcedureResponse {
      */
     public CosmosDiagnostics getCosmosDiagnostics() {
         return this.response.getCosmosDiagnostics();
-    }
-
-    public RxDocumentServiceResponse getRxDocumentServiceResponse() {
-        return response;
     }
 }

@@ -4,7 +4,6 @@
 package com.azure.core.amqp;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.util.AsyncCloseable;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
@@ -13,9 +12,9 @@ import java.time.OffsetDateTime;
  * Claims-based security (CBS) node that authorizes connections with AMQP services.
  *
  * @see <a href="https://www.oasis-open.org/committees/download.php/62097/amqp-cbs-v1.0-wd05.doc">
- * AMQP Claims-based Security v1.0</a>
+ * AMPQ Claims-based Security v1.0</a>
  */
-public interface ClaimsBasedSecurityNode extends AutoCloseable, AsyncCloseable {
+public interface ClaimsBasedSecurityNode extends AutoCloseable {
     /**
      * Authorizes the caller with the CBS node to access resources for the {@code audience}.
      *
@@ -32,9 +31,4 @@ public interface ClaimsBasedSecurityNode extends AutoCloseable, AsyncCloseable {
      */
     @Override
     void close();
-
-    @Override
-    default Mono<Void> closeAsync() {
-        return Mono.fromRunnable(() -> close());
-    }
 }

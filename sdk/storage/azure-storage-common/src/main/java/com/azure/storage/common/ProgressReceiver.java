@@ -3,7 +3,6 @@
 
 package com.azure.storage.common;
 
-import com.azure.core.util.ProgressListener;
 import reactor.core.publisher.Flux;
 
 /**
@@ -13,11 +12,9 @@ import reactor.core.publisher.Flux;
  * that this type be used in conjunction with {@link ProgressReporter#addProgressReporting(Flux, ProgressReceiver)} to
  * enable reporting on sequential transfers. Note that any method accepting a {@link ParallelTransferOptions} will use
  * the {@code ProgressReceiver} specified there and will handle the logic to coordinate the reporting between parallel
- *
- * @deprecated Use {@link ProgressListener}.
+ * operations.
  */
-@Deprecated
-public interface ProgressReceiver extends ProgressListener {
+public interface ProgressReceiver {
 
     /**
      * The callback function invoked as progress is reported.
@@ -25,9 +22,4 @@ public interface ProgressReceiver extends ProgressListener {
      * @param bytesTransferred The total number of bytes transferred during this transaction.
      */
     void reportProgress(long bytesTransferred);
-
-    @Override
-    default void handleProgress(long bytesTransferred) {
-        reportProgress(bytesTransferred);
-    }
 }

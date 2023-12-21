@@ -22,12 +22,6 @@ public class AnalyzeResults {
     private String version;
 
     /**
-     * Version of the OCR model used for text extraction.
-     */
-    @JsonProperty(value = "modelVersion", required = true)
-    private String modelVersion;
-
-    /**
      * Text extracted from the input.
      */
     @JsonProperty(value = "readResults", required = true)
@@ -50,26 +44,6 @@ public class AnalyzeResults {
      */
     public AnalyzeResults withVersion(String version) {
         this.version = version;
-        return this;
-    }
-
-    /**
-     * Get the modelVersion value.
-     *
-     * @return the modelVersion value
-     */
-    public String modelVersion() {
-        return this.modelVersion;
-    }
-
-    /**
-     * Set the modelVersion value.
-     *
-     * @param modelVersion the modelVersion value to set
-     * @return the AnalyzeResults object itself.
-     */
-    public AnalyzeResults withModelVersion(String modelVersion) {
-        this.modelVersion = modelVersion;
         return this;
     }
 

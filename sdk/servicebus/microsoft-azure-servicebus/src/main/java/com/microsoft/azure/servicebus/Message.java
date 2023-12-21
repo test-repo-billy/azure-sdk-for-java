@@ -177,9 +177,6 @@ public final class Message implements Serializable, IMessage {
 
     @Override
     public void setTimeToLive(Duration timeToLive) {
-    	if (timeToLive.isZero() || timeToLive.isNegative()) {
-    		throw new IllegalArgumentException("timeToLive must be positive duration.");
-    	}
         this.timeToLive = timeToLive;
     }
 
@@ -195,15 +192,7 @@ public final class Message implements Serializable, IMessage {
 
     @Override
     public Instant getExpiresAtUtc() {
-    	if (this.enqueuedTimeUtc == null) {
-    		return null;
-    	} 
-    	else if (this.timeToLive == null) {
-    		return this.enqueuedTimeUtc;
-    	} 
-    	else {
-    		return this.enqueuedTimeUtc.plus(this.timeToLive);
-    	}
+        return this.enqueuedTimeUtc.plus(this.timeToLive);
     }
 
     @Override

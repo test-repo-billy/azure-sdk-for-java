@@ -16,8 +16,8 @@ import com.azure.search.documents.indexes.models.SearchIndex;
 import com.azure.search.documents.indexes.models.SearchIndexer;
 import com.azure.search.documents.indexes.models.SearchIndexerSkill;
 import com.azure.search.documents.indexes.models.SearchIndexerSkillset;
-import com.azure.search.documents.indexes.models.SearchServiceCounters;
-import com.azure.search.documents.indexes.models.SearchServiceLimits;
+import com.azure.search.documents.indexes.models.ServiceCounters;
+import com.azure.search.documents.indexes.models.ServiceLimits;
 import com.azure.search.documents.indexes.models.SearchServiceStatistics;
 import com.azure.search.documents.indexes.models.SynonymMap;
 import com.azure.search.documents.indexes.models.WebApiSkill;
@@ -30,15 +30,15 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * This scenario assumes an existing search solution, with index and an indexer setup (see LifecycleSetupExample) For
- * more information visit <a href="https://github.com/Azure-Samples/azure-search-sample-data">Azure Cognitive Search
- * Sample Data</a>.
+ * This scenario assumes an existing search solution, with index and an indexer setup (see LifecycleSetupExample)
+ * For more information visit Azure Search Sample Data
+ * https://docs.microsoft.com/en-us/samples/azure-samples/azure-search-sample-data/azure-search-sample-data/
  */
 public class RefineSearchCapabilitiesExample {
 
     /**
-     * From the Azure portal, get your Azure Cognitive Search service URL and API admin key, and set the values of these
-     * environment variables:
+     * From the Azure portal, get your Azure Cognitive Search service URL and API admin key,
+     * and set the values of these environment variables:
      */
     private static final String ENDPOINT = Configuration.getGlobalConfiguration().get("AZURE_COGNITIVE_SEARCH_ENDPOINT");
     private static final String ADMIN_KEY = Configuration.getGlobalConfiguration().get("AZURE_COGNITIVE_SEARCH_ADMIN_KEY");
@@ -67,27 +67,33 @@ public class RefineSearchCapabilitiesExample {
     private static void addCustomWebSkillset(SearchIndexerClient client) {
         String skillsetName = "custom-web-skillset";
         List<InputFieldMappingEntry> inputs = Collections.singletonList(
-            new InputFieldMappingEntry("text")
+            new InputFieldMappingEntry()
+                .setName("text")
                 .setSource("/document/Description")
         );
 
         List<OutputFieldMappingEntry> outputs = Collections.singletonList(
-            new OutputFieldMappingEntry("textItems")
+            new OutputFieldMappingEntry()
+                .setName("textItems")
                 .setTargetName("TextItems")
         );
 
         HashMap<String, String> headers = new HashMap<>();
         headers.put("Ocp-Apim-Subscription-Key", "Bing entity search API key");
 
-        SearchIndexerSkill webApiSkill = new WebApiSkill(inputs, outputs,
-            "https://api.cognitive.microsoft.com/bing/v7.0/entities/")
+        SearchIndexerSkill webApiSkill = new WebApiSkill()
+            .setUri("https://api.cognitive.microsoft.com/bing/v7.0/entities/")
             .setHttpMethod("POST") // Supports only "POST" and "PUT" HTTP methods
             .setHttpHeaders(headers)
+            .setInputs(inputs)
+            .setOutputs(outputs)
             .setName("webapi-skill")
             .setDescription("A WebApi skill that can be used as a custom skillset");
 
-        SearchIndexerSkillset skillset = new SearchIndexerSkillset(skillsetName, Collections.singletonList(webApiSkill))
-            .setDescription("Skillset for testing custom skillsets");
+        SearchIndexerSkillset skillset = new SearchIndexerSkillset()
+            .setName(skillsetName)
+            .setDescription("Skillset for testing custom skillsets")
+            .setSkills(Collections.singletonList(webApiSkill));
 
         client.createOrUpdateSkillset(skillset);
         System.out.printf("Created Skillset %s%n", skillsetName);
@@ -99,8 +105,8 @@ public class RefineSearchCapabilitiesExample {
 
     private static void getServiceStatistics(SearchIndexClient client) {
         SearchServiceStatistics statistics = client.getServiceStatistics();
-        SearchServiceCounters counters = statistics.getCounters();
-        SearchServiceLimits limits = statistics.getLimits();
+        ServiceCounters counters = statistics.getCounters();
+        ServiceLimits limits = statistics.getLimits();
 
         System.out.println("Service Statistics:");
         System.out.printf("     Documents quota: %d, documents usage: %d%n", counters.getDocumentCounter().getQuota(), counters.getDocumentCounter().getUsage());
@@ -122,14 +128,15 @@ public class RefineSearchCapabilitiesExample {
 
     private static void addSynonymMapToIndex(SearchIndexClient client) {
         String synonymMapName = "hotel-synonym-sample";
-        SynonymMap synonymMap = new SynonymMap(synonymMapName,
-            "hotel, motel\ninternet,wifi\nfive star=>luxury\neconomy,inexpensive=>budget");
+        SynonymMap synonymMap = new SynonymMap()
+            .setName(synonymMapName)
+            .setSynonyms("hotel, motel\ninternet,wifi\nfive star=>luxury\neconomy,inexpensive=>budget");
 
         client.createOrUpdateSynonymMap(synonymMap);
 
         SearchIndex index = client.getIndex(INDEX_NAME);
         List<SearchField> fields = index.getFields();
-        fields.get(1).setSynonymMapNames(synonymMapName);
+        fields.get(1).setSynonymMapNames(Collections.singletonList(synonymMapName));
         index.setFields(fields);
 
         client.createOrUpdateIndex(index);

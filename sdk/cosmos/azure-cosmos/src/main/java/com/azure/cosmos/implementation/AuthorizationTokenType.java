@@ -11,6 +11,5 @@ public enum AuthorizationTokenType {
     SystemReadOnly, 
     SystemReadWrite,
     SystemAll,
-    ResourceToken,
-    AadToken
+    ResourceToken
 }

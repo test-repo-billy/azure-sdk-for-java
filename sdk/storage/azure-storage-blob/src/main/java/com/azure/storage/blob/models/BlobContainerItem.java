@@ -9,45 +9,32 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.Map;
 
-/** An Azure Storage container. */
+/**
+ * An Azure Storage container.
+ */
 @JacksonXmlRootElement(localName = "Container")
 @Fluent
 public final class BlobContainerItem {
     /*
-     * The Name property.
+     * The name property.
      */
     @JsonProperty(value = "Name", required = true)
     private String name;
 
     /*
-     * The Deleted property.
-     */
-    @JsonProperty(value = "Deleted")
-    private Boolean deleted;
-
-    /*
-     * The Version property.
-     */
-    @JsonProperty(value = "Version")
-    private String version;
-
-    /*
-     * Properties of a container
+     * The properties property.
      */
     @JsonProperty(value = "Properties", required = true)
     private BlobContainerItemProperties properties;
 
     /*
-     * Dictionary of <string>
+     * The metadata property.
      */
     @JsonProperty(value = "Metadata")
     private Map<String, String> metadata;
 
-    /** Creates an instance of BlobContainerItem class. */
-    public BlobContainerItem() {}
-
     /**
-     * Get the name property: The Name property.
+     * Get the name property: The name property.
      *
      * @return the name value.
      */
@@ -56,7 +43,7 @@ public final class BlobContainerItem {
     }
 
     /**
-     * Set the name property: The Name property.
+     * Set the name property: The name property.
      *
      * @param name the name value to set.
      * @return the BlobContainerItem object itself.
@@ -67,47 +54,7 @@ public final class BlobContainerItem {
     }
 
     /**
-     * Get the deleted property: The Deleted property.
-     *
-     * @return the deleted value.
-     */
-    public Boolean isDeleted() {
-        return this.deleted;
-    }
-
-    /**
-     * Set the deleted property: The Deleted property.
-     *
-     * @param deleted the deleted value to set.
-     * @return the BlobContainerItem object itself.
-     */
-    public BlobContainerItem setDeleted(Boolean deleted) {
-        this.deleted = deleted;
-        return this;
-    }
-
-    /**
-     * Get the version property: The Version property.
-     *
-     * @return the version value.
-     */
-    public String getVersion() {
-        return this.version;
-    }
-
-    /**
-     * Set the version property: The Version property.
-     *
-     * @param version the version value to set.
-     * @return the BlobContainerItem object itself.
-     */
-    public BlobContainerItem setVersion(String version) {
-        this.version = version;
-        return this;
-    }
-
-    /**
-     * Get the properties property: Properties of a container.
+     * Get the properties property: The properties property.
      *
      * @return the properties value.
      */
@@ -116,7 +63,7 @@ public final class BlobContainerItem {
     }
 
     /**
-     * Set the properties property: Properties of a container.
+     * Set the properties property: The properties property.
      *
      * @param properties the properties value to set.
      * @return the BlobContainerItem object itself.
@@ -127,7 +74,7 @@ public final class BlobContainerItem {
     }
 
     /**
-     * Get the metadata property: Dictionary of &lt;string&gt;.
+     * Get the metadata property: The metadata property.
      *
      * @return the metadata value.
      */
@@ -136,7 +83,7 @@ public final class BlobContainerItem {
     }
 
     /**
-     * Set the metadata property: Dictionary of &lt;string&gt;.
+     * Set the metadata property: The metadata property.
      *
      * @param metadata the metadata value to set.
      * @return the BlobContainerItem object itself.

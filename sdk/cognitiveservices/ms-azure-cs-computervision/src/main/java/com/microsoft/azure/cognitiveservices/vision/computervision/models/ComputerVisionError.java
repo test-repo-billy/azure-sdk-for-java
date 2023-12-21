@@ -11,12 +11,17 @@ package com.microsoft.azure.cognitiveservices.vision.computervision.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * The API request error.
+ * Details about the API request error.
  */
 public class ComputerVisionError {
     /**
-     * The error code. Possible values include: 'InvalidRequest',
-     * 'InvalidArgument', 'InternalServerError', 'ServiceUnavailable'.
+     * The error code. Possible values include: 'InvalidImageFormat',
+     * 'UnsupportedMediaType', 'InvalidImageUrl', 'NotSupportedFeature',
+     * 'NotSupportedImage', 'Timeout', 'InternalServerError',
+     * 'InvalidImageSize', 'BadArgument', 'DetectFaceError',
+     * 'NotSupportedLanguage', 'InvalidThumbnailSize', 'InvalidDetails',
+     * 'InvalidModel', 'CancelledRequest', 'NotSupportedVisualFeature',
+     * 'FailedToProcess', 'Unspecified', 'StorageException'.
      */
     @JsonProperty(value = "code", required = true)
     private ComputerVisionErrorCodes code;
@@ -28,10 +33,10 @@ public class ComputerVisionError {
     private String message;
 
     /**
-     * Inner error contains more specific information.
+     * A unique request identifier.
      */
-    @JsonProperty(value = "innererror")
-    private ComputerVisionInnerError innererror;
+    @JsonProperty(value = "requestId")
+    private String requestId;
 
     /**
      * Get the code value.
@@ -74,22 +79,22 @@ public class ComputerVisionError {
     }
 
     /**
-     * Get the innererror value.
+     * Get the requestId value.
      *
-     * @return the innererror value
+     * @return the requestId value
      */
-    public ComputerVisionInnerError innererror() {
-        return this.innererror;
+    public String requestId() {
+        return this.requestId;
     }
 
     /**
-     * Set the innererror value.
+     * Set the requestId value.
      *
-     * @param innererror the innererror value to set
+     * @param requestId the requestId value to set
      * @return the ComputerVisionError object itself.
      */
-    public ComputerVisionError withInnererror(ComputerVisionInnerError innererror) {
-        this.innererror = innererror;
+    public ComputerVisionError withRequestId(String requestId) {
+        this.requestId = requestId;
         return this;
     }
 

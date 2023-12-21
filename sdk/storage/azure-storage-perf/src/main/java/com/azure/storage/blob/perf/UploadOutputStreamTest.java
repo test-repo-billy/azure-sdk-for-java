@@ -3,33 +3,29 @@
 
 package com.azure.storage.blob.perf;
 
-import com.azure.storage.blob.models.ParallelTransferOptions;
-import com.azure.storage.blob.options.BlockBlobOutputStreamOptions;
-import com.azure.storage.blob.perf.core.AbstractUploadTest;
+import static com.azure.perf.test.core.TestDataCreationHelper.createRandomInputStream;
+
+import com.azure.perf.test.core.PerfStressOptions;
+import com.azure.storage.blob.perf.core.BlobTestBase;
 import com.azure.storage.blob.specialized.BlobOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
+public class UploadOutputStreamTest extends BlobTestBase<PerfStressOptions> {
 
-import static com.azure.perf.test.core.TestDataCreationHelper.writeBytesToOutputStream;
+    private final InputStream inputStream;
 
-public class UploadOutputStreamTest extends AbstractUploadTest<BlobPerfStressOptions> {
-    public UploadOutputStreamTest(BlobPerfStressOptions options) {
+    public UploadOutputStreamTest(PerfStressOptions options) {
         super(options);
+        this.inputStream = createRandomInputStream(options.getSize());
     }
 
     @Override
     public void run() {
         try {
-            BlockBlobOutputStreamOptions blockBlobOutputStreamOptions = new BlockBlobOutputStreamOptions()
-                .setParallelTransferOptions(
-                    new ParallelTransferOptions()
-                        .setMaxSingleUploadSizeLong(options.getTransferSingleUploadSize())
-                        .setBlockSizeLong(options.getTransferBlockSize())
-                        .setMaxConcurrency(options.getTransferConcurrency())
-                );
-            BlobOutputStream blobOutputStream = blockBlobClient.getBlobOutputStream(blockBlobOutputStreamOptions);
-            writeBytesToOutputStream(blobOutputStream, options.getSize());
+            BlobOutputStream blobOutputStream = blockBlobClient.getBlobOutputStream();
+            copyStream(inputStream, blobOutputStream);
             blobOutputStream.close();
         } catch (IOException e) {
             throw new RuntimeException(e);

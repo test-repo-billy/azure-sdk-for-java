@@ -12,12 +12,9 @@
             "type": "string",
             "defaultValue": "javaeventhub"
         },
-        "serviceBusEndpointSuffix": {
+        "eventHubNamespaceHostNameSuffix": {
             "type": "string",
-            "defaultValue": ".servicebus.windows.net",
-            "metadata": {
-                "description": "The url suffix to use when creating eventhubs connection strings."
-            }
+            "defaultValue": "servicebus.windows.net"
         },
         "tenantId": {
             "type": "string",
@@ -138,11 +135,7 @@
         },
         "AZURE_EVENTHUBS_FULLY_QUALIFIED_DOMAIN_NAME": {
             "type": "string",
-            "value": "[concat(variables('eventHubsNamespaceName'), parameters('serviceBusEndpointSuffix'))]"
-        },
-        "AZURE_EVENTHUBS_ENDPOINT_SUFFIX": {
-          "type": "string",
-          "value": "[parameters('serviceBusEndpointSuffix')]"
+            "value": "[concat(variables('eventHubsNamespaceName'), '.', parameters('eventHubNamespaceHostNameSuffix'))]"
         }
     }
 }

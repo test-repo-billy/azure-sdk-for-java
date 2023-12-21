@@ -22,10 +22,6 @@ public final class RntbdConstants {
     private RntbdConstants() {
     }
 
-    public static class RntbdHealthCheckResults {
-        public static final String SuccessValue = "Success";
-    }
-
     public enum RntbdConsistencyLevel {
 
         Strong((byte) 0x00),
@@ -231,7 +227,7 @@ public final class RntbdConstants {
 
         Connection((short) 0x0000, null),
         Create((short) 0x0001, OperationType.Create),
-        Patch((short) 0x0002, OperationType.Patch),
+        Update((short) 0x0002, OperationType.Update),
         Read((short) 0x0003, OperationType.Read),
         ReadFeed((short) 0x0004, OperationType.ReadFeed),
         Delete((short) 0x0005, OperationType.Delete),
@@ -263,8 +259,7 @@ public final class RntbdConstants {
         AbortPartitionMigration((short) 0x001F, OperationType.AbortPartitionMigration),
         PreReplaceValidation((short) 0x0020, OperationType.PreReplaceValidation),
         AddComputeGatewayRequestCharges((short) 0x0021, OperationType.AddComputeGatewayRequestCharges),
-        MigratePartition((short) 0x0022, OperationType.MigratePartition),
-        Batch((short) 0x0025, OperationType.Batch);
+        MigratePartition((short) 0x0022, OperationType.MigratePartition);
 
         private final short id;
         private final OperationType type;
@@ -282,7 +277,7 @@ public final class RntbdConstants {
                 case 0x0001:
                     return RntbdOperationType.Create;
                 case 0x0002:
-                    return RntbdOperationType.Patch;
+                    return RntbdOperationType.Update;
                 case 0x0003:
                     return RntbdOperationType.Read;
                 case 0x0004:
@@ -346,8 +341,6 @@ public final class RntbdConstants {
                     return RntbdOperationType.AddComputeGatewayRequestCharges;
                 case 0x0022:
                     return RntbdOperationType.MigratePartition;
-                case 0x0025:
-                    return RntbdOperationType.Batch;
                 default:
                     throw new DecoderException(lenientFormat("expected byte value matching %s value, not %s",
                         RntbdOperationType.class.getSimpleName(),
@@ -385,8 +378,8 @@ public final class RntbdConstants {
                     return RntbdOperationType.Stop;
                 case SqlQuery:
                     return RntbdOperationType.SqlQuery;
-                case Patch:
-                    return RntbdOperationType.Patch;
+                case Update:
+                    return RntbdOperationType.Update;
                 case ForceConfigRefresh:
                     return RntbdOperationType.ForceConfigRefresh;
                 case Head:
@@ -423,8 +416,6 @@ public final class RntbdConstants {
                     return RntbdOperationType.MigratePartition;
                 case AddComputeGatewayRequestCharges:
                     return RntbdOperationType.AddComputeGatewayRequestCharges;
-                case Batch:
-                    return RntbdOperationType.Batch;
                 default:
                     throw new IllegalArgumentException(lenientFormat("unrecognized operation type: %s", type));
             }
@@ -443,8 +434,7 @@ public final class RntbdConstants {
 
         Invalid((byte) 0x00),
         ResourceId((byte) 0x01),
-        EffectivePartitionKey((byte) 0x02),
-        EffectivePartitionKeyRange((byte) 0x03);
+        EffectivePartitionKey((byte) 0x02);
 
         private final byte id;
 
@@ -582,17 +572,7 @@ public final class RntbdConstants {
         AllowTentativeWrites((short) 0x0066, RntbdTokenType.Byte, false),
         IsUserRequest((short) 0x0067, RntbdTokenType.Byte, false),
         SharedOfferThroughput((short) 0x0068, RntbdTokenType.ULong, false),
-        IsBatchAtomic((short) 0x0073, RntbdTokenType.Byte, false),
-        ShouldBatchContinueOnError((short) 0x0074, RntbdTokenType.Byte, false),
-        IsBatchOrdered((short) 0x0075, RntbdTokenType.Byte, false),
-        ReturnPreference((short) 0x0082, RntbdTokenType.Byte, false),
-        PopulateIndexMetrics((short) 0x00A9, RntbdTokenType.Byte, false),
-        IsClientEncrypted((short) 0x0087, RntbdTokenType.Byte, false),
-        IntendedCollectionRid((short) 0x009D, RntbdTokenType.String, false),
-        CorrelatedActivityId((short) 0x00B0, RntbdTokenType.Guid, false),
-        SDKSupportedCapabilities((short) 0x00A2, RntbdTokenType.ULong, false),
-        ChangeFeedWireFormatVersion((short) 0x00B2, RntbdTokenType.String, false),
-        PriorityLevel((short) 0x00BF, RntbdTokenType.Byte, false);
+        ReturnPreference((short) 0x0082, RntbdTokenType.Byte, false);
 
         public static final ImmutableMap<Short, RntbdRequestHeader> map;
         public static final ImmutableSet<RntbdRequestHeader> set = Sets.immutableEnumSet(EnumSet.allOf(RntbdRequestHeader.class));
@@ -849,8 +829,6 @@ public final class RntbdConstants {
         XPRole((short) 0x0026, RntbdTokenType.ULong, false),
         IsRUPerMinuteUsed((short) 0x0027, RntbdTokenType.Byte, false),
         QueryMetrics((short) 0x0028, RntbdTokenType.String, false),
-        IndexUtilization((short) 0x0044, RntbdTokenType.String, false),
-        QueryExecutionInfo((short) 0x0045, RntbdTokenType.String, false),
         GlobalCommittedLSN((short) 0x0029, RntbdTokenType.LongLong, false),
         NumberOfReadRegions((short) 0x0030, RntbdTokenType.ULong, false),
         OfferReplacePending((short) 0x0031, RntbdTokenType.Byte, false),
@@ -866,9 +844,7 @@ public final class RntbdConstants {
         QuorumAckedLocalLSN((short) 0x003B, RntbdTokenType.LongLong, false),
         ItemLocalLSN((short) 0x003C, RntbdTokenType.LongLong, false),
         HasTentativeWrites((short) 0x003D, RntbdTokenType.Byte, false),
-        SessionToken((short) 0x003E, RntbdTokenType.String, false),
-        BackendRequestDurationMilliseconds((short) 0X0051, RntbdTokenType.Double, false),
-        CorrelatedActivityId((short) 0X0052, RntbdTokenType.Guid, false);
+        SessionToken((short) 0x003E, RntbdTokenType.String, false);
 
         public static final ImmutableMap<Short, RntbdResponseHeader> map;
         public static final ImmutableSet<RntbdResponseHeader> set = Sets.immutableEnumSet(EnumSet.allOf(RntbdResponseHeader.class));

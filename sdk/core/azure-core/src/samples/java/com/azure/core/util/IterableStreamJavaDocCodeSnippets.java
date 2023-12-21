@@ -3,7 +3,6 @@
 
 package com.azure.core.util;
 
-import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpMethod;
 import com.azure.core.http.HttpRequest;
@@ -12,19 +11,16 @@ import reactor.core.publisher.Flux;
 
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.azure.core.CoreTestUtils.createUrl;
-
 /**
  * Code snippets for {@link IterableStream}
  */
 public class IterableStreamJavaDocCodeSnippets {
-    private static final HttpHeaderName HEADER1 = HttpHeaderName.fromString("header1");
-    private static final HttpHeaderName HEADER2 = HttpHeaderName.fromString("header2");
 
     /**
      * Iterate over {@link java.util.stream.Stream}
@@ -32,10 +28,9 @@ public class IterableStreamJavaDocCodeSnippets {
      * @throws MalformedURLException if can not create URL object.
      */
     public void streamSnippet() throws MalformedURLException {
-        HttpHeaders httpHeaders = new HttpHeaders()
-            .set(HEADER1, "value1")
-            .set(HEADER2, "value2");
-        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, createUrl("http://localhost"));
+        HttpHeaders httpHeaders = new HttpHeaders().put("header1", "value1")
+            .put("header2", "value2");
+        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, new URL("http://localhost"));
 
         String deserializedHeaders = "header1,value1,header2,value2";
 
@@ -48,7 +43,9 @@ public class IterableStreamJavaDocCodeSnippets {
             if (resp.getStatusCode() == HttpURLConnection.HTTP_OK) {
                 System.out.printf("Response headers are %s. Url %s%n", resp.getDeserializedHeaders(),
                     resp.getRequest().getUrl());
-                resp.getElements().forEach(value -> System.out.printf("Response value is %d%n", value));
+                resp.getItems().forEach(value -> {
+                    System.out.printf("Response value is %d%n", value);
+                });
             }
         });
         // END: com.azure.core.util.iterableStream.stream
@@ -60,10 +57,9 @@ public class IterableStreamJavaDocCodeSnippets {
      * @throws MalformedURLException if can not create URL object.
      */
     public void iteratorwhileSnippet() throws MalformedURLException {
-        HttpHeaders httpHeaders = new HttpHeaders()
-            .set(HEADER1, "value1")
-            .set(HEADER2, "value2");
-        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, createUrl("http://localhost"));
+        HttpHeaders httpHeaders = new HttpHeaders().put("header1", "value1")
+            .put("header2", "value2");
+        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, new URL("http://localhost"));
 
         String deserializedHeaders = "header1,value1,header2,value2";
 
@@ -76,7 +72,9 @@ public class IterableStreamJavaDocCodeSnippets {
             if (resp.getStatusCode() == HttpURLConnection.HTTP_OK) {
                 System.out.printf("Response headers are %s. Url %s%n", resp.getDeserializedHeaders(),
                     resp.getRequest().getUrl());
-                resp.getElements().forEach(value -> System.out.printf("Response value is %d%n", value));
+                resp.getItems().forEach(value -> {
+                    System.out.printf("Response value is %d%n", value);
+                });
             }
         }
         // END: com.azure.core.util.iterableStream.iterator.while
@@ -88,10 +86,9 @@ public class IterableStreamJavaDocCodeSnippets {
      * @throws MalformedURLException if can not create URL object.
      */
     public void iteratorStreamFilterSnippet() throws MalformedURLException {
-        HttpHeaders httpHeaders = new HttpHeaders()
-            .set(HEADER1, "value1")
-            .set(HEADER2, "value2");
-        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, createUrl("http://localhost"));
+        HttpHeaders httpHeaders = new HttpHeaders().put("header1", "value1")
+            .put("header2", "value2");
+        HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, new URL("http://localhost"));
 
         String deserializedHeaders = "header1,value1,header2,value2";
 
@@ -105,7 +102,9 @@ public class IterableStreamJavaDocCodeSnippets {
             .forEach(resp -> {
                 System.out.printf("Response headers are %s. Url %s%n", resp.getDeserializedHeaders(),
                     resp.getRequest().getUrl());
-                resp.getElements().forEach(value -> System.out.printf("Response value is %d%n", value));
+                resp.getItems().forEach(value -> {
+                    System.out.printf("Response value is %d%n", value);
+                });
             });
         // END: com.azure.core.util.iterableStream.stream.filter
     }

@@ -34,11 +34,11 @@ public class QnAMakerClientImpl extends AzureServiceClient implements QnAMakerCl
         return this.azureClient;
     }
 
-    /** Supported Cognitive Services endpoint (e.g., https://< qnamaker-resource-name >.api.cognitiveservices.azure.com). */
+    /** Supported Cognitive Services endpoints (protocol and hostname, for example: https://westus.api.cognitive.microsoft.com). */
     private String endpoint;
 
     /**
-     * Gets Supported Cognitive Services endpoint (e.g., https://< qnamaker-resource-name >.api.cognitiveservices.azure.com).
+     * Gets Supported Cognitive Services endpoints (protocol and hostname, for example: https://westus.api.cognitive.microsoft.com).
      *
      * @return the endpoint value.
      */
@@ -47,7 +47,7 @@ public class QnAMakerClientImpl extends AzureServiceClient implements QnAMakerCl
     }
 
     /**
-     * Sets Supported Cognitive Services endpoint (e.g., https://< qnamaker-resource-name >.api.cognitiveservices.azure.com).
+     * Sets Supported Cognitive Services endpoints (protocol and hostname, for example: https://westus.api.cognitive.microsoft.com).
      *
      * @param endpoint the endpoint value.
      * @return the service client itself
@@ -197,7 +197,7 @@ public class QnAMakerClientImpl extends AzureServiceClient implements QnAMakerCl
      * @param credentials the management credentials for Azure
      */
     public QnAMakerClientImpl(ServiceClientCredentials credentials) {
-        this("https://{Endpoint}/qnamaker/v5.0-preview.1", credentials);
+        this("https://{Endpoint}/qnamaker/v4.0", credentials);
     }
 
     /**
@@ -240,6 +240,6 @@ public class QnAMakerClientImpl extends AzureServiceClient implements QnAMakerCl
      */
     @Override
     public String userAgent() {
-        return String.format("%s (%s, %s)", super.userAgent(), "QnAMakerClient", "v5.0-preview.1");
+        return String.format("%s (%s, %s)", super.userAgent(), "QnAMakerClient", "4.0");
     }
 }

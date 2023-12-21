@@ -58,12 +58,6 @@ public class QnASearchResult {
     private QnASearchResultContext context;
 
     /**
-     * Answer span object of QnA with respect to user's question.
-     */
-    @JsonProperty(value = "answerSpan")
-    private QnASearchResultAnswerSpan answerSpan;
-
-    /**
      * Get the questions value.
      *
      * @return the questions value
@@ -200,26 +194,6 @@ public class QnASearchResult {
      */
     public QnASearchResult withContext(QnASearchResultContext context) {
         this.context = context;
-        return this;
-    }
-
-    /**
-     * Get the answerSpan value.
-     *
-     * @return the answerSpan value
-     */
-    public QnASearchResultAnswerSpan answerSpan() {
-        return this.answerSpan;
-    }
-
-    /**
-     * Set the answerSpan value.
-     *
-     * @param answerSpan the answerSpan value to set
-     * @return the QnASearchResult object itself.
-     */
-    public QnASearchResult withAnswerSpan(QnASearchResultAnswerSpan answerSpan) {
-        this.answerSpan = answerSpan;
         return this;
     }
 

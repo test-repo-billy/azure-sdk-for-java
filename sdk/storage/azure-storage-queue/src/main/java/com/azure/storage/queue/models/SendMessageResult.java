@@ -10,7 +10,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.time.OffsetDateTime;
 
-/** The object returned in the QueueMessageList array when calling Put Message on a Queue. */
+/**
+ * The object returned in the QueueMessageList array when calling Put Message
+ * on a Queue.
+ */
 @JacksonXmlRootElement(localName = "QueueMessage")
 @Fluent
 public final class SendMessageResult {
@@ -33,8 +36,8 @@ public final class SendMessageResult {
     private DateTimeRfc1123 expirationTime;
 
     /*
-     * This value is required to delete the Message. If deletion fails using this popreceipt then the message has been
-     * dequeued by another client.
+     * This value is required to delete the Message. If deletion fails using
+     * this popreceipt then the message has been dequeued by another client.
      */
     @JsonProperty(value = "PopReceipt", required = true)
     private String popReceipt;
@@ -44,9 +47,6 @@ public final class SendMessageResult {
      */
     @JsonProperty(value = "TimeNextVisible", required = true)
     private DateTimeRfc1123 timeNextVisible;
-
-    /** Creates an instance of SendMessageResult class. */
-    public SendMessageResult() {}
 
     /**
      * Get the messageId property: The Id of the Message.
@@ -69,7 +69,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Get the insertionTime property: The time the Message was inserted into the Queue.
+     * Get the insertionTime property: The time the Message was inserted into
+     * the Queue.
      *
      * @return the insertionTime value.
      */
@@ -81,7 +82,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Set the insertionTime property: The time the Message was inserted into the Queue.
+     * Set the insertionTime property: The time the Message was inserted into
+     * the Queue.
      *
      * @param insertionTime the insertionTime value to set.
      * @return the SendMessageResult object itself.
@@ -96,7 +98,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Get the expirationTime property: The time that the Message will expire and be automatically deleted.
+     * Get the expirationTime property: The time that the Message will expire
+     * and be automatically deleted.
      *
      * @return the expirationTime value.
      */
@@ -108,7 +111,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Set the expirationTime property: The time that the Message will expire and be automatically deleted.
+     * Set the expirationTime property: The time that the Message will expire
+     * and be automatically deleted.
      *
      * @param expirationTime the expirationTime value to set.
      * @return the SendMessageResult object itself.
@@ -123,8 +127,9 @@ public final class SendMessageResult {
     }
 
     /**
-     * Get the popReceipt property: This value is required to delete the Message. If deletion fails using this
-     * popreceipt then the message has been dequeued by another client.
+     * Get the popReceipt property: This value is required to delete the
+     * Message. If deletion fails using this popreceipt then the message has
+     * been dequeued by another client.
      *
      * @return the popReceipt value.
      */
@@ -133,8 +138,9 @@ public final class SendMessageResult {
     }
 
     /**
-     * Set the popReceipt property: This value is required to delete the Message. If deletion fails using this
-     * popreceipt then the message has been dequeued by another client.
+     * Set the popReceipt property: This value is required to delete the
+     * Message. If deletion fails using this popreceipt then the message has
+     * been dequeued by another client.
      *
      * @param popReceipt the popReceipt value to set.
      * @return the SendMessageResult object itself.
@@ -145,7 +151,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Get the timeNextVisible property: The time that the message will again become visible in the Queue.
+     * Get the timeNextVisible property: The time that the message will again
+     * become visible in the Queue.
      *
      * @return the timeNextVisible value.
      */
@@ -157,7 +164,8 @@ public final class SendMessageResult {
     }
 
     /**
-     * Set the timeNextVisible property: The time that the message will again become visible in the Queue.
+     * Set the timeNextVisible property: The time that the message will again
+     * become visible in the Queue.
      *
      * @param timeNextVisible the timeNextVisible value to set.
      * @return the SendMessageResult object itself.

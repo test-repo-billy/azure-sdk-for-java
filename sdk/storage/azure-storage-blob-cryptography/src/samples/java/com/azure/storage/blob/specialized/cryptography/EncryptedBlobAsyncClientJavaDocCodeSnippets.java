@@ -4,10 +4,8 @@
 package com.azure.storage.blob.specialized.cryptography;
 
 import com.azure.storage.blob.models.AccessTier;
-import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobHttpHeaders;
-import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.blob.specialized.BlockBlobAsyncClient;
 import reactor.core.publisher.Flux;
@@ -37,8 +35,8 @@ public class EncryptedBlobAsyncClientJavaDocCodeSnippets {
     private URL sourceURL = JavaDocCodeSnippetsHelpers.generateURL("https://example.com");
     private long offset = 1024L;
     private long count = length;
-    private long blockSize = 50;
-    private int maxConcurrency = 2;
+    private int blockSize = 50;
+    private int numBuffers = 2;
 
     /**
      *
@@ -51,9 +49,7 @@ public class EncryptedBlobAsyncClientJavaDocCodeSnippets {
      */
     public void upload() {
         // BEGIN: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.upload#Flux-ParallelTransferOptions
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize)
-            .setMaxConcurrency(maxConcurrency);
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions(blockSize, numBuffers, null);
         client.upload(data, parallelTransferOptions).subscribe(response ->
             System.out.printf("Uploaded BlockBlob MD5 is %s%n",
                 Base64.getEncoder().encodeToString(response.getContentMd5())));
@@ -65,9 +61,7 @@ public class EncryptedBlobAsyncClientJavaDocCodeSnippets {
      */
     public void uploadWithOverwrite() {
         // BEGIN: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.upload#Flux-ParallelTransferOptions-boolean
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize)
-            .setMaxConcurrency(maxConcurrency);
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions(blockSize, numBuffers, null);
         boolean overwrite = false; // Default behavior
         client.upload(data, parallelTransferOptions, overwrite).subscribe(response ->
             System.out.printf("Uploaded BlockBlob MD5 is %s%n",
@@ -89,41 +83,12 @@ public class EncryptedBlobAsyncClientJavaDocCodeSnippets {
         BlobRequestConditions requestConditions = new BlobRequestConditions()
             .setLeaseId(leaseId)
             .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize)
-            .setMaxConcurrency(maxConcurrency);
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions(blockSize, numBuffers, null);
 
         client.uploadWithResponse(data, parallelTransferOptions, headers, metadata, AccessTier.HOT, requestConditions)
             .subscribe(response -> System.out.printf("Uploaded BlockBlob MD5 is %s%n",
                 Base64.getEncoder().encodeToString(response.getValue().getContentMd5())));
         // END: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadWithResponse#Flux-ParallelTransferOptions-BlobHttpHeaders-Map-AccessTier-BlobRequestConditions
-    }
-
-    /**
-     * Code snippet for {@link EncryptedBlobAsyncClient#uploadWithResponse(BlobParallelUploadOptions)}
-     */
-    public void upload3() {
-        // BEGIN: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadWithResponse#BlobParallelUploadOptions
-        BlobHttpHeaders headers = new BlobHttpHeaders()
-            .setContentMd5("data".getBytes(StandardCharsets.UTF_8))
-            .setContentLanguage("en-US")
-            .setContentType("binary");
-
-        Map<String, String> metadata = new HashMap<>(Collections.singletonMap("metadata", "value"));
-        Map<String, String> tags = new HashMap<>(Collections.singletonMap("tag", "value"));
-        BlobRequestConditions requestConditions = new BlobRequestConditions()
-            .setLeaseId(leaseId)
-            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize)
-            .setMaxConcurrency(maxConcurrency);
-
-        client.uploadWithResponse(new BlobParallelUploadOptions(data)
-            .setParallelTransferOptions(parallelTransferOptions).setHeaders(headers).setMetadata(metadata)
-            .setTags(tags).setTier(AccessTier.HOT).setRequestConditions(requestConditions))
-            .subscribe(response -> System.out.printf("Uploaded BlockBlob MD5 is %s%n",
-                Base64.getEncoder().encodeToString(response.getValue().getContentMd5())));
-        // END: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadWithResponse#BlobParallelUploadOptions
     }
 
     /**
@@ -164,39 +129,11 @@ public class EncryptedBlobAsyncClientJavaDocCodeSnippets {
             .setLeaseId(leaseId)
             .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
 
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize);
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions(blockSize, null, null);
 
         client.uploadFromFile(filePath, parallelTransferOptions, headers, metadata, AccessTier.HOT, requestConditions)
             .doOnError(throwable -> System.err.printf("Failed to upload from file %s%n", throwable.getMessage()))
             .subscribe(completion -> System.out.println("Upload from file succeeded"));
         // END: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadFromFile#String-ParallelTransferOptions-BlobHttpHeaders-Map-AccessTier-BlobRequestConditions
-    }
-
-    /**
-     * Code snippet for {@link EncryptedBlobAsyncClient#uploadFromFileWithResponse(BlobUploadFromFileOptions)}
-     */
-    public void uploadFromFile3() {
-        // BEGIN: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadFromFileWithResponse#BlobUploadFromFileOptions
-        BlobHttpHeaders headers = new BlobHttpHeaders()
-            .setContentMd5("data".getBytes(StandardCharsets.UTF_8))
-            .setContentLanguage("en-US")
-            .setContentType("binary");
-
-        Map<String, String> metadata = new HashMap<>(Collections.singletonMap("metadata", "value"));
-        Map<String, String> tags = new HashMap<>(Collections.singletonMap("tag", "value"));
-        BlobRequestConditions requestConditions = new BlobRequestConditions()
-            .setLeaseId(leaseId)
-            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
-
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setBlockSizeLong(blockSize);
-
-        client.uploadFromFileWithResponse(new BlobUploadFromFileOptions(filePath)
-            .setParallelTransferOptions(parallelTransferOptions).setHeaders(headers).setMetadata(metadata).setTags(tags)
-            .setTier(AccessTier.HOT).setRequestConditions(requestConditions))
-            .doOnError(throwable -> System.err.printf("Failed to upload from file %s%n", throwable.getMessage()))
-            .subscribe(completion -> System.out.println("Upload from file succeeded"));
-        // END: com.azure.storage.blob.specialized.cryptography.EncryptedBlobAsyncClient.uploadFromFileWithResponse#BlobUploadFromFileOptions
     }
 }

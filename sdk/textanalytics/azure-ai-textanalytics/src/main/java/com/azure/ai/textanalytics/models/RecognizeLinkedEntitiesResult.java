@@ -7,14 +7,14 @@ import com.azure.core.annotation.Immutable;
 import com.azure.core.util.IterableStream;
 
 /**
- * The {@code RecognizeLinkedEntitiesResult} model.
+ * The {@link RecognizeLinkedEntitiesResult} model.
  */
 @Immutable
 public final class RecognizeLinkedEntitiesResult extends TextAnalyticsResult {
     private final LinkedEntityCollection entities;
 
     /**
-     * Creates a {@code RecognizeLinkedEntitiesResult} model that describes recognized linked entities result.
+     * Creates a {@link RecognizeLinkedEntitiesResult} model that describes recognized linked entities result.
      *
      * @param id Unique, non-empty document identifier.
      * @param textDocumentStatistics The text document statistics.
@@ -28,12 +28,9 @@ public final class RecognizeLinkedEntitiesResult extends TextAnalyticsResult {
     }
 
     /**
-     * Gets an {@link IterableStream} of {@link LinkedEntity}.
+     * Get an {@link IterableStream} of {@link LinkedEntity}.
      *
      * @return An {@link IterableStream} of {@link LinkedEntity}.
-     *
-     * @throws TextAnalyticsException if result has {@code isError} equals to true and when a non-error property
-     * was accessed.
      */
     public LinkedEntityCollection getEntities() {
         throwExceptionIfError();

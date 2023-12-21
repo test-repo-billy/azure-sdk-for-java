@@ -4,22 +4,17 @@ package com.azure.search.documents;
 
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.HttpPipeline;
-import com.azure.core.http.policy.FixedDelay;
-import com.azure.core.http.policy.RetryPolicy;
+import com.azure.core.test.TestBase;
 import com.azure.search.documents.indexes.IndexesTestHelpers;
 import com.azure.search.documents.indexes.SearchIndexAsyncClient;
 import com.azure.search.documents.indexes.SearchIndexClient;
 import com.azure.search.documents.indexes.SearchIndexClientBuilder;
 import org.junit.jupiter.api.Test;
-import reactor.test.StepVerifier;
-
-import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class SearchServiceSubClientTests extends SearchTestBase {
+public class SearchServiceSubClientTests extends TestBase {
 
     @Test
     public void canGetIndexClientFromSearchClient() {
@@ -67,11 +62,13 @@ public class SearchServiceSubClientTests extends SearchTestBase {
 
     @Test
     public void canGetIndexClientAfterUsingServiceClient() {
-        // This will fail and be retried as the index doesn't exist so use a short retry policy.
-        SearchIndexClient serviceClient = getSearchIndexClient(new RetryPolicy(
-            new FixedDelay(3, Duration.ofMillis(10))));
-
-        assertThrows(Exception.class, () -> serviceClient.deleteIndex("thisindexdoesnotexist"));
+        SearchIndexClient serviceClient = getSearchIndexClient();
+        try {
+            // this is expected to fail
+            serviceClient.deleteIndex("thisindexdoesnotexist");
+        } catch (Exception e) {
+            // deleting the index should fail as it does not exist
+        }
 
         // This should not fail
         SearchClient indexClient = serviceClient.getSearchClient("hotels");
@@ -81,9 +78,12 @@ public class SearchServiceSubClientTests extends SearchTestBase {
     @Test
     public void canGetIndexAsyncClientAfterUsingServiceClient() {
         SearchIndexAsyncClient serviceClient = getSearchIndexAsyncClient();
-
-        StepVerifier.create(serviceClient.deleteIndex("thisindexdoesnotexist"))
-            .verifyError();
+        try {
+            // this is expected to fail
+            serviceClient.deleteIndex("thisindexdoesnotexist");
+        } catch (Exception e) {
+            // deleting the index should fail as it does not exist
+        }
 
         // This should not fail
         SearchAsyncClient indexClient = serviceClient.getSearchAsyncClient("hotels");
@@ -91,14 +91,9 @@ public class SearchServiceSubClientTests extends SearchTestBase {
     }
 
     private SearchIndexClient getSearchIndexClient() {
-        return getSearchIndexClient(null);
-    }
-
-    private SearchIndexClient getSearchIndexClient(RetryPolicy retryPolicy) {
         return new SearchIndexClientBuilder()
             .endpoint("https://test1.search.windows.net")
             .credential(new AzureKeyCredential("api-key"))
-            .retryPolicy(retryPolicy)
             .buildClient();
     }
 

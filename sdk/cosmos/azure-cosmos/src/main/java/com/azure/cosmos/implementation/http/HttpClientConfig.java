@@ -5,7 +5,6 @@ package com.azure.cosmos.implementation.http;
 
 import com.azure.core.http.ProxyOptions;
 import com.azure.cosmos.implementation.Configs;
-import com.azure.cosmos.implementation.guava27.Strings;
 
 import java.time.Duration;
 
@@ -18,7 +17,7 @@ public class HttpClientConfig {
     private final Configs configs;
     private Integer maxPoolSize;
     private Duration maxIdleConnectionTimeout;
-    private Duration networkRequestTimeout;
+    private Duration requestTimeout;
     private ProxyOptions proxy;
     private boolean connectionKeepAlive = true;
 
@@ -41,8 +40,8 @@ public class HttpClientConfig {
         return this;
     }
 
-    public HttpClientConfig withNetworkRequestTimeout(Duration requestTimeout) {
-        this.networkRequestTimeout = requestTimeout;
+    public HttpClientConfig withRequestTimeout(Duration requestTimeout) {
+        this.requestTimeout = requestTimeout;
         return this;
     }
 
@@ -63,8 +62,8 @@ public class HttpClientConfig {
         return maxIdleConnectionTimeout;
     }
 
-    public Duration getNetworkRequestTimeout() {
-        return networkRequestTimeout;
+    public Duration getRequestTimeout() {
+        return requestTimeout;
     }
 
     public ProxyOptions getProxy() {
@@ -73,15 +72,5 @@ public class HttpClientConfig {
 
     public boolean isConnectionKeepAlive() {
         return connectionKeepAlive;
-    }
-
-    //  TODO(kuthapar): Do we really need to use Strings.lenientFormat() here?
-    //  Even the documentation of this API suggests to use String.format or just string appends if possible.
-    public String toDiagnosticsString() {
-        return Strings.lenientFormat("(cps:%s, nrto:%s, icto:%s, p:%s)",
-            maxPoolSize,
-            networkRequestTimeout,
-            maxIdleConnectionTimeout,
-            proxy != null);
     }
 }

@@ -11,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
 
 import static com.azure.core.amqp.exception.AmqpErrorCondition.SERVER_BUSY_ERROR;
-import static com.azure.core.amqp.implementation.ClientConstants.SERVER_BUSY_WAIT_TIME;
 
 /**
  * An abstract representation of a policy to govern retrying of messaging operations.
@@ -20,6 +19,8 @@ public abstract class AmqpRetryPolicy {
     static final long NANOS_PER_SECOND = 1000_000_000L;
 
     private static final double JITTER_FACTOR = 0.08;
+    // Base sleep wait time.
+    private static final Duration SERVER_BUSY_WAIT_TIME = Duration.ofSeconds(4);
 
     private final AmqpRetryOptions retryOptions;
     private final Duration baseJitter;
@@ -47,7 +48,7 @@ public abstract class AmqpRetryPolicy {
      *
      * @return The set of options used to configure this retry policy.
      */
-    public AmqpRetryOptions getRetryOptions() {
+    protected AmqpRetryOptions getRetryOptions() {
         return retryOptions;
     }
 

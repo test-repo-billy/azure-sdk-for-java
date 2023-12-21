@@ -5,108 +5,120 @@
 package com.azure.ai.textanalytics.implementation.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.json.JsonReader;
-import com.azure.json.JsonToken;
-import com.azure.json.JsonWriter;
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-/** The EntityLinkingResult model. */
+/**
+ * The EntityLinkingResult model.
+ */
 @Fluent
-public final class EntityLinkingResult extends PreBuiltResult {
+public final class EntityLinkingResult {
     /*
      * Response by document
      */
-    private List<EntityLinkingResultDocumentsItem> documents;
+    @JsonProperty(value = "documents", required = true)
+    private List<DocumentLinkedEntities> documents;
 
-    /** Creates an instance of EntityLinkingResult class. */
-    public EntityLinkingResult() {}
+    /*
+     * Errors by document id.
+     */
+    @JsonProperty(value = "errors", required = true)
+    private List<DocumentError> errors;
+
+    /*
+     * if showStats=true was specified in the request this field will contain
+     * information about the request payload.
+     */
+    @JsonProperty(value = "statistics")
+    private RequestStatistics statistics;
+
+    /*
+     * This field indicates which model is used for scoring.
+     */
+    @JsonProperty(value = "modelVersion", required = true)
+    private String modelVersion;
 
     /**
      * Get the documents property: Response by document.
-     *
+     * 
      * @return the documents value.
      */
-    public List<EntityLinkingResultDocumentsItem> getDocuments() {
+    public List<DocumentLinkedEntities> getDocuments() {
         return this.documents;
     }
 
     /**
      * Set the documents property: Response by document.
-     *
+     * 
      * @param documents the documents value to set.
      * @return the EntityLinkingResult object itself.
      */
-    public EntityLinkingResult setDocuments(List<EntityLinkingResultDocumentsItem> documents) {
+    public EntityLinkingResult setDocuments(List<DocumentLinkedEntities> documents) {
         this.documents = documents;
         return this;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public EntityLinkingResult setErrors(List<DocumentError> errors) {
-        super.setErrors(errors);
-        return this;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public EntityLinkingResult setStatistics(RequestStatistics statistics) {
-        super.setStatistics(statistics);
-        return this;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public EntityLinkingResult setModelVersion(String modelVersion) {
-        super.setModelVersion(modelVersion);
-        return this;
-    }
-
-    @Override
-    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
-        jsonWriter.writeStartObject();
-        jsonWriter.writeArrayField("errors", getErrors(), (writer, element) -> writer.writeJson(element));
-        jsonWriter.writeStringField("modelVersion", getModelVersion());
-        jsonWriter.writeJsonField("statistics", getStatistics());
-        jsonWriter.writeArrayField("documents", this.documents, (writer, element) -> writer.writeJson(element));
-        return jsonWriter.writeEndObject();
+    /**
+     * Get the errors property: Errors by document id.
+     * 
+     * @return the errors value.
+     */
+    public List<DocumentError> getErrors() {
+        return this.errors;
     }
 
     /**
-     * Reads an instance of EntityLinkingResult from the JsonReader.
-     *
-     * @param jsonReader The JsonReader being read.
-     * @return An instance of EntityLinkingResult if the JsonReader was pointing to an instance of it, or null if it was
-     *     pointing to JSON null.
-     * @throws IllegalStateException If the deserialized JSON object was missing any required properties.
-     * @throws IOException If an error occurs while reading the EntityLinkingResult.
+     * Set the errors property: Errors by document id.
+     * 
+     * @param errors the errors value to set.
+     * @return the EntityLinkingResult object itself.
      */
-    public static EntityLinkingResult fromJson(JsonReader jsonReader) throws IOException {
-        return jsonReader.readObject(
-                reader -> {
-                    EntityLinkingResult deserializedEntityLinkingResult = new EntityLinkingResult();
-                    while (reader.nextToken() != JsonToken.END_OBJECT) {
-                        String fieldName = reader.getFieldName();
-                        reader.nextToken();
+    public EntityLinkingResult setErrors(List<DocumentError> errors) {
+        this.errors = errors;
+        return this;
+    }
 
-                        if ("errors".equals(fieldName)) {
-                            List<DocumentError> errors = reader.readArray(reader1 -> DocumentError.fromJson(reader1));
-                            deserializedEntityLinkingResult.setErrors(errors);
-                        } else if ("modelVersion".equals(fieldName)) {
-                            deserializedEntityLinkingResult.setModelVersion(reader.getString());
-                        } else if ("statistics".equals(fieldName)) {
-                            deserializedEntityLinkingResult.setStatistics(RequestStatistics.fromJson(reader));
-                        } else if ("documents".equals(fieldName)) {
-                            List<EntityLinkingResultDocumentsItem> documents =
-                                    reader.readArray(reader1 -> EntityLinkingResultDocumentsItem.fromJson(reader1));
-                            deserializedEntityLinkingResult.documents = documents;
-                        } else {
-                            reader.skipChildren();
-                        }
-                    }
+    /**
+     * Get the statistics property: if showStats=true was specified in the
+     * request this field will contain information about the request payload.
+     * 
+     * @return the statistics value.
+     */
+    public RequestStatistics getStatistics() {
+        return this.statistics;
+    }
 
-                    return deserializedEntityLinkingResult;
-                });
+    /**
+     * Set the statistics property: if showStats=true was specified in the
+     * request this field will contain information about the request payload.
+     * 
+     * @param statistics the statistics value to set.
+     * @return the EntityLinkingResult object itself.
+     */
+    public EntityLinkingResult setStatistics(RequestStatistics statistics) {
+        this.statistics = statistics;
+        return this;
+    }
+
+    /**
+     * Get the modelVersion property: This field indicates which model is used
+     * for scoring.
+     * 
+     * @return the modelVersion value.
+     */
+    public String getModelVersion() {
+        return this.modelVersion;
+    }
+
+    /**
+     * Set the modelVersion property: This field indicates which model is used
+     * for scoring.
+     * 
+     * @param modelVersion the modelVersion value to set.
+     * @return the EntityLinkingResult object itself.
+     */
+    public EntityLinkingResult setModelVersion(String modelVersion) {
+        this.modelVersion = modelVersion;
+        return this;
     }
 }

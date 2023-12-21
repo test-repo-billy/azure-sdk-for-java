@@ -4,7 +4,6 @@
 package com.azure.core.amqp.implementation;
 
 import com.azure.core.amqp.AmqpTransaction;
-import com.azure.core.amqp.AmqpTransactionCoordinator;
 import com.azure.core.util.logging.ClientLogger;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
@@ -22,9 +21,9 @@ import static com.azure.core.amqp.implementation.ClientConstants.MAX_AMQP_HEADER
 /**
  * Encapsulates transaction functions.
  */
-final class TransactionCoordinator implements AmqpTransactionCoordinator {
+final class TransactionCoordinator {
 
-    private static final ClientLogger LOGGER = new ClientLogger(TransactionCoordinator.class);
+    private final ClientLogger logger = new ClientLogger(TransactionCoordinator.class);
 
     private final AmqpSendLink sendLink;
     private final MessageSerializer messageSerializer;
@@ -43,12 +42,11 @@ final class TransactionCoordinator implements AmqpTransactionCoordinator {
      *
      * @return a completable {@link Mono} which represent {@link DeliveryState}.
      */
-    @Override
-    public Mono<Void> discharge(AmqpTransaction transaction, boolean isCommit) {
+    Mono<Void> completeTransaction(AmqpTransaction transaction, boolean isCommit) {
         final Message message = Proton.message();
         Discharge discharge = new Discharge();
         discharge.setFail(!isCommit);
-        discharge.setTxnId(Binary.create(transaction.getTransactionId()));
+        discharge.setTxnId(new Binary(transaction.getTransactionId().array()));
         message.setBody(new AmqpValue(discharge));
 
         final int payloadSize = messageSerializer.getSize(message);
@@ -66,7 +64,7 @@ final class TransactionCoordinator implements AmqpTransactionCoordinator {
                         break;
                     default:
                         sink.error(new IllegalArgumentException("Expected a Accepted, received: " + outcome));
-                        LOGGER.warning("Unknown DeliveryState type: {}", stateType);
+                        logger.warning("Unknown DeliveryState type: {}", stateType);
                 }
             });
     }
@@ -76,8 +74,7 @@ final class TransactionCoordinator implements AmqpTransactionCoordinator {
      *
      * @return a completable {@link Mono} which represent {@link DeliveryState}.
      */
-    @Override
-    public Mono<AmqpTransaction> declare() {
+    Mono<AmqpTransaction> createTransaction() {
         final Message message = Proton.message();
         Declare declare = new Declare();
         message.setBody(new AmqpValue(declare));
@@ -100,7 +97,7 @@ final class TransactionCoordinator implements AmqpTransactionCoordinator {
                         break;
                     default:
                         sink.error(new IllegalArgumentException("Expected a Declared, received: " + outcome));
-                        LOGGER.warning("Unknown DeliveryState type: {}", stateType);
+                        logger.warning("Unknown DeliveryState type: {}", stateType);
                 }
             });
     }

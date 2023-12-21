@@ -4,8 +4,6 @@
 package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.GoneException;
-import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.RequestTimeoutException;
 
 import java.time.Duration;
@@ -21,21 +19,13 @@ public class TimeoutHelper {
     }
 
     public boolean isElapsed() {
-        return this.isElapsed(this.timeOut);
-    }
-
-    public boolean isElapsed(Duration timeoutToCompareTo) {
         Duration elapsed = Duration.ofMillis(Instant.now().toEpochMilli() - startTime.toEpochMilli());
-        return elapsed.compareTo(timeoutToCompareTo) >= 0;
+        return elapsed.compareTo(this.timeOut) >= 0;
     }
 
     public Duration getRemainingTime() {
-        return this.getRemainingTime(this.timeOut);
-    }
-
-    public Duration getRemainingTime(Duration timeoutToCompareTo) {
         Duration elapsed = Duration.ofMillis(Instant.now().toEpochMilli() - startTime.toEpochMilli());
-        return timeoutToCompareTo.minus(elapsed);
+        return this.timeOut.minus(elapsed);
     }
 
     public void throwTimeoutIfElapsed() throws RequestTimeoutException {
@@ -46,7 +36,7 @@ public class TimeoutHelper {
 
     public void throwGoneIfElapsed() throws GoneException {
         if (this.isElapsed()) {
-            throw new GoneException(RMResources.Gone, HttpConstants.SubStatusCodes.TIMEOUT_GENERATED_410);
+            throw new GoneException();
         }
     }
 }

@@ -7,18 +7,14 @@ import com.azure.cosmos.implementation.routing.Range;
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.implementation.JsonSerializable;
 import com.azure.cosmos.implementation.Utils.ValueHolder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.azure.cosmos.BridgeInternal.setProperty;
 
 /**
  * While this class is public, but it is not part of our published public APIs.
  * This is meant to be internally used only by our sdk.
  */
-public final class CompositeContinuationToken extends JsonSerializable implements IPartitionedToken {
+public final class CompositeContinuationToken extends JsonSerializable {
     private static final String TokenPropertyName = "token";
     private static final String RangePropertyName = "range";
     private static final Logger logger = LoggerFactory.getLogger(CompositeContinuationToken.class);
@@ -31,10 +27,6 @@ public final class CompositeContinuationToken extends JsonSerializable implement
 
         this.setToken(token);
         this.setRange(range);
-    }
-
-    public CompositeContinuationToken(ObjectNode node) {
-        super(node);
     }
 
     private CompositeContinuationToken(String serializedCompositeContinuationToken) {
@@ -86,30 +78,14 @@ public final class CompositeContinuationToken extends JsonSerializable implement
      * @return the range
      */
     public Range<String> getRange() {
-        ObjectNode propertyBag = super.getPropertyBag();
-        if (propertyBag.has(RangePropertyName) && propertyBag.hasNonNull(RangePropertyName)) {
-            JsonNode rangeNode = propertyBag.get(RangePropertyName);
-
-            // Initially we serialized the json by stringifying the range
-            // So keeping the option to parse json with that old model here
-            // but converting it to the cleaner format
-            if (rangeNode.isTextual()) {
-                Range<String> parsedRange = new Range<>(rangeNode.textValue());
-                setProperty(this, RangePropertyName, parsedRange);
-                return parsedRange;
-            }
-
-            return new Range<String>((ObjectNode)rangeNode);
-        }
-
-        return null;
+        return new Range<String>(super.getString(RangePropertyName));
     }
 
     /**
      * @param token
      *            the token to set
      */
-    public void setToken(String token) {
+    private void setToken(String token) {
         BridgeInternal.setProperty(this, TokenPropertyName, token);
     }
 
@@ -117,8 +93,9 @@ public final class CompositeContinuationToken extends JsonSerializable implement
      * @param range
      *            the range to set
      */
-    public void setRange(Range<String> range) {
-        BridgeInternal.setProperty(this, RangePropertyName, range);
+    private void setRange(Range<String> range) {
+        /* TODO: Don't stringify the range */
+        BridgeInternal.setProperty(this, RangePropertyName, range.toString());
     }
 
     @Override

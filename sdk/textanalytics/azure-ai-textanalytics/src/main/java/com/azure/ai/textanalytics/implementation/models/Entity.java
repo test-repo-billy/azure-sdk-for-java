@@ -5,51 +5,52 @@
 package com.azure.ai.textanalytics.implementation.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.json.JsonReader;
-import com.azure.json.JsonSerializable;
-import com.azure.json.JsonToken;
-import com.azure.json.JsonWriter;
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** The Entity model. */
+/**
+ * The Entity model.
+ */
 @Fluent
-public final class Entity implements JsonSerializable<Entity> {
+public final class Entity {
     /*
      * Entity text as appears in the request.
      */
+    @JsonProperty(value = "text", required = true)
     private String text;
 
     /*
-     * Entity type.
+     * Entity type, such as Person/Location/Org/SSN etc
      */
+    @JsonProperty(value = "category", required = true)
     private String category;
 
     /*
-     * (Optional) Entity sub type.
+     * Entity sub type, such as Age/Year/TimeRange etc
      */
+    @JsonProperty(value = "subcategory")
     private String subcategory;
 
     /*
-     * Start position for the entity text. Use of different 'stringIndexType' values can affect the offset returned.
+     * Start position (in Unicode characters) for the entity text.
      */
+    @JsonProperty(value = "offset", required = true)
     private int offset;
 
     /*
-     * Length for the entity text. Use of different 'stringIndexType' values can affect the length returned.
+     * Length (in Unicode characters) for the entity text.
      */
+    @JsonProperty(value = "length", required = true)
     private int length;
 
     /*
      * Confidence score between 0 and 1 of the extracted entity.
      */
+    @JsonProperty(value = "confidenceScore", required = true)
     private double confidenceScore;
-
-    /** Creates an instance of Entity class. */
-    public Entity() {}
 
     /**
      * Get the text property: Entity text as appears in the request.
-     *
+     * 
      * @return the text value.
      */
     public String getText() {
@@ -58,7 +59,7 @@ public final class Entity implements JsonSerializable<Entity> {
 
     /**
      * Set the text property: Entity text as appears in the request.
-     *
+     * 
      * @param text the text value to set.
      * @return the Entity object itself.
      */
@@ -68,8 +69,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Get the category property: Entity type.
-     *
+     * Get the category property: Entity type, such as Person/Location/Org/SSN
+     * etc.
+     * 
      * @return the category value.
      */
     public String getCategory() {
@@ -77,8 +79,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Set the category property: Entity type.
-     *
+     * Set the category property: Entity type, such as Person/Location/Org/SSN
+     * etc.
+     * 
      * @param category the category value to set.
      * @return the Entity object itself.
      */
@@ -88,8 +91,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Get the subcategory property: (Optional) Entity sub type.
-     *
+     * Get the subcategory property: Entity sub type, such as
+     * Age/Year/TimeRange etc.
+     * 
      * @return the subcategory value.
      */
     public String getSubcategory() {
@@ -97,8 +101,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Set the subcategory property: (Optional) Entity sub type.
-     *
+     * Set the subcategory property: Entity sub type, such as
+     * Age/Year/TimeRange etc.
+     * 
      * @param subcategory the subcategory value to set.
      * @return the Entity object itself.
      */
@@ -108,9 +113,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Get the offset property: Start position for the entity text. Use of different 'stringIndexType' values can affect
-     * the offset returned.
-     *
+     * Get the offset property: Start position (in Unicode characters) for the
+     * entity text.
+     * 
      * @return the offset value.
      */
     public int getOffset() {
@@ -118,9 +123,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Set the offset property: Start position for the entity text. Use of different 'stringIndexType' values can affect
-     * the offset returned.
-     *
+     * Set the offset property: Start position (in Unicode characters) for the
+     * entity text.
+     * 
      * @param offset the offset value to set.
      * @return the Entity object itself.
      */
@@ -130,9 +135,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Get the length property: Length for the entity text. Use of different 'stringIndexType' values can affect the
-     * length returned.
-     *
+     * Get the length property: Length (in Unicode characters) for the entity
+     * text.
+     * 
      * @return the length value.
      */
     public int getLength() {
@@ -140,9 +145,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Set the length property: Length for the entity text. Use of different 'stringIndexType' values can affect the
-     * length returned.
-     *
+     * Set the length property: Length (in Unicode characters) for the entity
+     * text.
+     * 
      * @param length the length value to set.
      * @return the Entity object itself.
      */
@@ -152,8 +157,9 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Get the confidenceScore property: Confidence score between 0 and 1 of the extracted entity.
-     *
+     * Get the confidenceScore property: Confidence score between 0 and 1 of
+     * the extracted entity.
+     * 
      * @return the confidenceScore value.
      */
     public double getConfidenceScore() {
@@ -161,63 +167,14 @@ public final class Entity implements JsonSerializable<Entity> {
     }
 
     /**
-     * Set the confidenceScore property: Confidence score between 0 and 1 of the extracted entity.
-     *
+     * Set the confidenceScore property: Confidence score between 0 and 1 of
+     * the extracted entity.
+     * 
      * @param confidenceScore the confidenceScore value to set.
      * @return the Entity object itself.
      */
     public Entity setConfidenceScore(double confidenceScore) {
         this.confidenceScore = confidenceScore;
         return this;
-    }
-
-    @Override
-    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
-        jsonWriter.writeStartObject();
-        jsonWriter.writeStringField("text", this.text);
-        jsonWriter.writeStringField("category", this.category);
-        jsonWriter.writeIntField("offset", this.offset);
-        jsonWriter.writeIntField("length", this.length);
-        jsonWriter.writeDoubleField("confidenceScore", this.confidenceScore);
-        jsonWriter.writeStringField("subcategory", this.subcategory);
-        return jsonWriter.writeEndObject();
-    }
-
-    /**
-     * Reads an instance of Entity from the JsonReader.
-     *
-     * @param jsonReader The JsonReader being read.
-     * @return An instance of Entity if the JsonReader was pointing to an instance of it, or null if it was pointing to
-     *     JSON null.
-     * @throws IllegalStateException If the deserialized JSON object was missing any required properties.
-     * @throws IOException If an error occurs while reading the Entity.
-     */
-    public static Entity fromJson(JsonReader jsonReader) throws IOException {
-        return jsonReader.readObject(
-                reader -> {
-                    Entity deserializedEntity = new Entity();
-                    while (reader.nextToken() != JsonToken.END_OBJECT) {
-                        String fieldName = reader.getFieldName();
-                        reader.nextToken();
-
-                        if ("text".equals(fieldName)) {
-                            deserializedEntity.text = reader.getString();
-                        } else if ("category".equals(fieldName)) {
-                            deserializedEntity.category = reader.getString();
-                        } else if ("offset".equals(fieldName)) {
-                            deserializedEntity.offset = reader.getInt();
-                        } else if ("length".equals(fieldName)) {
-                            deserializedEntity.length = reader.getInt();
-                        } else if ("confidenceScore".equals(fieldName)) {
-                            deserializedEntity.confidenceScore = reader.getDouble();
-                        } else if ("subcategory".equals(fieldName)) {
-                            deserializedEntity.subcategory = reader.getString();
-                        } else {
-                            reader.skipChildren();
-                        }
-                    }
-
-                    return deserializedEntity;
-                });
     }
 }

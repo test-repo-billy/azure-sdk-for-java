@@ -6,9 +6,7 @@ package com.azure.cosmos.implementation.query.orderbyquery;
 import com.azure.cosmos.implementation.Constants;
 import com.azure.cosmos.implementation.Document;
 import com.azure.cosmos.implementation.PartitionKeyRange;
-import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.implementation.query.QueryItem;
-import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.ModelBridgeInternal;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -18,16 +16,19 @@ import java.util.List;
  * Represents the result of a query in the Azure Cosmos DB database service.
  */
 public final class OrderByRowResult<T> extends Document {
+    private final Class<T> klass;
     private volatile List<QueryItem> orderByItems;
-    private volatile Document payload;
-    private final FeedRangeEpkImpl targetRange;
+    private volatile T payload;
+    private final PartitionKeyRange targetRange;
     private final String backendContinuationToken;
 
     public OrderByRowResult(
+            Class<T> klass,
             String jsonString,
-            FeedRangeEpkImpl targetRange,
+            PartitionKeyRange targetRange,
             String backendContinuationToken) {
         super(jsonString);
+        this.klass = klass;
         this.targetRange = targetRange;
         this.backendContinuationToken = backendContinuationToken;
     }
@@ -38,22 +39,22 @@ public final class OrderByRowResult<T> extends Document {
     }
 
     @SuppressWarnings("unchecked")
-    public Document getPayload() {
+    public T getPayload() {
         if (this.payload != null) {
             return this.payload;
         }
         final Object object = super.get("payload");
-        if  (!ObjectNode.class.isAssignableFrom(object.getClass())) {
+        if (klass == Document.class && !ObjectNode.class.isAssignableFrom(object.getClass())) {
             Document document = new Document();
             ModelBridgeInternal.setProperty(document, Constants.Properties.VALUE, object);
-            payload = document;
+            payload = (T) document;
         } else {
-            this.payload = super.getObject("payload", Document.class);
+            this.payload = super.getObject("payload", klass);
         }
         return payload;
     }
 
-    public FeedRangeEpkImpl getSourceRange() {
+    public PartitionKeyRange getSourcePartitionKeyRange() {
         return this.targetRange;
     }
 
@@ -64,15 +65,5 @@ public final class OrderByRowResult<T> extends Document {
     @Override
     public String toJson() {
         return super.toJson();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
     }
 }

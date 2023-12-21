@@ -3,14 +3,15 @@
 package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.caches.IPartitionKeyRangeCache;
 import com.azure.cosmos.implementation.caches.RxCollectionCache;
 import com.azure.cosmos.implementation.routing.CollectionRoutingMap;
+import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Map;
 
 // TODO: this need testing
 /**
@@ -20,26 +21,24 @@ import java.util.Map;
 public class PartitionKeyRangeGoneRetryPolicy extends DocumentClientRetryPolicy {
 
     private final RxCollectionCache collectionCache;
-    private final DiagnosticsClientContext diagnosticsClientContext;
     private final DocumentClientRetryPolicy nextRetryPolicy;
     private final IPartitionKeyRangeCache partitionKeyRangeCache;
     private final String collectionLink;
-    private final Map<String, Object> requestOptionProperties;
+    private final CosmosQueryRequestOptions cosmosQueryRequestOptions;
     private volatile boolean retried;
     private RxDocumentServiceRequest request;
 
-    public PartitionKeyRangeGoneRetryPolicy(DiagnosticsClientContext diagnosticsClientContext,
+    public PartitionKeyRangeGoneRetryPolicy(
             RxCollectionCache collectionCache,
             IPartitionKeyRangeCache partitionKeyRangeCache,
             String collectionLink,
             DocumentClientRetryPolicy nextRetryPolicy,
-            Map<String, Object> requestOptionProperties) {
-        this.diagnosticsClientContext = diagnosticsClientContext;
+            CosmosQueryRequestOptions cosmosQueryRequestOptions) {
         this.collectionCache = collectionCache;
         this.partitionKeyRangeCache = partitionKeyRangeCache;
         this.collectionLink = collectionLink;
         this.nextRetryPolicy = nextRetryPolicy;
-        this.requestOptionProperties = requestOptionProperties;
+        this.cosmosQueryRequestOptions = cosmosQueryRequestOptions;
         this.request = null;
     }
 
@@ -60,15 +59,14 @@ public class PartitionKeyRangeGoneRetryPolicy extends DocumentClientRetryPolicy 
             }
 
             RxDocumentServiceRequest request = RxDocumentServiceRequest.create(
-                    this.diagnosticsClientContext,
                     OperationType.Read,
                     ResourceType.DocumentCollection,
                     this.collectionLink,
                     null
                     // AuthorizationTokenType.PrimaryMasterKey)
                     );
-            if (this.requestOptionProperties != null) {
-                request.properties = this.requestOptionProperties;
+            if (this.cosmosQueryRequestOptions != null) {
+                request.properties = ModelBridgeInternal.getPropertiesFromQueryRequestOptions(this.cosmosQueryRequestOptions);
             }
             Mono<Utils.ValueHolder<DocumentCollection>> collectionObs = this.collectionCache.resolveCollectionAsync(
                 BridgeInternal.getMetaDataDiagnosticContext(this.request.requestContext.cosmosDiagnostics),
@@ -114,12 +112,4 @@ public class PartitionKeyRangeGoneRetryPolicy extends DocumentClientRetryPolicy 
         this.nextRetryPolicy.onBeforeSendRequest(request);
     }
 
-    @Override
-    public RetryContext getRetryContext() {
-        if (this.nextRetryPolicy != null) {
-            return this.nextRetryPolicy.getRetryContext();
-        } else {
-            return null;
-        }
-    }
 }

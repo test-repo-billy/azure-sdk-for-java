@@ -12,7 +12,7 @@ import java.net.URISyntaxException;
 public final class CertificateOperationIdentifier extends ObjectIdentifier {
 
     /**
-     * Verifies whether the identifier belongs to a key vault certificate operation.
+     * Verifies whether the identifier belongs to a key vault certificate operation. 
      * @param identifier the key vault certificate operation identifier.
      * @return true if the identifier belongs to a key vault certificate operation. False otherwise.
      */
@@ -54,13 +54,14 @@ public final class CertificateOperationIdentifier extends ObjectIdentifier {
     }
 
    /**
-    * Constructor.
-    * @param identifier the key vault certificate operation identifier.
+    * Constructor. 
+    * @param identifier the key vault certificate operation identifier. 
     */
     public CertificateOperationIdentifier(String identifier) {
         super("certificates", identifier);
         if (!version().equals("pending")) {
-            throw new IllegalArgumentException(String.format("Invalid CertificateOperationIdentifier: %s", identifier));
+            throw new IllegalArgumentException(
+                    String.format("Invalid CertificateOperationIdentifier: {0}", identifier));
         }
     }
 }

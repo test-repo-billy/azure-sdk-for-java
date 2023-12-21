@@ -36,8 +36,6 @@ public class JobScheduleAddParameter {
 
     /**
      * The schedule according to which Jobs will be created.
-     * All times are fixed respective to UTC and are not impacted by daylight
-     * saving time.
      */
     @JsonProperty(value = "schedule", required = true)
     private Schedule schedule;
@@ -97,7 +95,7 @@ public class JobScheduleAddParameter {
     }
 
     /**
-     * Get all times are fixed respective to UTC and are not impacted by daylight saving time.
+     * Get the schedule value.
      *
      * @return the schedule value
      */
@@ -106,7 +104,7 @@ public class JobScheduleAddParameter {
     }
 
     /**
-     * Set all times are fixed respective to UTC and are not impacted by daylight saving time.
+     * Set the schedule value.
      *
      * @param schedule the schedule value to set
      * @return the JobScheduleAddParameter object itself.

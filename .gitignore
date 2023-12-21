@@ -1,19 +1,8 @@
-# Default Assets restore directory
-.assets
-
 *.class
 
 #Javadoc files
 dist/
 .publish/
-output/
-temp/
-
-# Spring
-**/*packageOutputDirectory*
-
-# Sensitive files
-*.json.env
 
 #javadoc overview files generated from README.md
 readme_overview.html
@@ -41,7 +30,6 @@ extlib/
 # Azure Tooling #
 node_modules
 packages
-__pycache__
 
 # Eclipse #
 *.pydevproject
@@ -80,42 +68,3 @@ package-lock.json
 # VS Code
 .vscode/
 .factorypath
-jacoco.exec
-.vs/
-
-# Generated client pom file
-ClientAggregatePom.xml
-ClientFromSourcePom.xml
-
-# Generated aggregate coverage reports pom file
-aggregate-pom.xml
-
-# Anaconda virtual env
-venv
-.venv
-
-# NetBeans
-nbproject
-nb-configuration.xml
-
-# Scala Stylecheck
-scalastyle-output.xml
-
-# Emacs #
-
-#changebundle.txt#
-
-# Flatten-pom
-.flattened-pom.xml
-flatter.pom
-/.vs/
-
-
-# stress-tests
-Chart.lock
-generatedValues.yaml
-stress-test-resources.json
-stress-test-addons*
-
-# Temp typespec files
-TempTypeSpecFiles/

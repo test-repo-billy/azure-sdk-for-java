@@ -3,7 +3,6 @@
 
 package com.azure.storage.common.implementation;
 
-import com.azure.core.util.Configuration;
 import com.azure.storage.common.sas.SasProtocol;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -29,11 +28,6 @@ public final class Constants {
      * Represents a non-SI gigabyte.
      */
     public static final int GB = 1024 * MB;
-
-    /**
-     * Represents a non-SI terabyte.
-     */
-    public static final long TB = 1024L * GB;
 
     /**
      * Represents the value for {@link SasProtocol#HTTPS_ONLY}.
@@ -70,25 +64,6 @@ public final class Constants {
      * Buffer width used to copy data to output streams.
      */
     public static final int BUFFER_COPY_LENGTH = 8 * KB;
-
-    /**
-     * This constant is used to cap Stream->Flux converter's block size considering that:
-     * - Integer.MAX (or near) leads to java.lang.OutOfMemoryError: Requested array size exceeds VM limit
-     * - Allocating arrays that are very large can be less successful on busy heap and put extra pressure on GC to
-     *   de-fragment.
-     * - Going to small on the other hand might be harmful to large upload scenarios. Max block size is 4000MB
-     *   so chunking that into blocks that are smaller produces a lot of garbage to just wrap this into ByteBuffers.
-     */
-    public static final int MAX_INPUT_STREAM_CONVERTER_BUFFER_LENGTH = 64 * MB;
-
-    public static final String STORAGE_SCOPE = "https://storage.azure.com/.default";
-
-    public static final String STORAGE_LOG_STRING_TO_SIGN = "Azure-Storage-Log-String-To-Sign";
-
-    public static final String PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION = "AZURE_STORAGE_SAS_SERVICE_VERSION";
-
-    public static final String SAS_SERVICE_VERSION = Configuration.getGlobalConfiguration()
-        .get(PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, "2024-02-04");
 
     private Constants() {
     }
@@ -213,10 +188,8 @@ public final class Constants {
 
         /**
          * The current storage version header value.
-         * @deprecated For SAS Service Version use {@link Constants#SAS_SERVICE_VERSION}.
          */
-        @Deprecated
-        public static final String TARGET_STORAGE_VERSION = "2024-02-04";
+        public static final String TARGET_STORAGE_VERSION = "2019-07-07";
 
         /**
          * Error code returned from the service.
@@ -227,8 +200,6 @@ public final class Constants {
          * Compression type used on the body.
          */
         public static final String CONTENT_ENCODING = "Content-Encoding";
-
-        public static final String CONTENT_TYPE = "Content-Type";
 
         public static final String CLIENT_REQUEST_ID = "x-ms-client-request-id";
 
@@ -243,12 +214,6 @@ public final class Constants {
         public static final String ETAG_WILDCARD = "*";
 
         public static final String DIRECTORY_METADATA_KEY = "hdi_isfolder";
-
-        public static final String X_MS_META = "x-ms-meta";
-
-        public static final String SMB_PROTOCOL = "SMB";
-
-        public static final String NFS_PROTOCOL = "NFS";
 
         private HeaderConstants() {
             // Private to prevent construction.
@@ -266,16 +231,6 @@ public final class Constants {
          * The snapshot parameters.
          */
         public static final String SNAPSHOT_QUERY_PARAMETER = "snapshot";
-
-        /**
-         * The versionId parameters.
-         */
-        public static final String VERSIONID_QUERY_PARAMETER = "versionid";
-
-        /**
-         * The deletionId parameters.
-         */
-        public static final String DELETIONID_QUERY_PARAMETER = "deletionid";
 
         /**
          * The SAS service version parameter.
@@ -333,11 +288,6 @@ public final class Constants {
         public static final String SAS_SIGNATURE = "sig";
 
         /**
-         * The SAS encryption scope parameter.
-         */
-        public static final String SAS_ENCRYPTION_SCOPE = "ses";
-
-        /**
          * The SAS cache control parameter.
          */
         public static final String SAS_CACHE_CONTROL = "rscc";
@@ -391,26 +341,6 @@ public final class Constants {
          * The SAS signed version parameter for user delegation SAS.
          */
         public static final String SAS_SIGNED_KEY_VERSION = "skv";
-
-        /**
-         * The SAS preauthorized agent object id parameter for user delegation SAS.
-         */
-        public static final String SAS_PREAUTHORIZED_AGENT_OBJECT_ID = "saoid";
-
-        /**
-         * The SAS agent object id parameter for user delegation SAS.
-         */
-        public static final String SAS_AGENT_OBJECT_ID = "suoid";
-
-        /**
-         * The SAS correlation id parameter for user delegation SAS.
-         */
-        public static final String SAS_CORRELATION_ID = "scid";
-
-        /**
-         * The SAS directory depth parameter.
-         */
-        public static final String SAS_DIRECTORY_DEPTH = "sdd";
 
         /**
          * The SAS queue constant.

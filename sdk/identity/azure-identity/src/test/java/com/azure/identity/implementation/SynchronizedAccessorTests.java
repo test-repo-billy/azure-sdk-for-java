@@ -3,10 +3,9 @@
 
 package com.azure.identity.implementation;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
@@ -21,7 +20,7 @@ public class SynchronizedAccessorTests {
         int counter = 0;
         Random random = new Random();
 
-        SynchronizedAccessor<Integer> synchronizedAccessor = new SynchronizedAccessor<>(() -> Mono.just(random.nextInt()));
+        SynchronizedAccessor<Integer> synchronizedAccessor = new SynchronizedAccessor<>(() -> random.nextInt());
 
         List<Integer> values = Flux.fromIterable(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
                 .flatMap(i -> synchronizedAccessor.getValue(), 16)
@@ -31,7 +30,7 @@ public class SynchronizedAccessorTests {
         //test
         Integer firstVal = values.get(0);
         for (int z = 1; z < values.size(); z++) {
-            Assertions.assertEquals(firstVal, values.get(z));
+            Assert.assertEquals(firstVal, values.get(z));
         }
     }
 }

@@ -3,63 +3,50 @@
 
 package com.azure.ai.formrecognizer.models;
 
-import com.azure.ai.formrecognizer.implementation.FormLineHelper;
+import com.azure.core.annotation.Immutable;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Represents a line of text and its appearance.
+ * The FormLine model.
  */
-public final class FormLine extends FormElement {
+@Immutable
+public final class FormLine extends FormContent {
 
     /*
      * List of words in the text line.
      */
-    private final List<FormWord> words;
-
-    /*
-     * Line text appearance properties.
-     */
-    private TextAppearance appearance;
-
-    static {
-        FormLineHelper.setAccessor(new FormLineHelper.FormLineAccessor() {
-            @Override
-            public void setAppearance(FormLine formLine, TextAppearance textAppearance) {
-                formLine.setAppearance(textAppearance);
-            }
-        });
-    }
+    private final List<FormWord> formWords;
 
     /**
      * Creates raw OCR item.
-     * When includeFieldElements is set to true, a list of recognized text lines.
+     * When includeTextDetails is set to true, a list of recognized text lines.
      *
      * @param text The text content of recognized field.
      * @param boundingBox The BoundingBox of the recognized field.
      * @param pageNumber the page number.
-     * @param words The list of word element references.
+     * @param formWords The list of word element references.
      */
-    public FormLine(String text, FieldBoundingBox boundingBox, Integer pageNumber, final List<FormWord> words) {
+    public FormLine(String text, BoundingBox boundingBox, Integer pageNumber,
+        final List<FormWord> formWords) {
         super(text, boundingBox, pageNumber);
-        this.words = words == null ? null : Collections.unmodifiableList(words);
+        this.formWords = formWords;
     }
 
     /**
-     * Get the list of words in the text line.
+     * Get the words property: List of words in the text line.
      *
-     * @return the unmodifiable list of words in the {@code FormLine}.
+     * @return the words value.
      */
-    public List<FormWord> getWords() {
-        return this.words;
+    public List<FormWord> getFormWords() {
+        return this.formWords;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public FieldBoundingBox getBoundingBox() {
+    public BoundingBox getBoundingBox() {
         return super.getBoundingBox();
     }
 
@@ -75,27 +62,7 @@ public final class FormLine extends FormElement {
      * {@inheritDoc}
      */
     @Override
-    public int getPageNumber() {
+    public Integer getPageNumber() {
         return super.getPageNumber();
-    }
-
-    /**
-     * The private setter to set the appearance property
-     * via {@link FormLineHelper.FormLineAccessor}.
-     *
-     * @param appearance the appearance text line.
-     */
-    private FormLine setAppearance(TextAppearance appearance) {
-        this.appearance = appearance;
-        return this;
-    }
-
-    /**
-     * Get the appearance of the text line.
-     *
-     * @return the appearance of the text line.
-     */
-    public TextAppearance getAppearance() {
-        return appearance;
     }
 }

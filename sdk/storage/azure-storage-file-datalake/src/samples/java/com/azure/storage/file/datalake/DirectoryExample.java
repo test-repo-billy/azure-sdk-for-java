@@ -3,7 +3,7 @@
 package com.azure.storage.file.datalake;
 
 import com.azure.core.util.Configuration;
-import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import com.azure.storage.file.datalake.implementation.models.StorageErrorException;
 import com.azure.storage.file.datalake.models.PathProperties;
 
 import java.util.UUID;
@@ -32,13 +32,12 @@ public class DirectoryExample {
         DataLakeDirectoryClient directoryClient = new DataLakePathClientBuilder().endpoint(ENDPOINT)
             .pathName(generateRandomName())
             .fileSystemName(fileSystemName)
-            .sasToken("<SAS_TOKEN>")
             .buildDirectoryClient();
 
         // Create a parent directory
         try {
             directoryClient.create();
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to create a directory. Reasons: " + e.getMessage());
         }
 
@@ -46,7 +45,7 @@ public class DirectoryExample {
         String childDirectoryName = generateRandomName();
         try {
             directoryClient.createSubdirectory(childDirectoryName);
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to create sub directory. Reasons: " + e.getMessage());
         }
 
@@ -55,14 +54,14 @@ public class DirectoryExample {
         String fileName = generateRandomName();
         try {
             childDirClient.createFile(fileName);
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to create a file under the child directory. Reasons: " + e.getMessage());
         }
 
         // Delete the child directory. The operation will fail because storage service only allowed to delete the empty directory.
         try {
             childDirClient.delete();
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("This is expected as the child directory is not empty.");
         }
 
@@ -70,28 +69,28 @@ public class DirectoryExample {
         try {
             PathProperties propertiesResponse = directoryClient.getProperties();
             System.out.printf("This is the eTag of the directory: %s%n", propertiesResponse.getETag());
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to get the properties of the parent directory");
         }
 
         // Delete the file.
         try {
             childDirClient.deleteFile(fileName);
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to delete the file. Reasons: " + e.getMessage());
         }
 
         // Delete the child folder
         try {
             directoryClient.deleteSubdirectory(childDirectoryName);
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to delete the child directory. Reasons: " + e.getMessage());
         }
 
         // Delete the parent folder
         try {
             directoryClient.delete();
-        } catch (DataLakeStorageException e) {
+        } catch (StorageErrorException e) {
             System.out.println("Failed to delete the parent directory. Reasons: " + e.getMessage());
         }
 

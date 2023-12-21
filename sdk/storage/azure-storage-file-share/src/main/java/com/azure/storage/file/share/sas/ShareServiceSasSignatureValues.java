@@ -3,7 +3,6 @@
 
 package com.azure.storage.file.share.sas;
 
-import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.implementation.Constants;
@@ -35,8 +34,7 @@ public final class ShareServiceSasSignatureValues {
      */
     private static final String SAS_SHARE_CONSTANT = "s";
 
-    private static final String VERSION = Configuration.getGlobalConfiguration()
-        .get(Constants.PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, ShareServiceVersion.getLatest().getVersion());
+    private String version;
 
     private SasProtocol protocol;
 
@@ -115,7 +113,7 @@ public final class ShareServiceSasSignatureValues {
      * targeted by the library.
      */
     public String getVersion() {
-        return VERSION;
+        return version;
     }
 
     /**
@@ -124,12 +122,9 @@ public final class ShareServiceSasSignatureValues {
      *
      * @param version Version to target
      * @return the updated FileServiceSasSignatureValues object
-     * @deprecated The version is set to the latest version of sas. Users should stop calling this API as it is now
-     * treated as a no-op.
      */
-    @Deprecated
     public ShareServiceSasSignatureValues setVersion(String version) {
-        // no-op
+        this.version = version;
         return this;
     }
 
@@ -231,7 +226,6 @@ public final class ShareServiceSasSignatureValues {
     /**
      * Sets the {@link SasIpRange} which determines the IP ranges that are allowed to use the SAS.
      *
-     * @see <a href=https://docs.microsoft.com/rest/api/storageservices/create-service-sas#specifying-ip-address-or-ip-range>Specifying IP Address or IP range</a>
      * @param sasIpRange Allowed IP range to set
      * @return the updated FileServiceSasSignatureValues object
      */
@@ -411,6 +405,8 @@ public final class ShareServiceSasSignatureValues {
      *
      * <p><strong>Notes on SAS generation</strong></p>
      * <ul>
+     * <li>If {@link #setVersion(String) version} is not set, the {@link ShareServiceVersion#getLatest() latest service
+     * version} is used.</li>
      * <li>If {@link #setIdentifier(String) identifier} is set, {@link #setExpiryTime(OffsetDateTime) expiryTime} and
      * permissions should not be set. These values are inherited from the stored access policy.</li>
      * <li>Otherwise, {@link #setExpiryTime(OffsetDateTime) expiryTime} and {@link #getPermissions() permissions} must
@@ -458,12 +454,16 @@ public final class ShareServiceSasSignatureValues {
             }
         }
 
+        if (CoreUtils.isNullOrEmpty(version)) {
+            version = ShareServiceVersion.getLatest().getVersion();
+        }
+
         // Signature is generated on the un-url-encoded values.
         String canonicalName = getCanonicalName(storageSharedKeyCredentials.getAccountName(), shareName, filePath);
         String stringToSign = stringToSign(canonicalName);
         String signature = storageSharedKeyCredentials.computeHmac256(stringToSign);
 
-        return new ShareServiceSasQueryParameters(VERSION, this.protocol, this.startTime, this.expiryTime,
+        return new ShareServiceSasQueryParameters(this.version, this.protocol, this.startTime, this.expiryTime,
             this.sasIpRange, this.identifier, resource, this.permissions, signature, this.cacheControl,
             this.contentDisposition, this.contentEncoding, this.contentLanguage, this.contentType);
     }
@@ -481,8 +481,8 @@ public final class ShareServiceSasSignatureValues {
      */
     private static String getCanonicalName(String account, String shareName, String filePath) {
         return !CoreUtils.isNullOrEmpty(filePath)
-            ? "/file/" + account + "/" + shareName + "/" + filePath.replace('\\', '/')
-            : "/file/" + account + "/" + shareName;
+            ? String.format("/file/%s/%s/%s", account, shareName, filePath.replace("\\", "/"))
+            : String.format("/file/%s/%s", account, shareName);
     }
 
     private String stringToSign(String canonicalName) {
@@ -494,7 +494,7 @@ public final class ShareServiceSasSignatureValues {
             this.identifier == null ? "" : this.identifier,
             this.sasIpRange == null ? "" : this.sasIpRange.toString(),
             this.protocol == null ? "" : protocol.toString(),
-            VERSION == null ? "" : VERSION,
+            this.version == null ? "" : this.version,
             this.cacheControl == null ? "" : this.cacheControl,
             this.contentDisposition == null ? "" : this.contentDisposition,
             this.contentEncoding == null ? "" : this.contentEncoding,

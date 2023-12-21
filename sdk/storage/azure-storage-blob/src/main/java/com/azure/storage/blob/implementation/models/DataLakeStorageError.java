@@ -8,7 +8,9 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** The DataLakeStorageError model. */
+/**
+ * The DataLakeStorageError model.
+ */
 @JacksonXmlRootElement(localName = "DataLakeStorageError")
 @Fluent
 public final class DataLakeStorageError {
@@ -16,26 +18,25 @@ public final class DataLakeStorageError {
      * The service error response object.
      */
     @JsonProperty(value = "error")
-    private DataLakeStorageErrorDetails dataLakeStorageErrorDetails;
+    private DataLakeStorageErrorError error;
 
     /**
-     * Get the dataLakeStorageErrorDetails property: The service error response object.
+     * Get the error property: The service error response object.
      *
-     * @return the dataLakeStorageErrorDetails value.
+     * @return the error value.
      */
-    public DataLakeStorageErrorDetails getDataLakeStorageErrorDetails() {
-        return this.dataLakeStorageErrorDetails;
+    public DataLakeStorageErrorError getError() {
+        return this.error;
     }
 
     /**
-     * Set the dataLakeStorageErrorDetails property: The service error response object.
+     * Set the error property: The service error response object.
      *
-     * @param dataLakeStorageErrorDetails the dataLakeStorageErrorDetails value to set.
+     * @param error the error value to set.
      * @return the DataLakeStorageError object itself.
      */
-    public DataLakeStorageError setDataLakeStorageErrorDetails(
-            DataLakeStorageErrorDetails dataLakeStorageErrorDetails) {
-        this.dataLakeStorageErrorDetails = dataLakeStorageErrorDetails;
+    public DataLakeStorageError setError(DataLakeStorageErrorError error) {
+        this.error = error;
         return this;
     }
 }

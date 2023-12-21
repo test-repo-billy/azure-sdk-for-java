@@ -5,8 +5,6 @@ package com.azure.cosmos.implementation;
 
 import com.azure.core.util.CoreUtils;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * Used internally. HTTP constants in the Azure Cosmos DB database service Java
  * SDK.
@@ -40,7 +38,7 @@ public class HttpConstants {
         public static final String USER_AGENT = "User-Agent";
         public static final String IF_MODIFIED_SINCE = "If-Modified-Since";
         public static final String IF_MATCH = "If-Match";
-        public static final String IF_NONE_MATCH = "If-None-Match";
+        public static final String IF_NONE_MATCH = "If-NONE-Match";
         public static final String CONTENT_LENGTH = "Content-Length";
         public static final String ACCEPT_ENCODING = "Accept-Encoding";
         public static final String KEEP_ALIVE = "Keep-Alive";
@@ -85,7 +83,6 @@ public class HttpConstants {
         public static final String IS_QUERY_PLAN_REQUEST = "x-ms-cosmos-is-query-plan-request";
         public static final String SUPPORTED_QUERY_FEATURES = "x-ms-cosmos-supported-query-features";
         public static final String QUERY_VERSION = "x-ms-cosmos-query-version";
-        public static final String CORRELATED_ACTIVITY_ID = "x-ms-cosmos-correlated-activityid";
 
         // Our custom DocDB headers
         public static final String CONTINUATION = "x-ms-continuation";
@@ -210,7 +207,6 @@ public class HttpConstants {
         // ChangeFeed
         public static final String A_IM = "A-IM";
         public static final String ALLOW_TENTATIVE_WRITES = "x-ms-cosmos-allow-tentative-writes";
-        public static final String CHANGE_FEED_WIRE_FORMAT_VERSION = "x-ms-cosmos-changefeed-wire-format-version";
 
         // These properties were added to support RNTBD and they've been added here to
         // reduce merge conflicts
@@ -252,111 +248,25 @@ public class HttpConstants {
         public static final String USE_POLYGONS_SMALLER_THAN_AHEMISPHERE = "x-ms-documentdb-usepolygonssmallerthanahemisphere";
         public static final String API_TYPE = "x-ms-cosmos-apitype";
         public static final String QUERY_METRICS = "x-ms-documentdb-query-metrics";
-        public static final String POPULATE_INDEX_METRICS = "x-ms-cosmos-populateindexmetrics";
-        public static final String INDEX_UTILIZATION = "x-ms-cosmos-index-utilization";
-        public static final String QUERY_EXECUTION_INFO = "x-ms-cosmos-query-execution-info";
 
-        // Batch operations
-        public static final String IS_BATCH_ATOMIC = "x-ms-cosmos-batch-atomic";
-        public static final String IS_BATCH_ORDERED = "x-ms-cosmos-batch-ordered";
-        public static final String IS_BATCH_REQUEST = "x-ms-cosmos-is-batch-request";
-        public static final String SHOULD_BATCH_CONTINUE_ON_ERROR = "x-ms-cosmos-batch-continue-on-error";
-
-        // Client telemetry header
-        public static final String DATABASE_ACCOUNT_NAME = "x-ms-databaseaccount-name";
-        public static final String ENVIRONMENT_NAME = "x-ms-environment-name";
-
-        // Backend request duration header
-        public static final String BACKEND_REQUEST_DURATION_MILLISECONDS = "x-ms-request-duration-ms";
-
-        // Dedicated Gateway Headers
-        public static final String DEDICATED_GATEWAY_PER_REQUEST_CACHE_STALENESS = "x-ms-dedicatedgateway-max-age";
-        public static final String DEDICATED_GATEWAY_PER_REQUEST_BYPASS_CACHE = "x-ms-dedicatedgateway-bypass-cache";
-
-        // Client Encryption Headers
-        public static final String IS_CLIENT_ENCRYPTED_HEADER = "x-ms-cosmos-is-client-encrypted";
-        public static final String INTENDED_COLLECTION_RID_HEADER = "x-ms-cosmos-intended-collection-rid";
-
-        // SDK supported capacities headers
-        public static final String SDK_SUPPORTED_CAPABILITIES = "x-ms-cosmos-sdk-supportedcapabilities";
-
-        // Priority Level for throttling
-        public static final String PRIORITY_LEVEL = "x-ms-cosmos-priority-level";
     }
 
     public static class A_IMHeaderValues {
         public static final String INCREMENTAL_FEED = "Incremental Feed";
-        public static final String FULL_FIDELITY_FEED = "Full-Fidelity Feed";
-    }
-
-    public static class SDKSupportedCapabilities {
-        private static final long NONE = 0; // 0
-        private static final long PARTITION_MERGE = 1; // 1 << 0
-
-        private static final long CHANGE_FEED_WITH_START_TIME_POST_MERGE = 2; // 1 << 1
-
-        public static final String SUPPORTED_CAPABILITIES;
-        public static final String SUPPORTED_CAPABILITIES_NONE;
-        static {
-            SUPPORTED_CAPABILITIES = String.valueOf(PARTITION_MERGE);
-            SUPPORTED_CAPABILITIES_NONE = String.valueOf(NONE);
-        }
     }
 
     public static class Versions {
-        public static final String CURRENT_VERSION = "2020-07-15";
+        public static final String CURRENT_VERSION = "2018-12-31";
         public static final String QUERY_VERSION = "1.0";
         public static final String AZURE_COSMOS_PROPERTIES_FILE_NAME = "azure-cosmos.properties";
 
-        private static boolean SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA = false;
-
-        public static final String SDK_NAME = "cosmos";
-
-        private static final String SDK_VERSION_RAW = CoreUtils.getProperties(AZURE_COSMOS_PROPERTIES_FILE_NAME).get("version");
-        private static final AtomicReference<String> SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA_CACHED =
-            new AtomicReference<String>(null);
-
-        public static String getSdkVersion() {
-            return SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA ?
-                getSdkVersionWithSnapshotInsteadOfBeta() :  SDK_VERSION_RAW;
-        }
-
-        public static void useSnapshotInsteadOfBeta() {
-            SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA = true;
-        }
-
-        public static void resetSnapshotInsteadOfBeta() {
-            SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA = false;
-        }
-
-        private static String getSdkVersionWithSnapshotInsteadOfBeta() {
-            String snapshot = SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA_CACHED.get();
-
-            if (snapshot != null) {
-                return snapshot;
-            }
-
-            String newPolishedVersion = SDK_VERSION_RAW.replaceAll("(?i)beta", "snapshot");
-            if (SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA_CACHED.compareAndSet(null, newPolishedVersion)) {
-                return newPolishedVersion;
-            } else {
-                return SDK_VERSION_SNAPSHOT_INSTEAD_OF_BETA_CACHED.get();
-            }
-        }
-    }
-
-    public static class ChangeFeedWireFormatVersions {
-        public static final String SEPARATE_METADATA_WITH_CRTS = "2021-09-15";
+        public static final String SDK_VERSION = CoreUtils.getProperties(AZURE_COSMOS_PROPERTIES_FILE_NAME).get("version");
+        public static final String SDK_NAME = "cosmosdb-java-sdk";
     }
 
     public static class StatusCodes {
         public static final int OK = 200;
-        public static final int CREATED = 201;
-        public static final int NO_CONTENT = 204;
         public static final int NOT_MODIFIED = 304;
-        // Success
-        public static final int MINIMUM_SUCCESS_STATUSCODE = 200;
-        public static final int MAXIMUM_SUCCESS_STATUSCODE = 299;
         // Client error
         public static final int MINIMUM_STATUSCODE_AS_ERROR_GATEWAY = 400;
         public static final int BADREQUEST = 400;
@@ -386,10 +296,9 @@ public class HttpConstants {
         public static final int CROSS_PARTITION_QUERY_NOT_SERVABLE = 1004;
 
         // 410: StatusCodeType_Gone: substatus
-        // Merge or split share the same status code and subStatusCode
         public static final int NAME_CACHE_IS_STALE = 1000;
         public static final int PARTITION_KEY_RANGE_GONE = 1002;
-        public static final int COMPLETING_SPLIT_OR_MERGE = 1007;
+        public static final int COMPLETING_SPLIT = 1007;
         public static final int COMPLETING_PARTITION_MIGRATION = 1008;
 
         // 403: Forbidden substatus
@@ -398,61 +307,10 @@ public class HttpConstants {
 
         // 404: LSN in session token is higher
         public static final int READ_SESSION_NOT_AVAILABLE = 1002;
-        public static final int OWNER_RESOURCE_NOT_EXISTS = 1003;
-
-        public static final int INCORRECT_CONTAINER_RID_SUB_STATUS = 1024;
-
-        // SDK Codes - Java specific clinet-side substatus codes
-        // IMPORTANT - whenever possible rather use consistency substaus codes that .Net SDK also uses
-        // 20000-20999 - consistent client side sdk status codes
-        // 21000-21999 - consistent service sdk status codes
-
-        // Client generated gateway network error substatus
-        public static final int GATEWAY_ENDPOINT_UNAVAILABLE = 10001;
-
-        // Client generated gateway network error on ReadTimeoutException
-        public static final int GATEWAY_ENDPOINT_READ_TIMEOUT = 10002;
-
-        // Client generated request rate too large exception
-        public static final int THROUGHPUT_CONTROL_REQUEST_RATE_TOO_LARGE = 10003;
-
-        // Client generated offer not configured exception
-        public static final int OFFER_NOT_CONFIGURED = 10004;
-
-        // Client generated request rate too large exception
-        public static final int THROUGHPUT_CONTROL_BULK_REQUEST_RATE_TOO_LARGE = 10005;
-
-        public static final int USER_REQUEST_RATE_TOO_LARGE = 3200;
-
-        //SDK Codes(Client)
-        // IMPORTANT - whenever possible use consistency substatus codes that .Net SDK also uses
-        public static final int TRANSPORT_GENERATED_410 = 20001;
-        public static final int TIMEOUT_GENERATED_410 = 20002;
-        // Client generated operation timeout exception
-        public static final int CLIENT_OPERATION_TIMEOUT = 20008;
-
-        // IMPORTANT - below sub status codes have no corresponding .Net
-        // version, because they are only applicable in Java
-        public static final int NEGATIVE_TIMEOUT_PROVIDED = 20901; // .Net has different cancellation concept
-
-        //SDK Codes (Server)
-        // IMPORTANT - whenever possible use consistency substatus codes that .Net SDK also uses
-        public static final int NAME_CACHE_IS_STALE_EXCEEDED_RETRY_LIMIT = 21001;
-        public static final int PARTITION_KEY_RANGE_GONE_EXCEEDED_RETRY_LIMIT = 21002;
-        public static final int COMPLETING_SPLIT_EXCEEDED_RETRY_LIMIT = 21003;
-        public static final int COMPLETING_PARTITION_MIGRATION_EXCEEDED_RETRY_LIMIT = 21004;
-        public static final int SERVER_GENERATED_410 = 21005;
-        public static final int GLOBAL_STRONG_WRITE_BARRIER_NOT_MET = 21006;
-        public static final int READ_QUORUM_NOT_MET = 21007;
-        public static final int SERVER_GENERATED_503 = 21008;
-        public static final int NO_VALID_STORE_RESPONSE = 21009;
-        public static final int SERVER_GENERATED_408 = 21010;
-
     }
 
     public static class HeaderValues {
         public static final String NO_CACHE = "no-cache";
         public static final String PREFER_RETURN_MINIMAL = "return=minimal";
-        public static final String IF_NONE_MATCH_ALL = "*";
     }
 }

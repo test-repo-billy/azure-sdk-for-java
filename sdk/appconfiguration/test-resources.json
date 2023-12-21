@@ -3,15 +3,15 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "baseName": {
-            "type": "string"
+            "type": "String"
         },
         "configurationStores_azconfig_java_name": {
             "defaultValue": "azconfig-java",
-            "type": "string"
+            "type": "String"
         },
-        "azConfigEndpointSuffix": {
+        "endpointSuffix": {
             "defaultValue": ".azconfig.io",
-            "type": "string"
+            "type": "String"
         },
         "testApplicationOid": {
             "type": "string",
@@ -30,7 +30,7 @@
     "variables": {
         "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')]",
         "uniqueAzConfigName": "[concat(parameters('baseName'),'-' , parameters('configurationStores_azconfig_java_name'))]",
-        "endpointValue": "[concat('https://', parameters('baseName'), '-', parameters('configurationStores_azconfig_java_name'), parameters('azConfigEndpointSuffix'))]",
+        "endpointValue": "[concat('https://', parameters('baseName'), '-', parameters('configurationStores_azconfig_java_name'), parameters('endpointSuffix'))]",
         "location": "[resourceGroup().location]"
     },
     "resources": [

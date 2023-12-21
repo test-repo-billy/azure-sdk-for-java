@@ -12,7 +12,6 @@ import java.util.Map;
  * An instance of this class describes an environment in Azure.
  */
 public final class AzureEnvironment {
-
     /** the map of all endpoints. */
     private final Map<String, String> endpoints;
 
@@ -29,7 +28,7 @@ public final class AzureEnvironment {
      * Provides the settings for authentication with Azure.
      */
     public static final AzureEnvironment AZURE = new AzureEnvironment(new HashMap<String, String>() {{
-            put("portalUrl", "https://portal.azure.com");
+            put("portalUrl", "http://go.microsoft.com/fwlink/?LinkId=254433");
             put("publishingProfileUrl", "http://go.microsoft.com/fwlink/?LinkId=254432");
             put("managementEndpointUrl", "https://management.core.windows.net/");
             put("resourceManagerEndpointUrl", "https://management.azure.com/");
@@ -39,7 +38,6 @@ public final class AzureEnvironment {
             put("activeDirectoryEndpointUrl", "https://login.microsoftonline.com/");
             put("activeDirectoryResourceId", "https://management.core.windows.net/");
             put("activeDirectoryGraphResourceId", "https://graph.windows.net/");
-            put("microsoftGraphResourceId", "https://graph.microsoft.com/");
             put("dataLakeEndpointResourceId", "https://datalake.azure.net/");
             put("activeDirectoryGraphApiVersion", "2013-04-05");
             put("storageEndpointSuffix", ".core.windows.net");
@@ -48,14 +46,13 @@ public final class AzureEnvironment {
             put("azureDataLakeAnalyticsCatalogAndJobEndpointSuffix", "azuredatalakeanalytics.net");
             put("azureLogAnalyticsResourceId", "https://api.loganalytics.io/");
             put("azureApplicationInsightsResourceId", "https://api.applicationinsights.io/");
-            put("managedHsmDnsSuffix", ".managedhsm.azure.net");
         }});
 
     /**
      * Provides the settings for authentication with Azure China.
      */
     public static final AzureEnvironment AZURE_CHINA = new AzureEnvironment(new HashMap<String, String>() {{
-            put("portalUrl", "https://portal.azure.cn");
+            put("portalUrl", "http://go.microsoft.com/fwlink/?LinkId=301902");
             put("publishingProfileUrl", "http://go.microsoft.com/fwlink/?LinkID=301774");
             put("managementEndpointUrl", "https://management.core.chinacloudapi.cn/");
             put("resourceManagerEndpointUrl", "https://management.chinacloudapi.cn/");
@@ -65,23 +62,24 @@ public final class AzureEnvironment {
             put("activeDirectoryEndpointUrl", "https://login.chinacloudapi.cn/");
             put("activeDirectoryResourceId", "https://management.core.chinacloudapi.cn/");
             put("activeDirectoryGraphResourceId", "https://graph.chinacloudapi.cn/");
-            put("microsoftGraphResourceId", "https://microsoftgraph.chinacloudapi.cn/");
+            // TODO: add resource id for the china cloud for datalake once it is defined.
             put("dataLakeEndpointResourceId", "N/A");
             put("activeDirectoryGraphApiVersion", "2013-04-05");
             put("storageEndpointSuffix", ".core.chinacloudapi.cn");
             put("keyVaultDnsSuffix", ".vault.azure.cn");
+            // TODO: add dns suffixes for the china cloud for datalake store and datalake analytics once they are
+            //  defined.
             put("azureDataLakeStoreFileSystemEndpointSuffix", "N/A");
             put("azureDataLakeAnalyticsCatalogAndJobEndpointSuffix", "N/A");
             put("azureLogAnalyticsResourceId", "N/A");
             put("azureApplicationInsightsResourceId", "N/A");
-            put("managedHsmDnsSuffix", ".managedhsm.azure.cn");
         }});
 
     /**
      * Provides the settings for authentication with Azure US Government.
      */
     public static final AzureEnvironment AZURE_US_GOVERNMENT = new AzureEnvironment(new HashMap<String, String>() {{
-            put("portalUrl", "https://portal.azure.us");
+            put("portalUrl", "https://manage.windowsazure.us");
             put("publishingProfileUrl", "https://manage.windowsazure.us/publishsettings/index");
             put("managementEndpointUrl", "https://management.core.usgovcloudapi.net/");
             put("resourceManagerEndpointUrl", "https://management.usgovcloudapi.net/");
@@ -91,29 +89,24 @@ public final class AzureEnvironment {
             put("activeDirectoryEndpointUrl", "https://login.microsoftonline.us/");
             put("activeDirectoryResourceId", "https://management.core.usgovcloudapi.net/");
             put("activeDirectoryGraphResourceId", "https://graph.windows.net/");
-            put("microsoftGraphResourceId", "https://graph.microsoft.us/");
+            // TODO: add resource id for the US government for datalake once it is defined.
             put("dataLakeEndpointResourceId", "N/A");
             put("activeDirectoryGraphApiVersion", "2013-04-05");
             put("storageEndpointSuffix", ".core.usgovcloudapi.net");
             put("keyVaultDnsSuffix", ".vault.usgovcloudapi.net");
+            // TODO: add dns suffixes for the US government for datalake store and datalake analytics once they are
+            //  defined.
             put("azureDataLakeStoreFileSystemEndpointSuffix", "N/A");
             put("azureDataLakeAnalyticsCatalogAndJobEndpointSuffix", "N/A");
             put("azureLogAnalyticsResourceId", "https://api.loganalytics.us/");
             put("azureApplicationInsightsResourceId", "N/A");
-            put("managedHsmDnsSuffix", ".managedhsm.usgovcloudapi.net");
         }});
 
     /**
      * Provides the settings for authentication with Azure Germany.
-     * <p>
-     * Microsoft no longer be accepting new customers or deploying any new services from Microsoft Cloud Germany.
-     *
-     * @deprecated Use {@link Region#GERMANY_WEST_CENTRAL} or {@link Region#GERMANY_NORTH}
-     * with {@link AzureEnvironment#AZURE}.
      */
-    @Deprecated
     public static final AzureEnvironment AZURE_GERMANY = new AzureEnvironment(new HashMap<String, String>() {{
-            put("portalUrl", "https://portal.microsoftazure.de");
+            put("portalUrl", "http://portal.microsoftazure.de/");
             put("publishingProfileUrl", "https://manage.microsoftazure.de/publishsettings/index");
             put("managementEndpointUrl", "https://management.core.cloudapi.de/");
             put("resourceManagerEndpointUrl", "https://management.microsoftazure.de/");
@@ -123,39 +116,35 @@ public final class AzureEnvironment {
             put("activeDirectoryEndpointUrl", "https://login.microsoftonline.de/");
             put("activeDirectoryResourceId", "https://management.core.cloudapi.de/");
             put("activeDirectoryGraphResourceId", "https://graph.cloudapi.de/");
-            put("microsoftGraphResourceId", "https://graph.microsoft.de/");
+            // TODO: add resource id for the germany cloud for datalake once it is defined.
             put("dataLakeEndpointResourceId", "N/A");
             put("activeDirectoryGraphApiVersion", "2013-04-05");
             put("storageEndpointSuffix", ".core.cloudapi.de");
             put("keyVaultDnsSuffix", ".vault.microsoftazure.de");
+            // TODO: add dns suffixes for the germany cloud for datalake store and datalake analytics once they are
+            //  defined.
             put("azureDataLakeStoreFileSystemEndpointSuffix", "N/A");
             put("azureDataLakeAnalyticsCatalogAndJobEndpointSuffix", "N/A");
             put("azureLogAnalyticsResourceId", "N/A");
             put("azureApplicationInsightsResourceId", "N/A");
-            put("managedHsmDnsSuffix", "N/A");
         }});
 
     /**
-     * Gets the entirety of the endpoints associated with the current environment.
-     *
      * @return the entirety of the endpoints associated with the current environment.
      */
-    public Map<String, String> getEndpoints() {
+    public Map<String, String> endpoints() {
         return endpoints;
     }
 
     /**
-     * Gets the list of known environments to Azure SDK.
-     *
-     * @return the list of known environments to Azure SDK.
+     * @return the array of known environments to Azure SDK.
      */
-    public static List<AzureEnvironment> knownEnvironments() {
-        return Arrays.asList(AZURE, AZURE_CHINA, AZURE_US_GOVERNMENT);
+    public static AzureEnvironment[] knownEnvironments() {
+        List<AzureEnvironment> environments = Arrays.asList(AZURE, AZURE_CHINA, AZURE_GERMANY, AZURE_US_GOVERNMENT);
+        return environments.toArray(new AzureEnvironment[environments.size()]);
     }
 
     /**
-     * Gets the management portal URL.
-     *
      * @return the management portal URL.
      */
     public String getPortal() {
@@ -163,17 +152,13 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the publishing settings file URL.
-     *
-     * @return the publishing settings file URL.
+     * @return the publish settings file URL.
      */
     public String getPublishingProfile() {
         return endpoints.get("publishingProfileUrl");
     }
 
     /**
-     * Gets the management service endpoint.
-     *
      * @return the management service endpoint.
      */
     public String getManagementEndpoint() {
@@ -181,8 +166,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the resource management endpoint.
-     *
      * @return the resource management endpoint.
      */
     public String getResourceManagerEndpoint() {
@@ -190,8 +173,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the sql server management endpoint for mobile commands.
-     *
      * @return the sql server management endpoint for mobile commands.
      */
     public String getSqlManagementEndpoint() {
@@ -199,8 +180,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the dns suffix for sql servers.
-     *
      * @return the dns suffix for sql servers.
      */
     public String getSqlServerHostnameSuffix() {
@@ -208,8 +187,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the Active Directory login endpoint.
-     *
      * @return the Active Directory login endpoint.
      */
     public String getActiveDirectoryEndpoint() {
@@ -217,17 +194,13 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the resource ID to obtain AD tokens.
-     *
-     * @return The resource ID to obtain AD tokens.
+     * @return The resource ID to obtain AD tokens for.
      */
     public String getActiveDirectoryResourceId() {
         return endpoints.get("activeDirectoryResourceId");
     }
 
     /**
-     * Gets the template gallery endpoint.
-     *
      * @return the template gallery endpoint.
      */
     public String getGalleryEndpoint() {
@@ -235,8 +208,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the Active Directory resource ID.
-     *
      * @return the Active Directory resource ID.
      */
     public String getGraphEndpoint() {
@@ -244,17 +215,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the Microsoft Graph resource ID.
-     *
-     * @return the Microsoft Graph resource ID.
-     */
-    public String getMicrosoftGraphEndpoint() {
-        return endpoints.get("microsoftGraphResourceId");
-    }
-
-    /**
-     * Gets the Data Lake resource ID.
-     *
      * @return the Data Lake resource ID.
      */
     public String getDataLakeEndpointResourceId() {
@@ -262,8 +222,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the Active Directory api version.
-     *
      * @return the Active Directory api version.
      */
     public String getActiveDirectoryGraphApiVersion() {
@@ -271,8 +229,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the endpoint suffix for storage accounts.
-     *
      * @return the endpoint suffix for storage accounts.
      */
     public String getStorageEndpointSuffix() {
@@ -280,8 +236,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the keyvault service dns suffix.
-     *
      * @return the keyvault service dns suffix.
      */
     public String getKeyVaultDnsSuffix() {
@@ -289,8 +243,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the data lake store filesystem service dns suffix.
-     *
      * @return the data lake store filesystem service dns suffix.
      */
     public String getAzureDataLakeStoreFileSystemEndpointSuffix() {
@@ -298,8 +250,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the data lake analytics job and catalog service dns suffix.
-     *
      * @return the data lake analytics job and catalog service dns suffix.
      */
     public String getAzureDataLakeAnalyticsCatalogAndJobEndpointSuffix() {
@@ -307,8 +257,6 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the log analytics endpoint.
-     *
      * @return the log analytics endpoint.
      */
     public String getLogAnalyticsEndpoint() {
@@ -316,13 +264,12 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the log analytics endpoint.
-     *
      * @return the log analytics endpoint.
      */
     public String getApplicationInsightsEndpoint() {
         return endpoints.get("azureApplicationInsightsResourceId");
     }
+
 
     /**
      * The enum representing available endpoints in an environment.
@@ -349,21 +296,15 @@ public final class AzureEnvironment {
         /** Azure Log Analytics endpoint. */
         LOG_ANALYTICS("azureLogAnalyticsResourceId"),
         /** Azure Application Insights. */
-        APPLICATION_INSIGHTS("azureApplicationInsightsResourceId"),
-        /** Microsoft Graph APIs endpoint. */
-        MICROSOFT_GRAPH("microsoftGraphResourceId"),
-        /** Managed HSM DNS suffix. */
-        MANAGED_HSM("managedHsmDnsSuffix");
+        APPLICATION_INSIGHTS("azureApplicationInsightsResourceId");
 
-        private final String field;
+        private String field;
 
         Endpoint(String value) {
             this.field = value;
         }
 
         /**
-         * Gets a unique identifier for the endpoint in the environment.
-         *
          * @return a unique identifier for the endpoint in the environment
          */
         public String identifier() {
@@ -377,12 +318,12 @@ public final class AzureEnvironment {
     }
 
     /**
-     * Gets the endpoint URL for the current environment.
+     * Get the endpoint URL for the current environment.
      *
-     * @param endpoint the endpoint.
-     * @return the URL for the endpoint, null if no match.
+     * @param endpoint the endpoint
+     * @return the URL
      */
-    public String getUrlByEndpoint(Endpoint endpoint) {
+    public String url(Endpoint endpoint) {
         return endpoints.get(endpoint.identifier());
     }
 }

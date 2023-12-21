@@ -7,6 +7,7 @@ import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.rest.PagedIterableBase;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.Context;
+import com.azure.search.documents.models.RequestOptions;
 import com.azure.search.documents.models.SuggestOptions;
 import com.azure.search.documents.models.SuggestResult;
 import com.azure.search.documents.util.SuggestPagedResponse;
@@ -18,7 +19,7 @@ import java.util.List;
  * This example shows how to work with suggestions and search results
  * <p>
  * This sample is based on the hotels-sample index available to install from the portal.
- * See https://docs.microsoft.com/azure/search/search-get-started-portal
+ * See https://docs.microsoft.com/en-us/azure/search/search-get-started-portal
  */
 public class SearchSuggestionExample {
 
@@ -50,7 +51,7 @@ public class SearchSuggestionExample {
             .setTop(1);
 
         PagedIterableBase<SuggestResult, SuggestPagedResponse> suggestResult =
-            searchClient.suggest("hotel", "sg", suggestOptions, Context.NONE);
+            searchClient.suggest("hotel", "sg", suggestOptions, new RequestOptions(), Context.NONE);
         Iterator<SuggestPagedResponse> iterator = suggestResult.iterableByPage().iterator();
 
         List<SuggestResult> response = iterator.next().getValue();
@@ -70,7 +71,7 @@ public class SearchSuggestionExample {
             .setUseFuzzyMatching(true);
 
         PagedIterableBase<SuggestResult, SuggestPagedResponse> suggestResult =
-            searchClient.suggest("hitel", "sg", suggestOptions, Context.NONE);
+            searchClient.suggest("hitel", "sg", suggestOptions, new RequestOptions(), Context.NONE);
         Iterator<SuggestPagedResponse> iterator = suggestResult.iterableByPage().iterator();
 
         List<SuggestResult> response = iterator.next().getValue();

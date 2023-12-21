@@ -18,18 +18,6 @@ public final class LongRunningOperationStatus extends ExpandableStringEnum<LongR
 
     private boolean completed;
 
-    /**
-     * Creates a new instance of {@link LongRunningOperationStatus} without a {@link #toString()} value.
-     * <p>
-     * This constructor shouldn't be called as it will produce a {@link LongRunningOperationStatus} which doesn't
-     * have a String enum value.
-     *
-     * @deprecated Use one of the constants or the {@link #fromString(String, boolean)} factory method.
-     */
-    @Deprecated
-    public LongRunningOperationStatus() {
-    }
-
     /** Represents that polling has not yet started for this long-running operation. */
     public static final LongRunningOperationStatus NOT_STARTED = fromString("NOT_STARTED", false);
 
@@ -53,7 +41,7 @@ public final class LongRunningOperationStatus extends ExpandableStringEnum<LongR
      */
     public static final LongRunningOperationStatus USER_CANCELLED = fromString("USER_CANCELLED", true);
 
-    private static final Map<String, LongRunningOperationStatus> OPERATION_STATUS_MAP;
+    private static Map<String, LongRunningOperationStatus> operationStatusMap;
     static {
         Map<String, LongRunningOperationStatus> opStatusMap = new HashMap<>();
         opStatusMap.put(NOT_STARTED.toString(), NOT_STARTED);
@@ -61,7 +49,7 @@ public final class LongRunningOperationStatus extends ExpandableStringEnum<LongR
         opStatusMap.put(SUCCESSFULLY_COMPLETED.toString(), SUCCESSFULLY_COMPLETED);
         opStatusMap.put(FAILED.toString(), FAILED);
         opStatusMap.put(USER_CANCELLED.toString(), USER_CANCELLED);
-        OPERATION_STATUS_MAP = Collections.unmodifiableMap(opStatusMap);
+        operationStatusMap = Collections.unmodifiableMap(opStatusMap);
     }
 
     /**
@@ -73,23 +61,18 @@ public final class LongRunningOperationStatus extends ExpandableStringEnum<LongR
      * @return the corresponding {@link LongRunningOperationStatus}
      */
     public static LongRunningOperationStatus fromString(String name, boolean isComplete) {
-        if (name == null) {
-            return null;
-        }
-
-        // Get the known status first and validate as it's a smaller lookup map.
-        LongRunningOperationStatus operationStatus = (OPERATION_STATUS_MAP != null)
-            ? OPERATION_STATUS_MAP.get(name) : null;
-        if (operationStatus != null) {
-            if (operationStatus.isComplete() != isComplete) {
-                throw new IllegalArgumentException(
-                    String.format("Cannot set complete status %s for operation status %s", isComplete, name));
-            }
-        }
-
         LongRunningOperationStatus status = fromString(name, LongRunningOperationStatus.class);
-        status.completed = isComplete;
 
+        if (status != null) {
+            if (operationStatusMap != null && operationStatusMap.containsKey(name)) {
+                LongRunningOperationStatus operationStatus = operationStatusMap.get(name);
+                if (operationStatus.isComplete() != isComplete) {
+                    throw new IllegalArgumentException(String.format("Cannot set complete status %s for operation"
+                        + "status %s", isComplete, name));
+                }
+            }
+            status.completed = isComplete;
+        }
         return status;
     }
 

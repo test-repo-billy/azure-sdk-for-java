@@ -31,7 +31,6 @@ public enum ResourceType {
     ModuleCommand("ModuleCommand", 103),
     Offer("Offer", 113),
     PartitionKeyRange("PartitionKeyRange", 125),
-    PartitionKey("PartitionKey", 136),
     PartitionSetInformation("PartitionSetInformation", 114),
     Permission("Permission", 5),
     PreviousImage("PreviousImage", 128),
@@ -59,15 +58,7 @@ public enum ResourceType {
     Address("Address", -5),
     Key("Key", -2),
     Media("Media", -3),
-    ServiceFabricService("ServiceFabricService", -4),
-
-    ClientEncryptionKey("ClientEncryptionKey", 141),
-
-    //Adding client telemetry resource type, only meant for client side
-    ClientTelemetry("ClientTelemetry", 1001),
-
-    //Only meant to use on client side during connection open
-    Connection("Connection", 1002);
+    ServiceFabricService("ServiceFabricService", -4);
 
     private final int value;
     private final String stringValue;
@@ -107,8 +98,7 @@ public enum ResourceType {
                 this == ResourceType.Permission ||
                 this == ResourceType.Topology ||
                 this == ResourceType.PartitionKeyRange ||
-                this == ResourceType.DocumentCollection ||
-                this == ResourceType.ClientEncryptionKey;
+                this == ResourceType.DocumentCollection;
     }
 
     /// <summary>

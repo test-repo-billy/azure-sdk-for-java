@@ -7,14 +7,14 @@ import com.azure.core.annotation.Immutable;
 import com.azure.core.util.IterableStream;
 
 /**
- * The {@code RecognizeEntitiesResult} model.
+ * The {@link RecognizeEntitiesResult} model.
  */
 @Immutable
 public final class RecognizeEntitiesResult extends TextAnalyticsResult {
     private final CategorizedEntityCollection entities;
 
     /**
-     * Creates a {@code RecognizeEntitiesResult} model that describes recognized entities result.
+     * Creates a {@link RecognizeEntitiesResult} model that describes recognized entities result.
      *
      * @param id Unique, non-empty document identifier.
      * @param textDocumentStatistics The text document statistics.
@@ -28,12 +28,9 @@ public final class RecognizeEntitiesResult extends TextAnalyticsResult {
     }
 
     /**
-     * Gets an {@link IterableStream} of {@link CategorizedEntity}.
+     * Get an {@link IterableStream} of {@link CategorizedEntity}.
      *
      * @return An {@link IterableStream} of {@link CategorizedEntity}.
-     *
-     * @throws TextAnalyticsException if result has {@code isError} equals to true and when a non-error property
-     * was accessed.
      */
     public CategorizedEntityCollection getEntities() {
         throwExceptionIfError();

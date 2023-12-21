@@ -13,10 +13,11 @@ import com.azure.search.documents.indexes.models.SearchIndex;
 import com.azure.search.documents.indexes.models.SynonymMap;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * This example shows how to create an index with a synonym map
- * See <a href="https://docs.microsoft.com/azure/search/search-get-started-portal">Search getting started portal</a>
+ * See https://docs.microsoft.com/en-us/azure/search/search-get-started-portal
  */
 public class SynonymMapsCreateExample {
 
@@ -38,11 +39,8 @@ public class SynonymMapsCreateExample {
         System.out.println("Create synonym map...\n");
         createSynonymMap(serviceClient, synonymMapName);
 
-        System.out.println("Create index and assign synonym map to it...\n");
-        SearchIndex searchIndex = assignSynonymMapToIndex(synonymMapName);
-        System.out.println("Assigned synonym map: " + searchIndex.getFields().stream()
-            .filter(field -> field.getSynonymMapNames() != null)
-            .findFirst().get());
+        System.out.println("Create index and assign synonym to it...\n");
+        assignSynonymMapToIndex(synonymMapName);
 
         System.out.println("Complete....\n");
 
@@ -51,16 +49,24 @@ public class SynonymMapsCreateExample {
     }
 
     private static void createSynonymMap(SearchIndexClient serviceClient, String synonymMapName) {
-        SynonymMap synonymMap = new SynonymMap(synonymMapName,
-            "hotel, motel\ninternet,wifi\nfive star=>luxury\neconomy,inexpensive=>budget");
+        SynonymMap synonymMap = new SynonymMap()
+            .setName(synonymMapName)
+            .setSynonyms("hotel, motel\ninternet,wifi\nfive star=>luxury\neconomy,inexpensive=>budget");
         serviceClient.createSynonymMap(synonymMap);
     }
 
-    private static SearchIndex assignSynonymMapToIndex(String synonymMapName) {
-        return new SearchIndex("hotels", Arrays.asList(
-            new SearchField("HotelId", SearchFieldDataType.STRING)
-                .setKey(true),
-            new SearchField("HotelName", SearchFieldDataType.STRING)
-                .setSynonymMapNames(synonymMapName)));
+    private static void assignSynonymMapToIndex(String synonymMapName) {
+        SearchIndex index = new SearchIndex()
+            .setName("hotels")
+            .setFields(Arrays.asList(
+                new SearchField()
+                    .setName("HotelId")
+                    .setType(SearchFieldDataType.STRING)
+                    .setKey(true),
+                new SearchField()
+                    .setName("HotelName")
+                    .setType(SearchFieldDataType.STRING)
+                    .setSynonymMapNames(Collections.singletonList(synonymMapName))
+            ));
     }
 }

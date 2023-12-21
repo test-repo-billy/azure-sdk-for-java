@@ -58,7 +58,6 @@ public class HttpResponseTests {
         }
 
         @Override
-        @Deprecated
         public String getHeaderValue(String name) {
             return null;
         }

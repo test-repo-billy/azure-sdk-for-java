@@ -3,18 +3,17 @@
 package com.azure.cosmos.implementation.caches;
 
 import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.implementation.CosmosClientMetadataCachesSnapshot;
+import com.azure.cosmos.implementation.MetadataDiagnosticsContext;
+import com.azure.cosmos.implementation.Utils;
+import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
+import com.azure.cosmos.implementation.routing.PartitionKeyRangeIdentity;
 import com.azure.cosmos.implementation.DocumentCollection;
 import com.azure.cosmos.implementation.InvalidPartitionException;
-import com.azure.cosmos.implementation.MetadataDiagnosticsContext;
 import com.azure.cosmos.implementation.NotFoundException;
 import com.azure.cosmos.implementation.PathsHelper;
 import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.ResourceId;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
-import com.azure.cosmos.implementation.Utils;
-import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
-import com.azure.cosmos.implementation.routing.PartitionKeyRangeIdentity;
 import com.azure.cosmos.models.ModelBridgeInternal;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
@@ -30,18 +29,9 @@ public abstract class RxCollectionCache {
     private final AsyncCache<String, DocumentCollection> collectionInfoByNameCache;
     private final AsyncCache<String, DocumentCollection> collectionInfoByIdCache;
 
-    public static void serialize(CosmosClientMetadataCachesSnapshot clientMetadataCachesSnapshot, RxCollectionCache cache) {
-        clientMetadataCachesSnapshot.serializeCollectionInfoByIdCache(cache.collectionInfoByIdCache);
-        clientMetadataCachesSnapshot.serializeCollectionInfoByNameCache(cache.collectionInfoByNameCache);
-    }
-
-    protected RxCollectionCache(AsyncCache<String, DocumentCollection> collectionInfoByNameCache, AsyncCache<String, DocumentCollection> collectionInfoByIdCache) {
-        this.collectionInfoByNameCache = collectionInfoByNameCache;
-        this.collectionInfoByIdCache = collectionInfoByIdCache;
-    }
-
     protected RxCollectionCache() {
-        this(new AsyncCache<>(new CollectionRidComparer()), new AsyncCache<>(new CollectionRidComparer()));
+        this.collectionInfoByNameCache = new AsyncCache<>(new CollectionRidComparer());
+        this.collectionInfoByIdCache = new AsyncCache<>(new CollectionRidComparer());
     }
 
     /**
@@ -146,7 +136,7 @@ public abstract class RxCollectionCache {
         return Mono.just(new Utils.ValueHolder<>(null));
     }
 
-    public Mono<Utils.ValueHolder<DocumentCollection>> resolveByRidAsync(
+    private Mono<Utils.ValueHolder<DocumentCollection>> resolveByRidAsync(
             MetadataDiagnosticsContext metaDataDiagnosticsContext,
             String resourceId,
             Map<String, Object> properties) {
@@ -161,33 +151,21 @@ public abstract class RxCollectionCache {
         return async.map(Utils.ValueHolder::new);
     }
 
-    public Mono<DocumentCollection> resolveByNameAsync(
+    private Mono<DocumentCollection> resolveByNameAsync(
         MetadataDiagnosticsContext metaDataDiagnosticsContext, String resourceAddress, Map<String, Object> properties) {
-
-        return this.resolveByNameAsync(metaDataDiagnosticsContext, resourceAddress, properties, null);
-    }
-
-    public Mono<DocumentCollection> resolveByNameAsync(
-        MetadataDiagnosticsContext metaDataDiagnosticsContext,
-        String resourceAddress,
-        Map<String, Object> properties,
-        DocumentCollection obsoleteValue) {
 
         String resourceFullName = PathsHelper.getCollectionPath(resourceAddress);
 
         return this.collectionInfoByNameCache.getAsync(
-            resourceFullName,
-            obsoleteValue,
-            () -> {
-                Mono<DocumentCollection> collectionObs = this.getByNameAsync(
-                    metaDataDiagnosticsContext, resourceFullName, properties);
-                return collectionObs.doOnSuccess(collection -> this.collectionInfoByIdCache.set(
-                    collection.getResourceId(),
-                    collection));
-            });
+                resourceFullName,
+                null,
+                () -> {
+                    Mono<DocumentCollection> collectionObs = this.getByNameAsync(metaDataDiagnosticsContext, resourceFullName, properties);
+                    return collectionObs.doOnSuccess(collection -> this.collectionInfoByIdCache.set(collection.getResourceId(), collection));
+                });
     }
 
-    public Mono<Void> refreshAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext, RxDocumentServiceRequest request) {
+    private Mono<Void> refreshAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext, RxDocumentServiceRequest request) {
         // TODO System.Diagnostics.Debug.Assert(request.IsNameBased);
 
         String resourceFullName = PathsHelper.getCollectionPath(request.getResourceAddress());
@@ -217,7 +195,6 @@ public abstract class RxCollectionCache {
     }
 
     private static class CollectionRidComparer implements IEqualityComparer<DocumentCollection> {
-        private static final long serialVersionUID = 1l;
         public boolean areEqual(DocumentCollection left, DocumentCollection right) {
             if (left == null && right == null) {
                 return true;

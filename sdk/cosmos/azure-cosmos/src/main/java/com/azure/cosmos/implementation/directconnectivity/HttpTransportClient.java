@@ -3,61 +3,55 @@
 
 package com.azure.cosmos.implementation.directconnectivity;
 
-import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.BadRequestException;
-import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.implementation.ConflictException;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.ConnectionPolicy;
 import com.azure.cosmos.implementation.ForbiddenException;
-import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.GoneException;
-import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.Integers;
 import com.azure.cosmos.implementation.InternalServerErrorException;
 import com.azure.cosmos.implementation.InvalidPartitionException;
-import com.azure.cosmos.implementation.Lists;
 import com.azure.cosmos.implementation.LockedException;
-import com.azure.cosmos.implementation.Longs;
 import com.azure.cosmos.implementation.MethodNotAllowedException;
-import com.azure.cosmos.implementation.MutableVolatile;
 import com.azure.cosmos.implementation.NotFoundException;
-import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.PartitionIsMigratingException;
 import com.azure.cosmos.implementation.PartitionKeyRangeGoneException;
 import com.azure.cosmos.implementation.PartitionKeyRangeIsSplittingException;
-import com.azure.cosmos.implementation.PathsHelper;
 import com.azure.cosmos.implementation.PreconditionFailedException;
-import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.RequestEntityTooLargeException;
 import com.azure.cosmos.implementation.RequestRateTooLargeException;
 import com.azure.cosmos.implementation.RequestTimeoutException;
-import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RetryWithException;
+import com.azure.cosmos.implementation.ServiceUnavailableException;
+import com.azure.cosmos.implementation.UnauthorizedException;
+import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.implementation.HttpConstants;
+import com.azure.cosmos.implementation.Integers;
+import com.azure.cosmos.implementation.Lists;
+import com.azure.cosmos.implementation.Longs;
+import com.azure.cosmos.implementation.MutableVolatile;
+import com.azure.cosmos.implementation.OperationType;
+import com.azure.cosmos.implementation.PathsHelper;
+import com.azure.cosmos.implementation.RMResources;
+import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RuntimeConstants;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
-import com.azure.cosmos.implementation.ServiceUnavailableException;
 import com.azure.cosmos.implementation.Strings;
-import com.azure.cosmos.implementation.UnauthorizedException;
 import com.azure.cosmos.implementation.UserAgentContainer;
 import com.azure.cosmos.implementation.Utils;
-import com.azure.cosmos.implementation.apachecommons.lang.NotImplementedException;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
-import com.azure.cosmos.implementation.directconnectivity.rntbd.ProactiveOpenConnectionsProcessor;
-import com.azure.cosmos.implementation.faultinjection.IFaultInjectorProvider;
 import com.azure.cosmos.implementation.http.HttpClient;
 import com.azure.cosmos.implementation.http.HttpClientConfig;
 import com.azure.cosmos.implementation.http.HttpHeaders;
 import com.azure.cosmos.implementation.http.HttpRequest;
 import com.azure.cosmos.implementation.http.HttpResponse;
-import com.azure.cosmos.models.CosmosContainerIdentity;
 import io.netty.handler.codec.http.HttpMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -72,19 +66,17 @@ public class HttpTransportClient extends TransportClient {
     private final HttpClient httpClient;
     private final Map<String, String> defaultHeaders;
     private final Configs configs;
-    private final GlobalEndpointManager globalEndpointManager;
 
     HttpClient createHttpClient(ConnectionPolicy connectionPolicy) {
         // TODO: use one instance of SSL context everywhere
         HttpClientConfig httpClientConfig = new HttpClientConfig(this.configs);
-        httpClientConfig.withNetworkRequestTimeout(connectionPolicy.getHttpNetworkRequestTimeout());
+        httpClientConfig.withRequestTimeout(connectionPolicy.getRequestTimeout());
         httpClientConfig.withPoolSize(configs.getDirectHttpsMaxConnectionLimit());
 
         return HttpClient.createFixed(httpClientConfig);
     }
 
-    public HttpTransportClient(Configs configs, ConnectionPolicy connectionPolicy, UserAgentContainer userAgent,
-                               GlobalEndpointManager globalEndpointManager) {
+    public HttpTransportClient(Configs configs, ConnectionPolicy connectionPolicy, UserAgentContainer userAgent) {
         this.configs = configs;
         this.httpClient = createHttpClient(connectionPolicy);
 
@@ -93,9 +85,6 @@ public class HttpTransportClient extends TransportClient {
         // Set requested API version header for version enforcement.
         this.defaultHeaders.put(HttpConstants.HttpHeaders.VERSION, HttpConstants.Versions.CURRENT_VERSION);
         this.defaultHeaders.put(HttpConstants.HttpHeaders.CACHE_CONTROL, HttpConstants.HeaderValues.NO_CACHE);
-        this.defaultHeaders.put(
-            HttpConstants.HttpHeaders.SDK_SUPPORTED_CAPABILITIES,
-            HttpConstants.SDKSupportedCapabilities.SUPPORTED_CAPABILITIES);
 
         if (userAgent == null) {
             userAgent = new UserAgentContainer();
@@ -103,7 +92,6 @@ public class HttpTransportClient extends TransportClient {
 
         this.defaultHeaders.put(HttpConstants.HttpHeaders.USER_AGENT, userAgent.getUserAgent());
         this.defaultHeaders.put(HttpConstants.HttpHeaders.ACCEPT, RuntimeConstants.MediaTypes.JSON);
-        this.globalEndpointManager = globalEndpointManager;
     }
 
     @Override
@@ -134,15 +122,8 @@ public class HttpTransportClient extends TransportClient {
 
             MutableVolatile<Instant> sendTimeUtc = new MutableVolatile<>();
 
-            Duration responseTimeout = Duration.ofSeconds(Configs.getHttpResponseTimeoutInSeconds());
-            if (OperationType.QueryPlan.equals(request.getOperationType())) {
-                responseTimeout = Duration.ofSeconds(Configs.getQueryPlanResponseTimeoutInSeconds());
-            } else if (request.isAddressRefresh()) {
-                responseTimeout = Duration.ofSeconds(Configs.getAddressRefreshResponseTimeoutInSeconds());
-            }
-
             Mono<HttpResponse> httpResponseMono = this.httpClient
-                    .send(httpRequest, responseTimeout)
+                    .send(httpRequest)
                     .doOnSubscribe(subscription -> {
                         sendTimeUtc.v = Instant.now();
                         this.beforeRequest(
@@ -175,8 +156,7 @@ public class HttpTransportClient extends TransportClient {
                                             RMResources.Gone),
                                     exception,
                                     null,
-                                    physicalAddress,
-                                HttpConstants.SubStatusCodes.TRANSPORT_GENERATED_410);
+                                    physicalAddress);
 
                             return Mono.error(goneException);
                         } else if (request.isReadOnlyRequest()) {
@@ -193,8 +173,7 @@ public class HttpTransportClient extends TransportClient {
                                             RMResources.Gone),
                                     exception,
                                     null,
-                                    physicalAddress,
-                                HttpConstants.SubStatusCodes.TRANSPORT_GENERATED_410);
+                                    physicalAddress);
 
                             return Mono.error(goneException);
                         } else {
@@ -207,8 +186,7 @@ public class HttpTransportClient extends TransportClient {
                                 exception.getMessage(),
                                 exception,
                                 null,
-                                physicalAddress.toString(),
-                                HttpConstants.SubStatusCodes.UNKNOWN);
+                                physicalAddress.toString());
                             serviceUnavailableException.getResponseHeaders().put(HttpConstants.HttpHeaders.REQUEST_VALIDATION_FAILURE, "1");
                             serviceUnavailableException.getResponseHeaders().put(HttpConstants.HttpHeaders.WRITE_REQUEST_TRIGGER_ADDRESS_REFRESH, "1");
                             return Mono.error(serviceUnavailableException);
@@ -232,37 +210,12 @@ public class HttpTransportClient extends TransportClient {
                                 null);
                     });
 
-            return httpResponseMono.flatMap(rsp -> processHttpResponse(request.requestContext.resourcePhysicalAddress,
+            return httpResponseMono.flatMap(rsp -> processHttpResponse(request.getResourceAddress(),
                     httpRequest, activityId, rsp, physicalAddress));
 
         } catch (Exception e) {
             return Mono.error(e);
         }
-    }
-
-    @Override
-    public void configureFaultInjectorProvider(IFaultInjectorProvider injectorProvider) {
-        throw new NotImplementedException("configureFaultInjectorProvider is not supported in httpTransportClient");
-    }
-
-    @Override
-    protected GlobalEndpointManager getGlobalEndpointManager() {
-        return this.globalEndpointManager;
-    }
-
-    @Override
-    public ProactiveOpenConnectionsProcessor getProactiveOpenConnectionsProcessor() {
-        return null;
-    }
-
-    @Override
-    public void recordOpenConnectionsAndInitCachesCompleted(List<CosmosContainerIdentity> cosmosContainerIdentities) {
-        throw new NotImplementedException("recordOpenConnectionsAndInitCachesComplete is not supported in httpTransportClient");
-    }
-
-    @Override
-    public void recordOpenConnectionsAndInitCachesStarted(List<CosmosContainerIdentity> cosmosContainerIdentities) {
-        throw new NotImplementedException("recordOpenConnectionsAndInitCachesStarted is not supported in httpTransportClient");
     }
 
     private void beforeRequest(String activityId, URI uri, ResourceType resourceType, HttpHeaders requestHeaders) {
@@ -296,7 +249,7 @@ public class HttpTransportClient extends TransportClient {
             case Delete:
             case ExecuteJavaScript:
             case Replace:
-            case Patch:
+            case Update:
             case Upsert:
                 return request.getHeaders().get(HttpConstants.HttpHeaders.IF_MATCH);
 
@@ -324,20 +277,19 @@ public class HttpTransportClient extends TransportClient {
         // HttpRequestMessage -> StreamContent -> MemoryStream all get disposed, the original stream will be left open.
         switch (resourceOperation.operationType) {
             case Create:
-            case Batch:
                 requestUri = getResourceFeedUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
                 method = HttpMethod.POST;
-                assert request.getContentAsByteArrayFlux() != null;
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 break;
 
             case ExecuteJavaScript:
                 requestUri = getResourceEntryUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
                 method = HttpMethod.POST;
-                assert request.getContentAsByteArrayFlux() != null;
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 break;
 
             case Delete:
@@ -361,35 +313,35 @@ public class HttpTransportClient extends TransportClient {
             case Replace:
                 requestUri = getResourceEntryUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
                 method = HttpMethod.PUT;
-                assert request.getContentAsByteArrayFlux() != null;
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 break;
 
-            case Patch:
+            case Update:
                 requestUri = getResourceEntryUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
-                method = HttpMethod.PATCH;
-                assert request.getContentAsByteArrayFlux() != null;
+                method = new HttpMethod("PATCH");
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 break;
 
             case Query:
             case SqlQuery:
                 requestUri = getResourceFeedUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
                 method = HttpMethod.POST;
-                assert request.getContentAsByteArrayFlux() != null;
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 HttpTransportClient.addHeader(httpRequestMessage.headers(), HttpConstants.HttpHeaders.CONTENT_TYPE, request);
                 break;
 
             case Upsert:
                 requestUri = getResourceFeedUri(resourceOperation.resourceType, physicalAddress.getURIAsString(), request);
                 method = HttpMethod.POST;
-                assert request.getContentAsByteArrayFlux() != null;
+                assert request.getContentAsByteBufFlux() != null;
                 httpRequestMessage = new HttpRequest(method, requestUri, physicalAddress.getURI().getPort());
-                httpRequestMessage.withBody(request.getContentAsByteArrayFlux());
+                httpRequestMessage.withBody(request.getContentAsByteBufFlux());
                 break;
 
             case Head:
@@ -443,9 +395,6 @@ public class HttpTransportClient extends TransportClient {
         HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.ACTIVITY_ID, activityId);
         HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.PARTITION_KEY, request);
         HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.PARTITION_KEY_RANGE_ID, request);
-        HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.READ_FEED_KEY_TYPE, request);
-        HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.START_EPK, request);
-        HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.END_EPK, request);
 
         String dateHeader = HttpUtils.getDateHeader(documentServiceRequestHeaders);
         HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.X_DATE, dateHeader);
@@ -522,13 +471,6 @@ public class HttpTransportClient extends TransportClient {
         HttpTransportClient.addHeader(httpRequestHeaders, WFConstants.BackendHeaders.ALLOW_TENTATIVE_WRITES, request);
 
         HttpTransportClient.addHeader(httpRequestHeaders, CustomHeaders.HttpHeaders.EXCLUDE_SYSTEM_PROPERTIES, request);
-
-        if (resourceOperation.operationType == OperationType.Batch) {
-            HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.IS_BATCH_REQUEST, request);
-            HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.SHOULD_BATCH_CONTINUE_ON_ERROR, request);
-            HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.IS_BATCH_ORDERED, request);
-            HttpTransportClient.addHeader(httpRequestHeaders, HttpConstants.HttpHeaders.IS_BATCH_ATOMIC, request);
-        }
 
         return httpRequestMessage;
     }
@@ -817,8 +759,7 @@ public class HttpTransportClient extends TransportClient {
                                         String.format(
                                                 RMResources.ExceptionMessage,
                                                 RMResources.Gone),
-                                        request.uri().toString(),
-                                        HttpConstants.SubStatusCodes.UNKNOWN);
+                                        request.uri().toString());
                                 exception.getResponseHeaders().put(HttpConstants.HttpHeaders.ACTIVITY_ID,
                                         activityId);
 
@@ -858,7 +799,19 @@ public class HttpTransportClient extends TransportClient {
                             // https://msdata.visualstudio.com/CosmosDB/_workitems/edit/258624
                             ErrorUtils.logGoneException(request.uri(), activityId);
 
-                            Integer nSubStatus = getSubStatusCodeFromHeader(response);
+                            Integer nSubStatus = 0;
+                            String valueSubStatus = response.headers().value(WFConstants.BackendHeaders.SUB_STATUS);
+                            if (!Strings.isNullOrEmpty(valueSubStatus)) {
+                                if ((nSubStatus = Integers.tryParse(valueSubStatus)) == null) {
+                                    exception = new InternalServerErrorException(
+                                            String.format(
+                                                    RMResources.ExceptionMessage,
+                                                    RMResources.InvalidBackendResponse),
+                                            response.headers(),
+                                            request.uri());
+                                    break;
+                                }
+                            }
 
                             if (nSubStatus == HttpConstants.SubStatusCodes.NAME_CACHE_IS_STALE) {
                                 exception = new InvalidPartitionException(
@@ -876,7 +829,7 @@ public class HttpTransportClient extends TransportClient {
                                         response.headers(),
                                         request.uri().toString());
                                 break;
-                            } else if (nSubStatus == HttpConstants.SubStatusCodes.COMPLETING_SPLIT_OR_MERGE) {
+                            } else if (nSubStatus == HttpConstants.SubStatusCodes.COMPLETING_SPLIT) {
                                 exception = new PartitionKeyRangeIsSplittingException(
                                         String.format(
                                                 RMResources.ExceptionMessage,
@@ -894,21 +847,15 @@ public class HttpTransportClient extends TransportClient {
                                 break;
                             } else {
                                 // Have the request URL in the exception message for debugging purposes.
-                                GoneException goneExceptionFromService = new GoneException(
+                                exception = new GoneException(
                                         String.format(
                                                 RMResources.ExceptionMessage,
                                                 RMResources.Gone),
                                         response.headers(),
-                                        request.uri(),
-                                        (nSubStatus == 0) ? HttpConstants.SubStatusCodes.TRANSPORT_GENERATED_410
-                                            : HttpConstants.SubStatusCodes.UNKNOWN);
-                                goneExceptionFromService.setIsBasedOn410ResponseFromService();
+                                        request.uri());
 
-                                goneExceptionFromService.getResponseHeaders().put(
-                                    HttpConstants.HttpHeaders.ACTIVITY_ID,
-                                    activityId);
-
-                                exception = goneExceptionFromService;
+                                exception.getResponseHeaders().put(HttpConstants.HttpHeaders.ACTIVITY_ID,
+                                        activityId);
                                 break;
                             }
                         }
@@ -952,10 +899,7 @@ public class HttpTransportClient extends TransportClient {
                             break;
 
                         case HttpConstants.StatusCodes.SERVICE_UNAVAILABLE:
-                            int subStatusCode = getSubStatusCodeFromHeader(response);
-                            exception = new ServiceUnavailableException(errorMessage, response.headers(), request.uri(),
-                                (subStatusCode == 0) ? HttpConstants.SubStatusCodes.SERVER_GENERATED_503
-                                    : HttpConstants.SubStatusCodes.UNKNOWN);
+                            exception = new ServiceUnavailableException(errorMessage, response.headers(), request.uri());
                             break;
 
                         case HttpConstants.StatusCodes.REQUEST_TIMEOUT:
@@ -1028,21 +972,5 @@ public class HttpTransportClient extends TransportClient {
                     return Mono.error(exception);
                 }
         );
-    }
-
-    private int getSubStatusCodeFromHeader(HttpResponse response) {
-        Integer nSubStatus = 0;
-        String valueSubStatus = response.headers().value(WFConstants.BackendHeaders.SUB_STATUS);
-        if (!Strings.isNullOrEmpty(valueSubStatus)) {
-            if ((nSubStatus = Integers.tryParse(valueSubStatus)) == null) {
-                throw new InternalServerErrorException(
-                    String.format(
-                        RMResources.ExceptionMessage,
-                        RMResources.InvalidBackendResponse),
-                    response.headers(),
-                    response.request().uri());
-            }
-        }
-        return nSubStatus;
     }
 }

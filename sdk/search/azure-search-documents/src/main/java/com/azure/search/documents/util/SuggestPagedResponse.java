@@ -6,10 +6,12 @@ package com.azure.search.documents.util;
 import com.azure.core.annotation.Immutable;
 import com.azure.core.http.rest.Page;
 import com.azure.core.http.rest.PagedResponseBase;
-import com.azure.core.http.rest.Response;
+import com.azure.core.http.rest.SimpleResponse;
+import com.azure.search.documents.implementation.converters.SuggestResultConverter;
+import com.azure.search.documents.implementation.models.SuggestDocumentsResult;
 import com.azure.search.documents.models.SuggestResult;
 
-import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents an HTTP response from the suggest API request that contains a list of items deserialized into a {@link
@@ -36,12 +38,16 @@ public final class SuggestPagedResponse extends PagedResponseBase<Void, SuggestR
     /**
      * Constructor
      *
-     * @param response The response containing information such as the request, status code, headers, and values.
-     * @param coverage Percent of the index used in the suggest operation.
+     * @param documentSearchResponse an http response with the results
      */
-    public SuggestPagedResponse(Response<List<SuggestResult>> response, Double coverage) {
-        super(response.getRequest(), response.getStatusCode(), response.getHeaders(), response.getValue(), null, null);
-
-        this.coverage = coverage;
+    public SuggestPagedResponse(SimpleResponse<SuggestDocumentsResult> documentSearchResponse) {
+        super(documentSearchResponse.getRequest(),
+            documentSearchResponse.getStatusCode(),
+            documentSearchResponse.getHeaders(),
+            documentSearchResponse.getValue().getResults().stream().map(SuggestResultConverter::map)
+                .collect(Collectors.toList()),
+            null,
+            null);
+        this.coverage = documentSearchResponse.getValue().getCoverage();
     }
 }

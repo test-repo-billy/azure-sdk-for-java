@@ -39,6 +39,7 @@ public class ExtractKeyPhrasesBatchDocuments {
             new TextDocumentInput("B", "The pitot tube is used to measure airspeed.").setLanguage("en")
         );
 
+        // Request options: show statistics and model version
         TextAnalyticsRequestOptions requestOptions = new TextAnalyticsRequestOptions().setIncludeStatistics(true).setModelVersion("latest");
 
         // Extracting key phrases for each document in a batch of documents
@@ -50,11 +51,11 @@ public class ExtractKeyPhrasesBatchDocuments {
         ExtractKeyPhrasesResultCollection keyPhrasesBatchResultCollection = keyPhrasesBatchResultResponse.getValue();
 
         // Model version
-        System.out.printf("Results of \"Key Phrases Extraction\" Model, version: %s%n", keyPhrasesBatchResultCollection.getModelVersion());
+        System.out.printf("Results of Azure Text Analytics \"Key Phrases Extraction\" Model, version: %s%n", keyPhrasesBatchResultCollection.getModelVersion());
 
         // Batch statistics
         TextDocumentBatchStatistics batchStatistics = keyPhrasesBatchResultCollection.getStatistics();
-        System.out.printf("Documents statistics: document count = %d, erroneous document count = %d, transaction count = %d, valid document count = %d.%n",
+        System.out.printf("Documents statistics: document count = %s, erroneous document count = %s, transaction count = %s, valid document count = %s.%n",
             batchStatistics.getDocumentCount(), batchStatistics.getInvalidDocumentCount(), batchStatistics.getTransactionCount(), batchStatistics.getValidDocumentCount());
 
         // Extracted key phrases for each document in a batch of documents

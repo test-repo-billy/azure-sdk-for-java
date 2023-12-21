@@ -3,18 +3,23 @@
 
 package com.azure.messaging.servicebus;
 
-import com.azure.core.amqp.implementation.MessageFlux;
+import com.azure.core.amqp.AmqpRetryOptions;
 import com.azure.core.amqp.implementation.MessageSerializer;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.implementation.DispositionStatus;
+import com.azure.messaging.servicebus.implementation.MessageManagementOperations;
 import com.azure.messaging.servicebus.implementation.MessageUtils;
+import com.azure.messaging.servicebus.implementation.ServiceBusMessageProcessor;
 import com.azure.messaging.servicebus.implementation.ServiceBusReceiveLinkProcessor;
-import com.azure.messaging.servicebus.implementation.instrumentation.ServiceBusReceiverInstrumentation;
 import org.apache.qpid.proton.amqp.transport.DeliveryState;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
 import static com.azure.core.util.FluxUtil.monoError;
 
@@ -22,46 +27,27 @@ import static com.azure.core.util.FluxUtil.monoError;
  * A package-private consumer responsible for reading {@link ServiceBusMessage} from a specific Service Bus link.
  */
 class ServiceBusAsyncConsumer implements AutoCloseable {
-    private static final ClientLogger LOGGER = new ClientLogger(ServiceBusAsyncConsumer.class);
-    private final boolean isV2;
+    private final ClientLogger logger = new ClientLogger(ServiceBusAsyncConsumer.class);
+    private final AtomicBoolean isDisposed = new AtomicBoolean();
     private final String linkName;
     private final ServiceBusReceiveLinkProcessor linkProcessor;
     private final MessageSerializer messageSerializer;
-    private final Flux<ServiceBusReceivedMessage> processor;
-    private final MessageFlux messageFlux;
+    private final ServiceBusMessageProcessor processor;
 
     ServiceBusAsyncConsumer(String linkName, ServiceBusReceiveLinkProcessor linkProcessor,
-        MessageSerializer messageSerializer, ReceiverOptions receiverOptions) {
-        this.isV2 = false;
+        MessageSerializer messageSerializer, boolean isAutoComplete, boolean autoLockRenewal,
+        Duration maxAutoLockRenewDuration, AmqpRetryOptions retryOptions,
+        BiFunction<MessageLockToken, String, Mono<Instant>> renewMessageLock) {
         this.linkName = linkName;
         this.linkProcessor = linkProcessor;
-        this.messageFlux = null;
         this.messageSerializer = messageSerializer;
+
+        final MessageManagement messageManagement = new MessageManagement(linkProcessor, renewMessageLock);
+
         this.processor = linkProcessor
-            .map(message -> this.messageSerializer.deserialize(message, ServiceBusReceivedMessage.class));
-    }
-
-    ServiceBusAsyncConsumer(String linkName, MessageFlux messageFlux,
-        MessageSerializer messageSerializer, ReceiverOptions receiverOptions, ServiceBusReceiverInstrumentation instrumentation) {
-        this.isV2 = true;
-        this.linkName = linkName;
-        this.messageFlux = messageFlux;
-        this.linkProcessor = null;
-        this.messageSerializer = messageSerializer;
-
-        final boolean useFluxTrace = instrumentation.isEnabled() && instrumentation.isAsyncReceiverInstrumentation();
-        if (useFluxTrace) {
-            // This ServiceBusAsyncConsumer is backing ServiceBusReceiverAsyncClient instance (client has instrumentation is enabled).
-            final Flux<ServiceBusReceivedMessage> deserialize = messageFlux
-                .map(message -> this.messageSerializer.deserialize(message, ServiceBusReceivedMessage.class));
-            this.processor = new FluxTraceV2(deserialize, instrumentation);
-        } else {
-            // This ServiceBusAsyncConsumer is backing either
-            // 1. a ServiceBusReceiverAsyncClient instance (client has no instrumentation enabled)
-            // 2. Or a ServiceBusProcessorClient instance (processor client internally deal with instrumentation).
-            this.processor = messageFlux
-                .map(message -> this.messageSerializer.deserialize(message, ServiceBusReceivedMessage.class));
-        }
+            .map(message -> this.messageSerializer.deserialize(message, ServiceBusReceivedMessage.class))
+            .subscribeWith(new ServiceBusMessageProcessor(linkName, isAutoComplete, autoLockRenewal,
+                maxAutoLockRenewDuration, retryOptions, linkProcessor.getErrorContext(), messageManagement));
     }
 
     /**
@@ -90,14 +76,10 @@ class ServiceBusAsyncConsumer implements AutoCloseable {
             deadLetterErrorDescription, propertiesToModify, transactionContext);
 
         if (deliveryState == null) {
-            return monoError(LOGGER,
+            return monoError(logger,
                 new IllegalArgumentException("'dispositionStatus' is not known. status: " + dispositionStatus));
         }
-        if (isV2) {
-            return messageFlux.updateDisposition(lockToken, deliveryState);
-        } else {
-            return linkProcessor.updateDisposition(lockToken, deliveryState);
-        }
+        return linkProcessor.updateDisposition(lockToken, deliveryState);
     }
 
     /**
@@ -105,9 +87,30 @@ class ServiceBusAsyncConsumer implements AutoCloseable {
      */
     @Override
     public void close() {
-        if (isV2) {
-            return;
+        if (!isDisposed.getAndSet(true)) {
+            processor.onComplete();
+            linkProcessor.cancel();
         }
-        linkProcessor.dispose();
+    }
+
+    private static final class MessageManagement implements MessageManagementOperations {
+        private final ServiceBusReceiveLinkProcessor link;
+        private final BiFunction<MessageLockToken, String, Mono<Instant>> renewMessageLock;
+
+        private MessageManagement(ServiceBusReceiveLinkProcessor link,
+            BiFunction<MessageLockToken, String, Mono<Instant>> renewMessageLock) {
+            this.link = link;
+            this.renewMessageLock = renewMessageLock;
+        }
+
+        @Override
+        public Mono<Void> updateDisposition(String lockToken, DeliveryState deliveryState) {
+            return link.updateDisposition(lockToken, deliveryState);
+        }
+
+        @Override
+        public Mono<Instant> renewMessageLock(String lockToken, String associatedLinkName) {
+            return renewMessageLock.apply(MessageLockToken.fromString(lockToken), associatedLinkName);
+        }
     }
 }

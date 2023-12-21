@@ -12,8 +12,6 @@ import reactor.core.publisher.Mono;
 /**
  * An interface that defines the operations for storing and retrieving partition ownership information and checkpoint
  * details for each partition.
- *
- * @see EventProcessorClientBuilder#checkpointStore(CheckpointStore)
  */
 public interface CheckpointStore {
 
@@ -25,7 +23,7 @@ public interface CheckpointStore {
      * <strong>{@literal "{your-namespace}.servicebus.windows.net}"</strong>.
      * @param eventHubName The Event Hub name to get ownership information.
      * @param consumerGroup The consumer group name.
-     * @return A {@link Flux} of partition ownership details of all the partitions that have/had an owner.
+     * @return A flux of partition ownership details of all the partitions that have/had an owner.
      */
     Flux<PartitionOwnership> listOwnership(String fullyQualifiedNamespace, String eventHubName,
         String consumerGroup);
@@ -35,7 +33,7 @@ public interface CheckpointStore {
      * successfully.
      *
      * @param requestedPartitionOwnerships List of partition ownerships this instance is requesting to own.
-     * @return A {@link Flux} of partitions this instance successfully claimed ownership.
+     * @return A flux of partitions this instance successfully claimed ownership.
      */
     Flux<PartitionOwnership> claimOwnership(List<PartitionOwnership> requestedPartitionOwnerships);
 
@@ -46,7 +44,7 @@ public interface CheckpointStore {
      * @param fullyQualifiedNamespace The fully qualified namespace of the Event Hub.
      * @param eventHubName The Event Hub name to get checkpoint information.
      * @param consumerGroup The consumer group name associated with the checkpoint.
-     * @return A {@link Flux} of checkpoints associated with the partitions of the Event Hub.
+     * @return A flux of checkpoints associated with the partitions of the Event Hub.
      */
     Flux<Checkpoint> listCheckpoints(String fullyQualifiedNamespace, String eventHubName, String consumerGroup);
 

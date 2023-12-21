@@ -3,7 +3,7 @@
 
 package com.azure.core.amqp;
 
-import com.azure.core.util.logging.LoggingEventBuilder;
+import java.util.Locale;
 
 /**
  * Represents a signal that caused the AMQP connection to shutdown.
@@ -47,12 +47,11 @@ public class AmqpShutdownSignal {
     }
 
     /**
-     * Returns String representing the message of this {@code AmqpShutdownSignal} signal.
-     *
-     * <strong>To write logs, please use {@link com.azure.core.amqp.implementation.AmqpLoggingUtils#addShutdownSignal(LoggingEventBuilder, AmqpShutdownSignal)}.</strong>
+     * {@inheritDoc}
      */
     @Override
     public String toString() {
-        return message;
+        return String.format(Locale.US, "%s, isTransient[%s], initiatedByClient[%s]", message, isTransient,
+            isInitiatedByClient);
     }
 }

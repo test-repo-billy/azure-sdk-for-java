@@ -5,15 +5,11 @@
 package com.azure.data.tables.implementation.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.core.http.HttpHeaderName;
-import com.azure.core.http.HttpHeaders;
 import com.azure.core.util.DateTimeRfc1123;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.time.OffsetDateTime;
 
 /** The TablesQueryHeaders model. */
-@JacksonXmlRootElement(localName = "null")
 @Fluent
 public final class TablesQueryHeaders {
     /*
@@ -38,37 +34,13 @@ public final class TablesQueryHeaders {
      * The Date property.
      */
     @JsonProperty(value = "Date")
-    private DateTimeRfc1123 date;
+    private DateTimeRfc1123 dateProperty;
 
     /*
      * The x-ms-continuation-NextTableName property.
      */
     @JsonProperty(value = "x-ms-continuation-NextTableName")
     private String xMsContinuationNextTableName;
-
-    private static final HttpHeaderName X_MS_VERSION = HttpHeaderName.fromString("x-ms-version");
-
-    private static final HttpHeaderName X_MS_REQUEST_ID = HttpHeaderName.fromString("x-ms-request-id");
-
-    private static final HttpHeaderName X_MS_CONTINUATION_NEXT_TABLE_NAME =
-            HttpHeaderName.fromString("x-ms-continuation-NextTableName");
-
-    // HttpHeaders containing the raw property values.
-    /**
-     * Creates an instance of TablesQueryHeaders class.
-     *
-     * @param rawHeaders The raw HttpHeaders that will be used to create the property values.
-     */
-    public TablesQueryHeaders(HttpHeaders rawHeaders) {
-        this.xMsVersion = rawHeaders.getValue(X_MS_VERSION);
-        this.xMsRequestId = rawHeaders.getValue(X_MS_REQUEST_ID);
-        this.xMsClientRequestId = rawHeaders.getValue(HttpHeaderName.X_MS_CLIENT_REQUEST_ID);
-        String date = rawHeaders.getValue(HttpHeaderName.DATE);
-        if (date != null) {
-            this.date = new DateTimeRfc1123(date);
-        }
-        this.xMsContinuationNextTableName = rawHeaders.getValue(X_MS_CONTINUATION_NEXT_TABLE_NAME);
-    }
 
     /**
      * Get the xMsVersion property: The x-ms-version property.
@@ -131,28 +103,28 @@ public final class TablesQueryHeaders {
     }
 
     /**
-     * Get the date property: The Date property.
+     * Get the dateProperty property: The Date property.
      *
-     * @return the date value.
+     * @return the dateProperty value.
      */
-    public OffsetDateTime getDate() {
-        if (this.date == null) {
+    public OffsetDateTime getDateProperty() {
+        if (this.dateProperty == null) {
             return null;
         }
-        return this.date.getDateTime();
+        return this.dateProperty.getDateTime();
     }
 
     /**
-     * Set the date property: The Date property.
+     * Set the dateProperty property: The Date property.
      *
-     * @param date the date value to set.
+     * @param dateProperty the dateProperty value to set.
      * @return the TablesQueryHeaders object itself.
      */
-    public TablesQueryHeaders setDate(OffsetDateTime date) {
-        if (date == null) {
-            this.date = null;
+    public TablesQueryHeaders setDateProperty(OffsetDateTime dateProperty) {
+        if (dateProperty == null) {
+            this.dateProperty = null;
         } else {
-            this.date = new DateTimeRfc1123(date);
+            this.dateProperty = new DateTimeRfc1123(dateProperty);
         }
         return this;
     }

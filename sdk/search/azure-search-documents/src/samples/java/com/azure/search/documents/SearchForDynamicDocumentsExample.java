@@ -6,6 +6,7 @@ package com.azure.search.documents;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.Context;
+import com.azure.search.documents.models.RequestOptions;
 import com.azure.search.documents.models.SearchOptions;
 import com.azure.search.documents.models.SearchResult;
 import reactor.core.publisher.Flux;
@@ -14,7 +15,7 @@ import reactor.core.publisher.Flux;
  * This example shows how to perform basic searches using the Azure Cognitive Search SDK for Java
  * <p>
  * This sample is based on the hotels-sample index available to install from the portal.
- * See https://docs.microsoft.com/azure/search/search-get-started-portal
+ * See https://docs.microsoft.com/en-us/azure/search/search-get-started-portal
  */
 public class SearchForDynamicDocumentsExample {
 
@@ -45,10 +46,10 @@ public class SearchForDynamicDocumentsExample {
 
         // Perform a text-based search
         for (SearchResult result : client.search("luxury hotel",
-            new SearchOptions(), Context.NONE)) {
+            new SearchOptions(), new RequestOptions(), Context.NONE)) {
 
             // Each result is a dynamic Map
-            SearchDocument doc = result.getDocument(SearchDocument.class);
+            SearchDocument doc = result.getDocument();
             String hotelName = (String) doc.get("HotelName");
             Double rating = (Double) doc.get("Rating");
 
@@ -76,14 +77,14 @@ public class SearchForDynamicDocumentsExample {
             .setIncludeTotalCount(true);
 
         // Perform a search and subscribe to the results and log additional information
-        Flux<SearchResult> results = client.search("hotel", parameters)
+        Flux<SearchResult> results = client.search("hotel", parameters, new RequestOptions())
             .log()
             .doOnSubscribe(__ -> System.out.println("Subscribed to PagedFlux results"));
 
         // Subscribe and process all results across all pages in the response
         results.subscribe(
             result -> {
-                SearchDocument doc = result.getDocument(SearchDocument.class);
+                SearchDocument doc = result.getDocument();
                 String hotelName = (String) doc.get("HotelName");
                 Integer rating = (Integer) doc.get("Rating");
 

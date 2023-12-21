@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 package com.azure.cosmos;
 
-import com.azure.cosmos.implementation.TestConfigurations;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -12,12 +11,7 @@ public class ChangeFeedProcessorCodeSnippet {
 
     public void changeFeedProcessorBuilderCodeSnippet() {
         String hostName = "test-host-name";
-        CosmosAsyncClient cosmosAsyncClient = new CosmosClientBuilder()
-            .endpoint(TestConfigurations.HOST)
-            .key(TestConfigurations.MASTER_KEY)
-            .contentResponseOnWriteEnabled(true)
-            .consistencyLevel(ConsistencyLevel.SESSION)
-            .buildAsyncClient();
+        CosmosAsyncClient cosmosAsyncClient = new CosmosClientBuilder().buildAsyncClient();
         CosmosAsyncDatabase cosmosAsyncDatabase = cosmosAsyncClient.getDatabase("testDb");
         CosmosAsyncContainer feedContainer = cosmosAsyncDatabase.getContainer("feedContainer");
         CosmosAsyncContainer leaseContainer = cosmosAsyncDatabase.getContainer("leaseContainer");
@@ -37,12 +31,7 @@ public class ChangeFeedProcessorCodeSnippet {
 
     public void handleChangesCodeSnippet() {
         String hostName = "test-host-name";
-        CosmosAsyncClient cosmosAsyncClient = new CosmosClientBuilder()
-            .endpoint(TestConfigurations.HOST)
-            .key(TestConfigurations.MASTER_KEY)
-            .contentResponseOnWriteEnabled(true)
-            .consistencyLevel(ConsistencyLevel.SESSION)
-            .buildAsyncClient();
+        CosmosAsyncClient cosmosAsyncClient = new CosmosClientBuilder().buildAsyncClient();
         CosmosAsyncDatabase cosmosAsyncDatabase = cosmosAsyncClient.getDatabase("testDb");
         CosmosAsyncContainer feedContainer = cosmosAsyncDatabase.getContainer("feedContainer");
         CosmosAsyncContainer leaseContainer = cosmosAsyncDatabase.getContainer("leaseContainer");

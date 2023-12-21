@@ -3,26 +3,17 @@
 
 package com.azure.cosmos.benchmark;
 
-import com.azure.cosmos.CosmosAsyncClient;
-import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.DirectConnectionConfig;
-import com.azure.cosmos.ThrottlingRetryOptions;
-import com.azure.cosmos.implementation.AsyncDocumentClient;
 import com.azure.cosmos.implementation.ConnectionPolicy;
-import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
+import com.azure.cosmos.models.FeedResponse;
+import com.azure.cosmos.ThrottlingRetryOptions;
+import com.azure.cosmos.models.SqlQuerySpec;
+import com.azure.cosmos.implementation.AsyncDocumentClient;
 import com.azure.cosmos.implementation.Database;
 import com.azure.cosmos.implementation.DatabaseForTest;
 import com.azure.cosmos.implementation.DocumentCollection;
-import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
-import com.azure.cosmos.implementation.OperationType;
-import com.azure.cosmos.implementation.QueryFeedOperationState;
 import com.azure.cosmos.implementation.ResourceResponse;
-import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.TestConfigurations;
-import com.azure.cosmos.models.CosmosClientTelemetryConfig;
-import com.azure.cosmos.models.CosmosQueryRequestOptions;
-import com.azure.cosmos.models.FeedResponse;
-import com.azure.cosmos.models.SqlQuerySpec;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -35,14 +26,11 @@ public class Utils {
         options.setMaxRetryAttemptsOnThrottledRequests(100);
         options.setMaxRetryWaitTime(Duration.ofSeconds(60));
         connectionPolicy.setThrottlingRetryOptions(options);
-        return new AsyncDocumentClient.Builder()
-                        .withServiceEndpoint(TestConfigurations.HOST)
-                        .withMasterKeyOrResourceToken(TestConfigurations.MASTER_KEY)
-                        .withConnectionPolicy(connectionPolicy)
-                        .withContentResponseOnWriteEnabled(true)
-                        .withClientTelemetryConfig(
-                            new CosmosClientTelemetryConfig().sendClientTelemetryToService(false))
-                        .build();
+        return new AsyncDocumentClient.Builder().withServiceEndpoint(TestConfigurations.HOST)
+                                                .withMasterKeyOrResourceToken(TestConfigurations.MASTER_KEY)
+                                                .withConnectionPolicy(connectionPolicy)
+                                                .withContentResponseOnWriteEnabled(true)
+                                                .build();
     }
 
     public static String getCollectionLink(Database db, DocumentCollection collection) {
@@ -99,14 +87,7 @@ public class Utils {
 
         @Override
         public Flux<FeedResponse<Database>> queryDatabases(SqlQuerySpec query) {
-            QueryFeedOperationState state = DocDBUtils.createDummyQueryFeedOperationState(
-                ResourceType.Database,
-                OperationType.Query,
-                new CosmosQueryRequestOptions(),
-                client
-            );
-
-            return client.queryDatabases(query, state);
+            return client.queryDatabases(query, null);
         }
 
         @Override

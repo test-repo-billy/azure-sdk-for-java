@@ -19,12 +19,6 @@ public class GenerateThumbnailOptionalParameter {
     private Boolean smartCropping;
 
     /**
-     * Optional parameter to specify the version of the AI model. Accepted
-     * values are: "latest", "2021-04-01". Defaults to "latest".
-     */
-    private String modelVersion;
-
-    /**
      * Gets or sets the preferred language for the response.
      */
     private String thisclientacceptLanguage;
@@ -46,26 +40,6 @@ public class GenerateThumbnailOptionalParameter {
      */
     public GenerateThumbnailOptionalParameter withSmartCropping(Boolean smartCropping) {
         this.smartCropping = smartCropping;
-        return this;
-    }
-
-    /**
-     * Get the modelVersion value.
-     *
-     * @return the modelVersion value
-     */
-    public String modelVersion() {
-        return this.modelVersion;
-    }
-
-    /**
-     * Set the modelVersion value.
-     *
-     * @param modelVersion the modelVersion value to set
-     * @return the GenerateThumbnailOptionalParameter object itself.
-     */
-    public GenerateThumbnailOptionalParameter withModelVersion(String modelVersion) {
-        this.modelVersion = modelVersion;
         return this;
     }
 

@@ -7,8 +7,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -17,28 +15,21 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class MessagesTest {
 
-    public static Stream<Field> keys() {
-        return Arrays.stream(Messages.class.getDeclaredFields()).filter(field -> {
-            final int modifiers = field.getModifiers();
-            if (Modifier.isPrivate(modifiers)) {
-                return false;
-            }
-
-            return Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers);
-        });
+    static Stream<String> keys() {
+        return Stream.of(Messages.class.getFields()).map(Field::getName);
     }
 
     @ParameterizedTest
     @MethodSource("keys")
-    public void getMessage(Field field) {
-        final String fieldName = field.getName();
-        assertNotEquals(fieldName, Messages.getMessage(fieldName));
+    void getMessage(String messageKey) {
+        assertNotEquals(messageKey, Messages.getMessage(messageKey));
     }
 
     @ParameterizedTest
     @MethodSource("keys")
-    public void messageField(Field field) throws IllegalAccessException {
-        final String fieldName = field.getName();
-        assertEquals(Messages.getMessage(fieldName), Objects.toString(field.get(Messages.class)));
+    void messageField(String messageKey) throws NoSuchFieldException, IllegalAccessException {
+        Field field = Messages.class.getField(messageKey);
+        field.setAccessible(true);
+        assertEquals(Messages.getMessage(messageKey), Objects.toString(field.get(Messages.class)));
     }
 }

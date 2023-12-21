@@ -3,8 +3,6 @@
 
 package com.azure.cosmos;
 
-import com.azure.cosmos.models.CosmosClientEncryptionKeyProperties;
-import com.azure.cosmos.models.CosmosClientEncryptionKeyResponse;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosContainerRequestOptions;
 import com.azure.cosmos.models.CosmosContainerResponse;
@@ -18,6 +16,7 @@ import com.azure.cosmos.models.ThroughputProperties;
 import com.azure.cosmos.models.ThroughputResponse;
 import com.azure.cosmos.util.CosmosPagedFlux;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import com.azure.cosmos.util.UtilBridgeInternal;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
@@ -55,14 +54,6 @@ public class CosmosDatabase {
 
     /**
      * Reads the current Cosmos database.
-     * Fetch the details and properties of a database based on its unique identifier.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.read -->
-     * <pre>
-     * CosmosDatabase cosmosDatabase = cosmosClient
-     *     .getDatabase&#40;&quot;&lt;YOUR DATABASE NAME&gt;&quot;&#41;;
-     * CosmosDatabaseResponse readResponse = cosmosDatabase.read&#40;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.read -->
      *
      * @return the {@link CosmosDatabaseResponse}.
      */
@@ -72,14 +63,7 @@ public class CosmosDatabase {
 
     /**
      * Reads the current Cosmos database while specifying additional request options.
-     * Fetch the details and properties of a database based on its unique identifier.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.read -->
-     * <pre>
-     * CosmosDatabase cosmosDatabase = cosmosClient
-     *     .getDatabase&#40;&quot;&lt;YOUR DATABASE NAME&gt;&quot;&#41;;
-     * CosmosDatabaseResponse readResponse = cosmosDatabase.read&#40;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.read -->
+     *
      * @param options the {@link CosmosDatabaseRequestOptions} request options.
      * @return the {@link CosmosDatabaseResponse}
      */
@@ -89,13 +73,7 @@ public class CosmosDatabase {
 
     /**
      * Deletes the current Cosmos database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.delete -->
-     * <pre>
-     * CosmosDatabase cosmosDatabase = cosmosClient
-     *     .getDatabase&#40;&quot;&lt;YOUR DATABASE NAME&gt;&quot;&#41;;
-     * CosmosDatabaseResponse deleteResponse = cosmosDatabase.delete&#40;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.delete -->
+     *
      * @return the {@link CosmosDatabaseResponse}.
      */
     public CosmosDatabaseResponse delete() {
@@ -104,13 +82,7 @@ public class CosmosDatabase {
 
     /**
      * Delete the current Cosmos database while specifying additional request options.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.delete -->
-     * <pre>
-     * CosmosDatabase cosmosDatabase = cosmosClient
-     *     .getDatabase&#40;&quot;&lt;YOUR DATABASE NAME&gt;&quot;&#41;;
-     * CosmosDatabaseResponse deleteResponse = cosmosDatabase.delete&#40;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.delete -->
+     *
      * @param options the {@link CosmosDatabaseRequestOptions} request options.
      * @return the {@link CosmosDatabaseResponse}.
      */
@@ -122,20 +94,9 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainer -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;containerProperties&#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainer -->
+     *
      * @param containerProperties the {@link CosmosContainerProperties}.
      * @return the {@link CosmosContainerResponse} with the created container.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(CosmosContainerProperties containerProperties) {
         return this.blockContainerResponse(databaseWrapper.createContainer(containerProperties));
@@ -143,26 +104,10 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container with custom throughput setting.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerProps -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoScaleMaxThroughput&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;
-     *         containerProperties,
-     *         throughputProperties
-     *     &#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerProps -->
+     *
      * @param containerProperties the {@link CosmosContainerProperties}.
      * @param throughputProperties the throughput properties.
      * @return the {@link CosmosContainerResponse} with the created container.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(
         CosmosContainerProperties containerProperties,
@@ -172,21 +117,10 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container while passing additional request options.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainer -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;containerProperties&#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainer -->
+     *
      * @param containerProperties the {@link CosmosContainerProperties}.
      * @param options the {@link CosmosContainerProperties}.
      * @return the {@link CosmosContainerResponse} with the created container.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(
         CosmosContainerProperties containerProperties,
@@ -196,27 +130,11 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerThroughput -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
      *
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;
-     *         containerProperties,
-     *         throughput,
-     *         options
-     *     &#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerThroughput -->
      * @param containerProperties the {@link CosmosContainerProperties}.
      * @param throughput the throughput.
      * @param options the {@link CosmosContainerProperties}.
      * @return the {@link CosmosContainerResponse} with the created container.
-     * @throws CosmosException if resource with specified id already exists
      */
     CosmosContainerResponse createContainer(
         CosmosContainerProperties containerProperties,
@@ -229,27 +147,11 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerProps -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoScaleMaxThroughput&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;
-     *         containerProperties,
-     *         throughputProperties
-     *     &#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerProps -->
+     *
      * @param containerProperties the container properties.
      * @param throughputProperties the throughput properties.
      * @param options the options.
      * @return the cosmos container response.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(
         CosmosContainerProperties containerProperties,
@@ -262,25 +164,10 @@ public class CosmosDatabase {
 
     /**
      * Create a Cosmos container.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerPartitionKey -->
-     * <pre>
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoscaledThroughput&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;
-     *         containerId,
-     *         partitionKeyPath,
-     *         throughputProperties
-     *     &#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerPartitionKey -->
+     *
      * @param id the container id.
      * @param partitionKeyPath the partition key path.
      * @return the cosmos container response.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(String id, String partitionKeyPath) {
         return this.blockContainerResponse(databaseWrapper.createContainer(id, partitionKeyPath));
@@ -288,26 +175,11 @@ public class CosmosDatabase {
 
     /**
      * Create a Cosmos container.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerPartitionKey -->
-     * <pre>
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoscaledThroughput&#41;;
-     * try &#123;
-     *     CosmosContainerResponse container = cosmosDatabase.createContainer&#40;
-     *         containerId,
-     *         partitionKeyPath,
-     *         throughputProperties
-     *     &#41;;
-     * &#125; catch &#40;CosmosException ce&#41; &#123;
-     *     System.out.println&#40;&quot;Failed to create container: &quot; + ce&#41;;
-     * &#125;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerPartitionKey -->
+     *
      * @param id the id.
      * @param partitionKeyPath the partition key path.
      * @param throughputProperties the throughput properties.
      * @return the cosmos container response.
-     * @throws CosmosException if resource with specified id already exists
      */
     public CosmosContainerResponse createContainer(String id, String partitionKeyPath, ThroughputProperties throughputProperties) {
         return this.blockContainerResponse(databaseWrapper.createContainer(id, partitionKeyPath, throughputProperties));
@@ -315,13 +187,7 @@ public class CosmosDatabase {
 
     /**
      * Create container if one matching the id in the properties object does not exist.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerIfNotExists -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * CosmosContainerResponse container = cosmosDatabase.createContainerIfNotExists&#40;containerProperties&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerIfNotExists -->
+     *
      * @param containerProperties the container properties.
      * @return the cosmos container response.
      */
@@ -345,18 +211,7 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container if one matching the id in the properties object does not exist.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsProps -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoScaleMaxThroughput&#41;;
-     * CosmosContainerResponse container = cosmosDatabase.createContainerIfNotExists&#40;
-     *     containerProperties,
-     *     throughputProperties
-     * &#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsProps -->
+     * <p>
      * The throughput properties will only be used if the specified container
      * does not exist and therefor a new container will be created.
      *
@@ -373,17 +228,7 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container if one matching the id does not exist.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsPartitionKey -->
-     * <pre>
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoscaledThroughput&#41;;
-     * CosmosContainerResponse container = cosmosDatabase.createContainerIfNotExists&#40;
-     *     containerId,
-     *     partitionKeyPath,
-     *     throughputProperties
-     * &#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsPartitionKey -->
+     *
      * @param id the id.
      * @param partitionKeyPath the partition key path.
      * @return the cosmos container response.
@@ -396,18 +241,7 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container if one matching the id does not exist.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsProps -->
-     * <pre>
-     * CosmosContainerProperties containerProperties =
-     *     new CosmosContainerProperties&#40;containerId, partitionKeyDefinition&#41;;
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoScaleMaxThroughput&#41;;
-     * CosmosContainerResponse container = cosmosDatabase.createContainerIfNotExists&#40;
-     *     containerProperties,
-     *     throughputProperties
-     * &#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsProps -->
+     * <p>
      * The throughput settings will only be used if the specified container
      * does not exist and therefor a new container will be created.
      *
@@ -426,17 +260,7 @@ public class CosmosDatabase {
 
     /**
      * Creates a Cosmos container if one matching the id does not exist.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsPartitionKey -->
-     * <pre>
-     * ThroughputProperties throughputProperties =
-     *     ThroughputProperties.createAutoscaledThroughput&#40;autoscaledThroughput&#41;;
-     * CosmosContainerResponse container = cosmosDatabase.createContainerIfNotExists&#40;
-     *     containerId,
-     *     partitionKeyPath,
-     *     throughputProperties
-     * &#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createContainerIfNotExistsPartitionKey -->
+     * <p>
      * The throughput properties will only be used if the specified container
      * does not exist and therefor a new container will be created.
      *
@@ -474,15 +298,7 @@ public class CosmosDatabase {
 
     /**
      * Read all containers in the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readAllContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.readAllContainers&#40;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readAllContainers -->
+     *
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -492,15 +308,7 @@ public class CosmosDatabase {
 
     /**
      * Read all containers in the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readAllContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.readAllContainers&#40;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readAllContainers -->
+     *
      @return the {@link CosmosPagedIterable}.
      */
     public CosmosPagedIterable<CosmosContainerProperties> readAllContainers() {
@@ -509,15 +317,7 @@ public class CosmosDatabase {
 
     /**
      * Query containers in the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.queryContainers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryContainers -->
+     *
      * @param query the query.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -527,15 +327,7 @@ public class CosmosDatabase {
 
     /**
      * Query containers iterator.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.queryContainers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryContainers -->
+     *
      * @param query the query.
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
@@ -546,15 +338,7 @@ public class CosmosDatabase {
 
     /**
      * Query containers in the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.queryContainers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryContainers -->
+     *
      * @param querySpec the query spec.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -564,15 +348,7 @@ public class CosmosDatabase {
 
     /**
      * Query containers in the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryContainers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosContainerProperties&gt; cosmosContainersList =
-     *     cosmosDatabase.queryContainers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * cosmosContainersList.forEach&#40;cosmosContainerProperties -&gt; &#123;
-     *     System.out.println&#40;cosmosContainerProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryContainers -->
+     *
      * @param querySpec the query spec.
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
@@ -598,14 +374,10 @@ public class CosmosDatabase {
     /* Users */
 
     /**
-     * Create Cosmos user.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.createUser -->
-     * <pre>
-     * CosmosUserProperties userProperties = new CosmosUserProperties&#40;&#41;;
-     * userProperties.setId&#40;userId&#41;;
-     * cosmosDatabase.createUser&#40;userProperties&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.createUser -->
+     * Create Cosmos user instance without making a service call.
+     * <p>
+     * To get the actual object a read operation must be performed first.
+     *
      *
      * @param userProperties the settings.
      * @return the cosmos user response.
@@ -616,13 +388,7 @@ public class CosmosDatabase {
 
     /**
      * Upserts a Cosmos user.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.upsertUser -->
-     * <pre>
-     * CosmosUserProperties userProperties = new CosmosUserProperties&#40;&#41;;
-     * userProperties.setId&#40;userId&#41;;
-     * cosmosDatabase.upsertUser&#40;userProperties&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.upsertUser -->
+     *
      * @param userProperties the settings.
      * @return the cosmos user response.
      */
@@ -632,14 +398,7 @@ public class CosmosDatabase {
 
     /**
      * Read all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readAllUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; cosmosUserProperties = cosmosDatabase.readAllUsers&#40;&#41;;
-     * cosmosUserProperties.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readAllUsers -->
+     *
      * @return the {@link CosmosPagedIterable}.
      */
     public CosmosPagedIterable<CosmosUserProperties> readAllUsers() {
@@ -648,14 +407,7 @@ public class CosmosDatabase {
 
     /**
      * Read all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readAllUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; cosmosUserProperties = cosmosDatabase.readAllUsers&#40;&#41;;
-     * cosmosUserProperties.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readAllUsers -->
+     *
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -665,15 +417,7 @@ public class CosmosDatabase {
 
     /**
      * Query all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; userPropertiesList =
-     *     cosmosDatabase.queryUsers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * userPropertiesList.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryUsers -->
+     *
      * @param query the query.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -683,15 +427,7 @@ public class CosmosDatabase {
 
     /**
      * Query all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; userPropertiesList =
-     *     cosmosDatabase.queryUsers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * userPropertiesList.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryUsers -->
+     *
      * @param query the query.
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
@@ -702,15 +438,7 @@ public class CosmosDatabase {
 
     /**
      * Query all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; userPropertiesList =
-     *     cosmosDatabase.queryUsers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * userPropertiesList.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryUsers -->
+     *
      * @param querySpec the query spec.
      * @return the {@link CosmosPagedIterable}.
      */
@@ -720,15 +448,7 @@ public class CosmosDatabase {
 
     /**
      * Query all Cosmos users for the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.queryUsers -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosUserProperties&gt; userPropertiesList =
-     *     cosmosDatabase.queryUsers&#40;&quot;SELECT * FROM DB_NAME&quot;&#41;;
-     * userPropertiesList.forEach&#40;userProperties -&gt; &#123;
-     *     System.out.println&#40;userProperties&#41;;
-     * &#125;&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.queryUsers -->
+     *
      * @param querySpec the query spec.
      * @param options the options.
      * @return the {@link CosmosPagedIterable}.
@@ -763,16 +483,8 @@ public class CosmosDatabase {
     }
 
     /**
-     * Sets the throughput of the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.replaceThroughput -->
-     * <pre>
-     * ThroughputProperties throughputProperties = ThroughputProperties
-     *     .createAutoscaledThroughput&#40;autoScaleMaxThroughput&#41;;
+     * Sets the throughput.
      *
-     * ThroughputResponse throughputResponse = cosmosDatabase.replaceThroughput&#40;throughputProperties&#41;;
-     * System.out.println&#40;throughputResponse&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.replaceThroughput -->
      * @param throughputProperties the throughput properties.
      * @return the throughput response.
      */
@@ -781,63 +493,12 @@ public class CosmosDatabase {
     }
 
     /**
-     * Gets the throughput of the current database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readThroughput -->
-     * <pre>
-     * ThroughputResponse throughputResponse = cosmosDatabase.readThroughput&#40;&#41;;
-     * System.out.println&#40;throughputResponse&#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readThroughput -->
+     * Gets the throughput of the database.
+     *
      * @return the throughput response.
      */
     public ThroughputResponse readThroughput() {
         return throughputResponseToBlock(databaseWrapper.readThroughput());
-    }
-
-    /**
-     * Gets a CosmosClientEncryptionKey object without making a service call
-     *
-     * @param id id of the clientEncryptionKey
-     * @return Cosmos ClientEncryptionKey
-     */
-    public CosmosClientEncryptionKey getClientEncryptionKey(String id) {
-        return new CosmosClientEncryptionKey(id, this, this.databaseWrapper.getClientEncryptionKey(id));
-    }
-
-    /**
-     * Reads all cosmos client encryption keys in a database.
-     * <!-- src_embed com.azure.cosmos.CosmosDatabase.readAllClientEncryptionKeys -->
-     * <pre>
-     * CosmosPagedIterable&lt;CosmosClientEncryptionKeyProperties&gt; clientEncryptionKeys =
-     *     cosmosDatabase.readAllClientEncryptionKeys&#40;&#41;;
-     * clientEncryptionKeys.forEach&#40;encryptionKeyProperties -&gt;
-     *     System.out.println&#40;clientEncryptionKeys&#41;
-     * &#41;;
-     * </pre>
-     * <!-- end com.azure.cosmos.CosmosDatabase.readAllClientEncryptionKeys -->
-     * @return a {@link CosmosPagedIterable}.
-     */
-    public CosmosPagedIterable<CosmosClientEncryptionKeyProperties> readAllClientEncryptionKeys() {
-        return getCosmosPagedIterable(this.databaseWrapper.readAllClientEncryptionKeys(new CosmosQueryRequestOptions()));
-    }
-
-    /**
-     * Block cosmos clientEncryptionKey response
-     *
-     * @param cosmosClientEncryptionKeyResponseMono the clientEncryptionKey mono.
-     * @return the cosmos clientEncryptionKey response.
-     */
-    CosmosClientEncryptionKeyResponse blockClientEncryptionKeyResponse(Mono<CosmosClientEncryptionKeyResponse> cosmosClientEncryptionKeyResponseMono) {
-        try {
-            return cosmosClientEncryptionKeyResponseMono.block();
-        } catch (Exception ex) {
-            final Throwable throwable = Exceptions.unwrap(ex);
-            if (throwable instanceof CosmosException) {
-                throw (CosmosException) throwable;
-            } else {
-                throw ex;
-            }
-        }
     }
 
     <T> T throughputResponseToBlock(Mono<T> throughputResponse) {
@@ -854,7 +515,7 @@ public class CosmosDatabase {
     }
 
     private <T> CosmosPagedIterable<T> getCosmosPagedIterable(CosmosPagedFlux<T> cosmosPagedFlux) {
-        return new CosmosPagedIterable<>(cosmosPagedFlux);
+        return UtilBridgeInternal.createCosmosPagedIterable(cosmosPagedFlux);
     }
 
 }

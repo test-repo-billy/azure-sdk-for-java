@@ -1,7 +1,6 @@
 # Azure BOM for client libraries
-The Azure BOM for client libraries provides a verified group of Azure client libraries that are known to share common 
-dependencies. It provides a simple and elegant way to orchestrate using multiple Azure client libraries while ensuring 
-minimal dependency conflicts.
+The Azure BOM for client libraries provides a verified group of artifacts that are known to share a common dependency
+set. It provides a simple and elegant way to manage dependencies on multiple Azure client libraries.
 
 ## Table of contents
 - [Getting started](#getting-started)
@@ -21,7 +20,7 @@ result in all dependencies being included in your project.
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-sdk-bom</artifactId>
-      <version>1.2.19</version>
+      <version>1.0.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -29,12 +28,10 @@ result in all dependencies being included in your project.
 </dependencyManagement>
 ```
 
-**NOTE**: In **Spring Boot** application, you can choose **azure-sdk-bom**'s version according to [Spring-Versions-Mapping](https://aka.ms/spring/versions).
-
 ### Adding libraries to your project
 
-After adding the BOM, Azure client libraries included in the BOM are now available to be added as a dependency without 
-listing the artifact's version.
+After adding the BOM all artifacts included in the BOM are now available to be added as a dependency without listing the
+artifact's version.
 
 ```xml
 <dependencies>
@@ -52,15 +49,3 @@ listing the artifact's version.
   </dependency>
 </dependencies>
 ```
-
-### Overview
-
-#### Release cadence
-
-Currently, the `azure-sdk-bom` releases monthly using the latest globally available(GA) versions of managed libraries.
-
-#### Included library requirements
-
-Only GA'd Azure SDKs in the `com.azure` group are permitted to be managed dependencies in the `azure-sdk-bom`. SDKs 
-that have yet to be GA'd won't be considered at this time as the `azure-sdk-bom` is meant to act as a production ready 
-dependency management system for applications built using Azure SDKs.

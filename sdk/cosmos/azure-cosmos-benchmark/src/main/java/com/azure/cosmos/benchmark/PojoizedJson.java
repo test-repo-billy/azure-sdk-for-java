@@ -7,31 +7,30 @@ package com.azure.cosmos.benchmark;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class PojoizedJson {
-    private final Map<String, Object> instanceProps = new HashMap<>();
+    private final Map<String, String> instanceProps = new HashMap<>();
 
     @JsonAnyGetter
-    public Map<String, Object> getInstance() {
+    public Map<String, String> getInstance() {
         return instanceProps;
     }
 
     @JsonAnySetter
-    public void setProperty(String name, Object value) {
+    public void setProperty(String name, String value) {
         this.instanceProps.put(name, value);
     }
 
     @JsonIgnore
     public String getId() {
-        return (String) instanceProps.get("id");
+        return instanceProps.get("id");
     }
 
     @JsonIgnore
-    public Object getProperty(String propName) {
+    public String getProperty(String propName) {
         return instanceProps.get(propName);
     }
 }

@@ -20,7 +20,7 @@ public class ServiceBusConnectionProcessor extends AmqpChannelProcessor<ServiceB
     private final AmqpRetryOptions retryOptions;
 
     public ServiceBusConnectionProcessor(String fullyQualifiedNamespace, AmqpRetryOptions retryOptions) {
-        super(fullyQualifiedNamespace, "N/A", channel -> channel.getEndpointStates(),
+        super("", fullyQualifiedNamespace, channel -> channel.getEndpointStates(),
             RetryUtil.getRetryPolicy(retryOptions), new ClientLogger(ServiceBusConnectionProcessor.class));
 
         this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,

@@ -42,15 +42,15 @@ public final class QueueSasPermission {
      * Creates a {@link QueueSasPermission} from the specified permissions string. This method will throw an
      * {@link IllegalArgumentException} if it encounters a character that does not correspond to a valid permission.
      *
-     * @param permissionString A {@code String} which represents the {@code QueueSasPermission}.
+     * @param permString A {@code String} which represents the {@code QueueSasPermission}.
      * @return A {@code QueueSasPermission} generated from the given {@code String}.
-     * @throws IllegalArgumentException If {@code permissionString} contains a character other than r, a, u, or p.
+     * @throws IllegalArgumentException If {@code permString} contains a character other than r, a, u, or p.
      */
-    public static QueueSasPermission parse(String permissionString) {
+    public static QueueSasPermission parse(String permString) {
         QueueSasPermission permissions = new QueueSasPermission();
 
-        for (int i = 0; i < permissionString.length(); i++) {
-            char c = permissionString.charAt(i);
+        for (int i = 0; i < permString.length(); i++) {
+            char c = permString.charAt(i);
             switch (c) {
                 case 'r':
                     permissions.readPermission = true;
@@ -67,7 +67,7 @@ public final class QueueSasPermission {
                 default:
                     throw new IllegalArgumentException(
                         String.format(Locale.ROOT, Constants.ENUM_COULD_NOT_BE_PARSED_INVALID_VALUE,
-                            "Permissions", permissionString, c));
+                            "Permissions", permString, c));
             }
         }
         return permissions;

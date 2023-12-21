@@ -38,7 +38,7 @@ public final class SessionContainer implements ISessionContainer {
     private final ConcurrentHashMap<String, Long> collectionNameToCollectionResourceId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, String> collectionResourceIdToCollectionName = new ConcurrentHashMap<>();
     private final String hostName;
-    private boolean disableSessionCapturing;
+    private final boolean disableSessionCapturing;
 
     public SessionContainer(final String hostName, boolean disableSessionCapturing) {
         this.hostName = hostName;
@@ -51,14 +51,6 @@ public final class SessionContainer implements ISessionContainer {
 
     public String getHostName() {
         return this.hostName;
-    }
-
-    public void setDisableSessionCapturing(boolean value) {
-        this.disableSessionCapturing = value;
-    }
-
-    public boolean getDisableSessionCapturing() {
-        return this.disableSessionCapturing;
     }
 
     String getSessionToken(String collectionLink) {
@@ -217,8 +209,7 @@ public final class SessionContainer implements ISessionContainer {
 
         this.readLock.lock();
         try {
-            isKnownCollection = collectionName != null &&
-                    this.collectionNameToCollectionResourceId.containsKey(collectionName) &&
+            isKnownCollection = this.collectionNameToCollectionResourceId.containsKey(collectionName) &&
                     this.collectionResourceIdToCollectionName.containsKey(resourceId.getUniqueDocumentCollectionId()) &&
                     this.collectionNameToCollectionResourceId.get(collectionName) == resourceId.getUniqueDocumentCollectionId() &&
                     this.collectionResourceIdToCollectionName.get(resourceId.getUniqueDocumentCollectionId()).equals(collectionName);
@@ -232,7 +223,7 @@ public final class SessionContainer implements ISessionContainer {
         if (!isKnownCollection) {
             this.writeLock.lock();
             try {
-                if (resourceId.getUniqueDocumentCollectionId() != 0) {
+                if (collectionName != null && resourceId.getUniqueDocumentCollectionId() != 0) {
                     this.collectionNameToCollectionResourceId.compute(collectionName, (k, v) -> resourceId.getUniqueDocumentCollectionId());
                     this.collectionResourceIdToCollectionName.compute(resourceId.getUniqueDocumentCollectionId(), (k, v) -> collectionName);
                 }
@@ -319,8 +310,9 @@ public final class SessionContainer implements ISessionContainer {
         if (!Strings.isNullOrEmpty(resourceIdString)) {
             resourceId.v = ResourceId.parse(resourceIdString);
 
-            if (resourceId.v.getDocumentCollection() != 0
-                && !ReplicatedResourceClientUtils.isReadingFromMaster(request.getResourceType(), request.getOperationType())) {
+            if (resourceId.v.getDocumentCollection() != 0 &&
+                    collectionName != null &&
+                    !ReplicatedResourceClientUtils.isReadingFromMaster(request.getResourceType(), request.getOperationType())) {
                 return true;
             }
         }

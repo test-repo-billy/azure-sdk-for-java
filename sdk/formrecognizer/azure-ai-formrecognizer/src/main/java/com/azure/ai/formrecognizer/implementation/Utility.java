@@ -4,79 +4,23 @@
 package com.azure.ai.formrecognizer.implementation;
 
 import com.azure.ai.formrecognizer.implementation.models.ContentType;
-import com.azure.ai.formrecognizer.implementation.models.ErrorInformation;
-import com.azure.ai.formrecognizer.implementation.models.ErrorResponseException;
-import com.azure.ai.formrecognizer.models.FormRecognizerAudience;
-import com.azure.ai.formrecognizer.models.FormRecognizerErrorInformation;
-import com.azure.ai.formrecognizer.models.FormRecognizerOperationResult;
-import com.azure.core.credential.AzureKeyCredential;
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.exception.HttpResponseException;
-import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpHeaders;
-import com.azure.core.http.HttpPipeline;
-import com.azure.core.http.HttpPipelineBuilder;
-import com.azure.core.http.policy.AddDatePolicy;
-import com.azure.core.http.policy.AddHeadersFromContextPolicy;
-import com.azure.core.http.policy.AddHeadersPolicy;
-import com.azure.core.http.policy.AzureKeyCredentialPolicy;
-import com.azure.core.http.policy.BearerTokenAuthenticationPolicy;
-import com.azure.core.http.policy.HttpLogOptions;
-import com.azure.core.http.policy.HttpLoggingPolicy;
-import com.azure.core.http.policy.HttpPipelinePolicy;
-import com.azure.core.http.policy.HttpPolicyProviders;
-import com.azure.core.http.policy.RequestIdPolicy;
-import com.azure.core.http.policy.RetryOptions;
-import com.azure.core.http.policy.RetryPolicy;
-import com.azure.core.http.policy.UserAgentPolicy;
-import com.azure.core.util.ClientOptions;
-import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
-import com.azure.core.util.FluxUtil;
-import com.azure.core.util.builder.ClientBuilderUtil;
 import com.azure.core.util.logging.ClientLogger;
-import com.azure.core.util.polling.PollingContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static com.azure.core.util.FluxUtil.monoError;
 
 /**
  * Utility method class.
  */
 public final class Utility {
     private static final ClientLogger LOGGER = new ClientLogger(Utility.class);
-
-    private static final String DEFAULT_SCOPE = "/.default";
-    private static final String FORM_RECOGNIZER_PROPERTIES = "azure-ai-formrecognizer.properties";
-    private static final String NAME = "name";
-    private static final String OCP_APIM_SUBSCRIPTION_KEY = "Ocp-Apim-Subscription-Key";
-    private static final String VERSION = "version";
-
-    private static final ClientOptions DEFAULT_CLIENT_OPTIONS = new ClientOptions();
-    private static final HttpHeaders DEFAULT_HTTP_HEADERS = new HttpHeaders();
-    private static final HttpLogOptions DEFAULT_LOG_OPTIONS = new HttpLogOptions();
-
-    private static final String CLIENT_NAME;
-    private static final String CLIENT_VERSION;
-    static {
-        Map<String, String> properties = CoreUtils.getProperties(FORM_RECOGNIZER_PROPERTIES);
-        CLIENT_NAME = properties.getOrDefault(NAME, "UnknownName");
-        CLIENT_VERSION = properties.getOrDefault(VERSION, "UnknownVersion");
-    }
-
-    public static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(5);
+    // using 4K as default buffer size: https://stackoverflow.com/a/237495/1473510
+    private static final int BYTE_BUFFER_CHUNK_SIZE = 4096;
 
     private Utility() {
     }
@@ -109,8 +53,6 @@ public final class Utility {
                         contentType[0] = ContentType.IMAGE_PNG;
                     } else if (isTiff(header)) {
                         contentType[0] = ContentType.IMAGE_TIFF;
-                    } else if (isBmp(header)) {
-                        contentType[0] = ContentType.IMAGE_BMP;
                     }
                     // Got a four bytes matching or not, either way no need to read more byte return false
                     // so that takeWhile can cut the subscription on data
@@ -161,10 +103,6 @@ public final class Utility {
             && header[3] == (byte) 0x2a);
     }
 
-    private static boolean isBmp(byte[] header) {
-        return (header[0] == (byte) 0x42 && header[1] == (byte) 0x4D);
-    }
-
     /**
      * Creates a Flux of ByteBuffer, with each ByteBuffer wrapping bytes read from the given
      * InputStream.
@@ -172,14 +110,28 @@ public final class Utility {
      * @param inputStream InputStream to back the Flux
      *
      * @return Flux of ByteBuffer backed by the InputStream
-     * @throws NullPointerException If {@code inputStream} is null.
      */
     public static Flux<ByteBuffer> toFluxByteBuffer(InputStream inputStream) {
-        Objects.requireNonNull(inputStream, "'inputStream' is required and cannot be null.");
-        return FluxUtil
-            .toFluxByteBuffer(inputStream)
-            .cache()
-            .map(ByteBuffer::duplicate);
+        Pair pair = new Pair();
+        return Flux.just(true)
+            .repeat()
+            .map(ignore -> {
+                byte[] buffer = new byte[BYTE_BUFFER_CHUNK_SIZE];
+                try {
+                    int numBytes = inputStream.read(buffer);
+                    if (numBytes > 0) {
+                        return pair.buffer(ByteBuffer.wrap(buffer, 0, numBytes)).readBytes(numBytes);
+                    } else {
+                        return pair.buffer(null).readBytes(numBytes);
+                    }
+                } catch (IOException ioe) {
+                    throw LOGGER.logExceptionAsError(new RuntimeException(ioe));
+                }
+            })
+            .takeUntil(p -> p.readBytes() == -1)
+            .filter(p -> p.readBytes() > 0)
+            .map(Pair::buffer)
+            .cache();
     }
 
     /**
@@ -213,105 +165,26 @@ public final class Utility {
         iterable.forEach(element -> biConsumer.accept(index[0]++, element));
     }
 
-    /**
-     * Mapping a {@link ErrorResponseException} to {@link HttpResponseException} if exist. Otherwise, return
-     * original {@link Throwable}.
-     *
-     * @param throwable A {@link Throwable}.
-     * @return A {@link HttpResponseException} or the original throwable type.
-     */
-    public static Throwable mapToHttpResponseExceptionIfExists(Throwable throwable) {
-        if (throwable instanceof ErrorResponseException) {
-            ErrorResponseException errorResponseException = (ErrorResponseException) throwable;
-            FormRecognizerErrorInformation formRecognizerErrorInformation = null;
-            if (errorResponseException.getValue() != null && errorResponseException.getValue().getError() != null) {
-                ErrorInformation errorInformation = errorResponseException.getValue().getError();
-                formRecognizerErrorInformation =
-                    new FormRecognizerErrorInformation(errorInformation.getCode(), errorInformation.getMessage());
-            }
-            return new HttpResponseException(
-                errorResponseException.getMessage(),
-                errorResponseException.getResponse(),
-                formRecognizerErrorInformation
-            );
-        }
-        return throwable;
-    }
+    private static class Pair {
+        private ByteBuffer byteBuffer;
+        private int readBytes;
 
-    /*
-     * Poller's ACTIVATION operation that takes URL as input.
-     */
-    public static Function<PollingContext<FormRecognizerOperationResult>, Mono<FormRecognizerOperationResult>>
-        urlActivationOperation(
-        Supplier<Mono<FormRecognizerOperationResult>> activationOperation, ClientLogger logger) {
-        return pollingContext -> {
-            try {
-                return activationOperation.get().onErrorMap(Utility::mapToHttpResponseExceptionIfExists);
-            } catch (RuntimeException ex) {
-                return monoError(logger, ex);
-            }
-        };
-    }
-
-    public static HttpPipeline buildHttpPipeline(ClientOptions clientOptions, HttpLogOptions logOptions,
-                                                 Configuration configuration, RetryPolicy retryPolicy,
-                                                 RetryOptions retryOptions, AzureKeyCredential azureKeyCredential,
-                                                 TokenCredential tokenCredential, FormRecognizerAudience audience,
-                                                 List<HttpPipelinePolicy> perCallPolicies,
-                                                 List<HttpPipelinePolicy> perRetryPolicies, HttpClient httpClient) {
-
-        Configuration buildConfiguration = (configuration == null)
-            ? Configuration.getGlobalConfiguration()
-            : configuration;
-
-        ClientOptions buildClientOptions = (clientOptions == null) ? DEFAULT_CLIENT_OPTIONS : clientOptions;
-        HttpLogOptions buildLogOptions = (logOptions == null) ? DEFAULT_LOG_OPTIONS : logOptions;
-
-        String applicationId = CoreUtils.getApplicationId(buildClientOptions, buildLogOptions);
-
-        // Closest to API goes first, closest to wire goes last.
-        final List<HttpPipelinePolicy> httpPipelinePolicies = new ArrayList<>();
-        httpPipelinePolicies.add(new AddHeadersPolicy(DEFAULT_HTTP_HEADERS));
-        httpPipelinePolicies.add(new AddHeadersFromContextPolicy());
-        httpPipelinePolicies.add(new UserAgentPolicy(applicationId, CLIENT_NAME, CLIENT_VERSION, buildConfiguration));
-        httpPipelinePolicies.add(new RequestIdPolicy());
-
-        httpPipelinePolicies.addAll(perCallPolicies);
-        HttpPolicyProviders.addBeforeRetryPolicies(httpPipelinePolicies);
-        httpPipelinePolicies.add(ClientBuilderUtil.validateAndGetRetryPolicy(retryPolicy, retryOptions));
-
-        httpPipelinePolicies.add(new AddDatePolicy());
-
-        // Authentications
-        if (tokenCredential != null) {
-            if (audience == null) {
-                audience = FormRecognizerAudience.AZURE_PUBLIC_CLOUD;
-            }
-            httpPipelinePolicies.add(new BearerTokenAuthenticationPolicy(tokenCredential,
-                audience + DEFAULT_SCOPE));
-        } else if (azureKeyCredential != null) {
-            httpPipelinePolicies.add(new AzureKeyCredentialPolicy(OCP_APIM_SUBSCRIPTION_KEY,
-                azureKeyCredential));
-        } else {
-            // Throw exception that azureKeyCredential and tokenCredential cannot be null
-            throw LOGGER.logExceptionAsError(
-                new IllegalArgumentException("Missing credential information while building a client."));
-        }
-        httpPipelinePolicies.addAll(perRetryPolicies);
-        HttpPolicyProviders.addAfterRetryPolicies(httpPipelinePolicies);
-
-        HttpHeaders headers = new HttpHeaders();
-        buildClientOptions.getHeaders().forEach(header -> headers.set(header.getName(), header.getValue()));
-        if (headers.getSize() > 0) {
-            httpPipelinePolicies.add(new AddHeadersPolicy(headers));
+        ByteBuffer buffer() {
+            return this.byteBuffer;
         }
 
-        httpPipelinePolicies.add(new HttpLoggingPolicy(buildLogOptions));
+        int readBytes() {
+            return this.readBytes;
+        }
 
-        return new HttpPipelineBuilder()
-            .clientOptions(buildClientOptions)
-            .httpClient(httpClient)
-            .policies(httpPipelinePolicies.toArray(new HttpPipelinePolicy[0]))
-            .build();
+        Pair buffer(ByteBuffer byteBuffer) {
+            this.byteBuffer = byteBuffer;
+            return this;
+        }
+
+        Pair readBytes(int cnt) {
+            this.readBytes = cnt;
+            return this;
+        }
     }
 }

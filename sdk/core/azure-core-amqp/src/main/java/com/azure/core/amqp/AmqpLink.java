@@ -4,16 +4,13 @@
 package com.azure.core.amqp;
 
 import com.azure.core.amqp.exception.AmqpException;
-import com.azure.core.util.AsyncCloseable;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Represents a unidirectional AMQP link.
  */
-public interface AmqpLink extends Disposable, AsyncCloseable {
-
+public interface AmqpLink extends Disposable {
     /**
      * Gets the name of the link.
      *
@@ -42,13 +39,4 @@ public interface AmqpLink extends Disposable, AsyncCloseable {
      * @return A stream of endpoint states for the AMQP link.
      */
     Flux<AmqpEndpointState> getEndpointStates();
-
-    /**
-     * Disposes of the AMQP link.
-     *
-     * @return A mono that completes when the link is disposed.
-     */
-    default Mono<Void> closeAsync() {
-        return Mono.fromRunnable(() -> dispose());
-    }
 }

@@ -9,14 +9,15 @@ import com.azure.core.http.HttpPipelineBuilder;
 import com.azure.core.http.policy.CookiePolicy;
 import com.azure.core.http.policy.RetryPolicy;
 import com.azure.core.http.policy.UserAgentPolicy;
-import com.azure.core.util.serializer.JacksonAdapter;
-import com.azure.core.util.serializer.SerializerAdapter;
-import com.azure.storage.file.share.models.ShareTokenIntent;
 
-/** Initializes a new instance of the AzureFileStorage type. */
+/**
+ * Initializes a new instance of the AzureFileStorage type.
+ */
 public final class AzureFileStorageImpl {
-    /** Specifies the version of the operation to use for this request. */
-    private final String version;
+    /**
+     * Specifies the version of the operation to use for this request.
+     */
+    private String version;
 
     /**
      * Gets Specifies the version of the operation to use for this request.
@@ -27,20 +28,20 @@ public final class AzureFileStorageImpl {
         return this.version;
     }
 
-    /** Valid value is backup. */
-    private final ShareTokenIntent fileRequestIntent;
-
     /**
-     * Gets Valid value is backup.
+     * Sets Specifies the version of the operation to use for this request.
      *
-     * @return the fileRequestIntent value.
+     * @param version the version value.
      */
-    public ShareTokenIntent getFileRequestIntent() {
-        return this.fileRequestIntent;
+    AzureFileStorageImpl setVersion(String version) {
+        this.version = version;
+        return this;
     }
 
-    /** The URL of the service account, share, directory or file that is the target of the desired operation. */
-    private final String url;
+    /**
+     * The URL of the service account, share, directory or file that is the target of the desired operation.
+     */
+    private String url;
 
     /**
      * Gets The URL of the service account, share, directory or file that is the target of the desired operation.
@@ -51,32 +52,20 @@ public final class AzureFileStorageImpl {
         return this.url;
     }
 
-    /** If true, the trailing dot will not be trimmed from the target URI. */
-    private final boolean allowTrailingDot;
-
     /**
-     * Gets If true, the trailing dot will not be trimmed from the target URI.
+     * Sets The URL of the service account, share, directory or file that is the target of the desired operation.
      *
-     * @return the allowTrailingDot value.
+     * @param url the url value.
      */
-    public boolean isAllowTrailingDot() {
-        return this.allowTrailingDot;
+    AzureFileStorageImpl setUrl(String url) {
+        this.url = url;
+        return this;
     }
 
-    /** If true, the trailing dot will not be trimmed from the source URI. */
-    private final boolean allowSourceTrailingDot;
-
     /**
-     * Gets If true, the trailing dot will not be trimmed from the source URI.
-     *
-     * @return the allowSourceTrailingDot value.
+     * The HTTP pipeline to send requests through.
      */
-    public boolean isAllowSourceTrailingDot() {
-        return this.allowSourceTrailingDot;
-    }
-
-    /** The HTTP pipeline to send requests through. */
-    private final HttpPipeline httpPipeline;
+    private HttpPipeline httpPipeline;
 
     /**
      * Gets The HTTP pipeline to send requests through.
@@ -87,149 +76,79 @@ public final class AzureFileStorageImpl {
         return this.httpPipeline;
     }
 
-    /** The serializer to serialize an object into a string. */
-    private final SerializerAdapter serializerAdapter;
-
     /**
-     * Gets The serializer to serialize an object into a string.
-     *
-     * @return the serializerAdapter value.
+     * The ServicesImpl object to access its operations.
      */
-    public SerializerAdapter getSerializerAdapter() {
-        return this.serializerAdapter;
-    }
-
-    /** The ServicesImpl object to access its operations. */
-    private final ServicesImpl services;
+    private ServicesImpl services;
 
     /**
      * Gets the ServicesImpl object to access its operations.
      *
      * @return the ServicesImpl object.
      */
-    public ServicesImpl getServices() {
+    public ServicesImpl services() {
         return this.services;
     }
 
-    /** The SharesImpl object to access its operations. */
-    private final SharesImpl shares;
+    /**
+     * The SharesImpl object to access its operations.
+     */
+    private SharesImpl shares;
 
     /**
      * Gets the SharesImpl object to access its operations.
      *
      * @return the SharesImpl object.
      */
-    public SharesImpl getShares() {
+    public SharesImpl shares() {
         return this.shares;
     }
 
-    /** The DirectoriesImpl object to access its operations. */
-    private final DirectoriesImpl directories;
+    /**
+     * The DirectorysImpl object to access its operations.
+     */
+    private DirectorysImpl directorys;
 
     /**
-     * Gets the DirectoriesImpl object to access its operations.
+     * Gets the DirectorysImpl object to access its operations.
      *
-     * @return the DirectoriesImpl object.
+     * @return the DirectorysImpl object.
      */
-    public DirectoriesImpl getDirectories() {
-        return this.directories;
+    public DirectorysImpl directorys() {
+        return this.directorys;
     }
 
-    /** The FilesImpl object to access its operations. */
-    private final FilesImpl files;
+    /**
+     * The FilesImpl object to access its operations.
+     */
+    private FilesImpl files;
 
     /**
      * Gets the FilesImpl object to access its operations.
      *
      * @return the FilesImpl object.
      */
-    public FilesImpl getFiles() {
+    public FilesImpl files() {
         return this.files;
     }
 
     /**
      * Initializes an instance of AzureFileStorage client.
-     *
-     * @param version Specifies the version of the operation to use for this request.
-     * @param fileRequestIntent Valid value is backup.
-     * @param url The URL of the service account, share, directory or file that is the target of the desired operation.
-     * @param allowTrailingDot If true, the trailing dot will not be trimmed from the target URI.
-     * @param allowSourceTrailingDot If true, the trailing dot will not be trimmed from the source URI.
      */
-    AzureFileStorageImpl(
-            String version,
-            ShareTokenIntent fileRequestIntent,
-            String url,
-            boolean allowTrailingDot,
-            boolean allowSourceTrailingDot) {
-        this(
-                new HttpPipelineBuilder()
-                        .policies(new UserAgentPolicy(), new RetryPolicy(), new CookiePolicy())
-                        .build(),
-                JacksonAdapter.createDefaultSerializerAdapter(),
-                version,
-                fileRequestIntent,
-                url,
-                allowTrailingDot,
-                allowSourceTrailingDot);
+    public AzureFileStorageImpl() {
+        new HttpPipelineBuilder().policies(new UserAgentPolicy(), new RetryPolicy(), new CookiePolicy()).build();
     }
 
     /**
      * Initializes an instance of AzureFileStorage client.
      *
      * @param httpPipeline The HTTP pipeline to send requests through.
-     * @param version Specifies the version of the operation to use for this request.
-     * @param fileRequestIntent Valid value is backup.
-     * @param url The URL of the service account, share, directory or file that is the target of the desired operation.
-     * @param allowTrailingDot If true, the trailing dot will not be trimmed from the target URI.
-     * @param allowSourceTrailingDot If true, the trailing dot will not be trimmed from the source URI.
      */
-    AzureFileStorageImpl(
-            HttpPipeline httpPipeline,
-            String version,
-            ShareTokenIntent fileRequestIntent,
-            String url,
-            boolean allowTrailingDot,
-            boolean allowSourceTrailingDot) {
-        this(
-                httpPipeline,
-                JacksonAdapter.createDefaultSerializerAdapter(),
-                version,
-                fileRequestIntent,
-                url,
-                allowTrailingDot,
-                allowSourceTrailingDot);
-    }
-
-    /**
-     * Initializes an instance of AzureFileStorage client.
-     *
-     * @param httpPipeline The HTTP pipeline to send requests through.
-     * @param serializerAdapter The serializer to serialize an object into a string.
-     * @param version Specifies the version of the operation to use for this request.
-     * @param fileRequestIntent Valid value is backup.
-     * @param url The URL of the service account, share, directory or file that is the target of the desired operation.
-     * @param allowTrailingDot If true, the trailing dot will not be trimmed from the target URI.
-     * @param allowSourceTrailingDot If true, the trailing dot will not be trimmed from the source URI.
-     */
-    AzureFileStorageImpl(
-            HttpPipeline httpPipeline,
-            SerializerAdapter serializerAdapter,
-            String version,
-            ShareTokenIntent fileRequestIntent,
-            String url,
-            boolean allowTrailingDot,
-            boolean allowSourceTrailingDot) {
+    public AzureFileStorageImpl(HttpPipeline httpPipeline) {
         this.httpPipeline = httpPipeline;
-        this.serializerAdapter = serializerAdapter;
-        this.version = version;
-        this.fileRequestIntent = fileRequestIntent;
-        this.url = url;
-        this.allowTrailingDot = allowTrailingDot;
-        this.allowSourceTrailingDot = allowSourceTrailingDot;
         this.services = new ServicesImpl(this);
         this.shares = new SharesImpl(this);
-        this.directories = new DirectoriesImpl(this);
+        this.directorys = new DirectorysImpl(this);
         this.files = new FilesImpl(this);
     }
 }

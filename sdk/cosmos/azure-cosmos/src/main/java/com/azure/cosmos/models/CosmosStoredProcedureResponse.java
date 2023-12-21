@@ -24,8 +24,9 @@ public class CosmosStoredProcedureResponse extends CosmosResponse<CosmosStoredPr
     }
 
     CosmosStoredProcedureResponse(StoredProcedureResponse response) {
-        super(new ResourceResponse<>(response.getRxDocumentServiceResponse(), StoredProcedure.class));
+        super(response);
         this.storedProcedureResponse = response;
+
     }
 
     /**
@@ -95,10 +96,7 @@ public class CosmosStoredProcedureResponse extends CosmosResponse<CosmosStoredPr
      * @return the response as a string.
      */
     public String getResponseAsString() {
-        if (storedProcedureResponse != null) {
-            return storedProcedureResponse.getResponseAsString();
-        }
-        return null;
+        return this.storedProcedureResponse.getResponseAsString();
     }
 
     /**
@@ -107,9 +105,6 @@ public class CosmosStoredProcedureResponse extends CosmosResponse<CosmosStoredPr
      * @return the output string from the stored procedure console.log() statements.
      */
     public String getScriptLog() {
-        if (storedProcedureResponse != null) {
-            return this.storedProcedureResponse.getScriptLog();
-        }
-        return null;
+        return this.storedProcedureResponse.getScriptLog();
     }
 }

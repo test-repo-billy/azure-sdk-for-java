@@ -10,14 +10,13 @@ import com.azure.search.documents.indexes.models.IndexDocumentsBatch;
 import com.azure.search.documents.models.IndexDocumentsResult;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
  * This example shows how to manage the contents of an Azure Cognitive Search index.
  * <p>
  * This sample is based on the hotels-sample index available to install from the portal.
- * See https://docs.microsoft.com/azure/search/search-get-started-portal
+ * See https://docs.microsoft.com/en-us/azure/search/search-get-started-portal
  */
 public class IndexContentManagementExample {
 
@@ -67,8 +66,8 @@ public class IndexContentManagementExample {
             .buildClient();
 
         IndexDocumentsBatch<Hotel> batch = new IndexDocumentsBatch<Hotel>()
-            .addMergeOrUploadActions(Collections.singletonList(new Hotel().setHotelId("100")))
-            .addDeleteActions(Collections.singletonList(new Hotel().setHotelId("200")));
+            .addMergeOrUploadActions(new Hotel().setHotelId("100"))
+            .addDeleteActions(new Hotel().setHotelId("200"));
 
         // Send a single batch that performs many different actions
         IndexDocumentsResult result = client.indexDocuments(batch);

@@ -4,11 +4,7 @@
 package com.azure.search.documents.indexes.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.json.JsonWriter;
-import com.azure.search.documents.indexes.implementation.models.LuceneStandardTokenizerV1;
-import com.azure.search.documents.indexes.implementation.models.LuceneStandardTokenizerV2;
-
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Breaks text following the Unicode Text Segmentation rules. This tokenizer is
@@ -16,35 +12,20 @@ import java.io.IOException;
  */
 @Fluent
 public final class LuceneStandardTokenizer extends LexicalTokenizer {
-    private final LuceneStandardTokenizerV1 v1Tokenizer;
-    private final LuceneStandardTokenizerV2 v2tokenizer;
+    private final String odataType;
 
-    LuceneStandardTokenizer(LuceneStandardTokenizerV1 v1Tokenizer) {
-        super(v1Tokenizer.getName());
-
-        this.v1Tokenizer = v1Tokenizer;
-        this.v2tokenizer = null;
-    }
-
-    LuceneStandardTokenizer(LuceneStandardTokenizerV2 v2tokenizer) {
-        super(v2tokenizer.getName());
-
-        this.v1Tokenizer = null;
-        this.v2tokenizer = v2tokenizer;
-    }
+    /*
+     * The maximum token length. Default is 255. Tokens longer than the maximum
+     * length are split.
+     */
+    @JsonProperty(value = "maxTokenLength")
+    private Integer maxTokenLength;
 
     /**
-     * Constructor of {@link LuceneStandardTokenizer}.
-     *
-     * @param name The name of the tokenizer. It must only contain letters, digits, spaces,
-     * dashes or underscores, can only start and end with alphanumeric
-     * characters, and is limited to 128 characters.
+     * Constructor for {@link LuceneStandardTokenizer}.
      */
-    public LuceneStandardTokenizer(String name) {
-        super(name);
-
-        this.v1Tokenizer = null;
-        this.v2tokenizer = new LuceneStandardTokenizerV2(name);
+    public LuceneStandardTokenizer() {
+        odataType = "#Microsoft.Azure.Search.LuceneStandardTokenizerV2";
     }
 
     /**
@@ -54,7 +35,7 @@ public final class LuceneStandardTokenizer extends LexicalTokenizer {
      * @return the maxTokenLength value.
      */
     public Integer getMaxTokenLength() {
-        return (v1Tokenizer != null) ? v1Tokenizer.getMaxTokenLength() : v2tokenizer.getMaxTokenLength();
+        return this.maxTokenLength;
     }
 
     /**
@@ -65,16 +46,7 @@ public final class LuceneStandardTokenizer extends LexicalTokenizer {
      * @return the LuceneStandardTokenizer object itself.
      */
     public LuceneStandardTokenizer setMaxTokenLength(Integer maxTokenLength) {
-        if (v1Tokenizer != null) {
-            v1Tokenizer.setMaxTokenLength(maxTokenLength);
-        } else {
-            v2tokenizer.setMaxTokenLength(maxTokenLength);
-        }
+        this.maxTokenLength = maxTokenLength;
         return this;
-    }
-
-    @Override
-    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
-        return (v1Tokenizer != null) ? v1Tokenizer.toJson(jsonWriter) : v2tokenizer.toJson(jsonWriter);
     }
 }

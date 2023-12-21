@@ -5,108 +5,120 @@
 package com.azure.ai.textanalytics.implementation.models;
 
 import com.azure.core.annotation.Fluent;
-import com.azure.json.JsonReader;
-import com.azure.json.JsonToken;
-import com.azure.json.JsonWriter;
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-/** The EntitiesResult model. */
+/**
+ * The EntitiesResult model.
+ */
 @Fluent
-public final class EntitiesResult extends PreBuiltResult {
+public final class EntitiesResult {
     /*
      * Response by document
      */
-    private List<EntitiesResultDocumentsItem> documents;
+    @JsonProperty(value = "documents", required = true)
+    private List<DocumentEntities> documents;
 
-    /** Creates an instance of EntitiesResult class. */
-    public EntitiesResult() {}
+    /*
+     * Errors by document id.
+     */
+    @JsonProperty(value = "errors", required = true)
+    private List<DocumentError> errors;
+
+    /*
+     * if showStats=true was specified in the request this field will contain
+     * information about the request payload.
+     */
+    @JsonProperty(value = "statistics")
+    private RequestStatistics statistics;
+
+    /*
+     * This field indicates which model is used for scoring.
+     */
+    @JsonProperty(value = "modelVersion", required = true)
+    private String modelVersion;
 
     /**
      * Get the documents property: Response by document.
-     *
+     * 
      * @return the documents value.
      */
-    public List<EntitiesResultDocumentsItem> getDocuments() {
+    public List<DocumentEntities> getDocuments() {
         return this.documents;
     }
 
     /**
      * Set the documents property: Response by document.
-     *
+     * 
      * @param documents the documents value to set.
      * @return the EntitiesResult object itself.
      */
-    public EntitiesResult setDocuments(List<EntitiesResultDocumentsItem> documents) {
+    public EntitiesResult setDocuments(List<DocumentEntities> documents) {
         this.documents = documents;
         return this;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public EntitiesResult setErrors(List<DocumentError> errors) {
-        super.setErrors(errors);
-        return this;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public EntitiesResult setStatistics(RequestStatistics statistics) {
-        super.setStatistics(statistics);
-        return this;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public EntitiesResult setModelVersion(String modelVersion) {
-        super.setModelVersion(modelVersion);
-        return this;
-    }
-
-    @Override
-    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
-        jsonWriter.writeStartObject();
-        jsonWriter.writeArrayField("errors", getErrors(), (writer, element) -> writer.writeJson(element));
-        jsonWriter.writeStringField("modelVersion", getModelVersion());
-        jsonWriter.writeJsonField("statistics", getStatistics());
-        jsonWriter.writeArrayField("documents", this.documents, (writer, element) -> writer.writeJson(element));
-        return jsonWriter.writeEndObject();
+    /**
+     * Get the errors property: Errors by document id.
+     * 
+     * @return the errors value.
+     */
+    public List<DocumentError> getErrors() {
+        return this.errors;
     }
 
     /**
-     * Reads an instance of EntitiesResult from the JsonReader.
-     *
-     * @param jsonReader The JsonReader being read.
-     * @return An instance of EntitiesResult if the JsonReader was pointing to an instance of it, or null if it was
-     *     pointing to JSON null.
-     * @throws IllegalStateException If the deserialized JSON object was missing any required properties.
-     * @throws IOException If an error occurs while reading the EntitiesResult.
+     * Set the errors property: Errors by document id.
+     * 
+     * @param errors the errors value to set.
+     * @return the EntitiesResult object itself.
      */
-    public static EntitiesResult fromJson(JsonReader jsonReader) throws IOException {
-        return jsonReader.readObject(
-                reader -> {
-                    EntitiesResult deserializedEntitiesResult = new EntitiesResult();
-                    while (reader.nextToken() != JsonToken.END_OBJECT) {
-                        String fieldName = reader.getFieldName();
-                        reader.nextToken();
+    public EntitiesResult setErrors(List<DocumentError> errors) {
+        this.errors = errors;
+        return this;
+    }
 
-                        if ("errors".equals(fieldName)) {
-                            List<DocumentError> errors = reader.readArray(reader1 -> DocumentError.fromJson(reader1));
-                            deserializedEntitiesResult.setErrors(errors);
-                        } else if ("modelVersion".equals(fieldName)) {
-                            deserializedEntitiesResult.setModelVersion(reader.getString());
-                        } else if ("statistics".equals(fieldName)) {
-                            deserializedEntitiesResult.setStatistics(RequestStatistics.fromJson(reader));
-                        } else if ("documents".equals(fieldName)) {
-                            List<EntitiesResultDocumentsItem> documents =
-                                    reader.readArray(reader1 -> EntitiesResultDocumentsItem.fromJson(reader1));
-                            deserializedEntitiesResult.documents = documents;
-                        } else {
-                            reader.skipChildren();
-                        }
-                    }
+    /**
+     * Get the statistics property: if showStats=true was specified in the
+     * request this field will contain information about the request payload.
+     * 
+     * @return the statistics value.
+     */
+    public RequestStatistics getStatistics() {
+        return this.statistics;
+    }
 
-                    return deserializedEntitiesResult;
-                });
+    /**
+     * Set the statistics property: if showStats=true was specified in the
+     * request this field will contain information about the request payload.
+     * 
+     * @param statistics the statistics value to set.
+     * @return the EntitiesResult object itself.
+     */
+    public EntitiesResult setStatistics(RequestStatistics statistics) {
+        this.statistics = statistics;
+        return this;
+    }
+
+    /**
+     * Get the modelVersion property: This field indicates which model is used
+     * for scoring.
+     * 
+     * @return the modelVersion value.
+     */
+    public String getModelVersion() {
+        return this.modelVersion;
+    }
+
+    /**
+     * Set the modelVersion property: This field indicates which model is used
+     * for scoring.
+     * 
+     * @param modelVersion the modelVersion value to set.
+     * @return the EntitiesResult object itself.
+     */
+    public EntitiesResult setModelVersion(String modelVersion) {
+        this.modelVersion = modelVersion;
+        return this;
     }
 }

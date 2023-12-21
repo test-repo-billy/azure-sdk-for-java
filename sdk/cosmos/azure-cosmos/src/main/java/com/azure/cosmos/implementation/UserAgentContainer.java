@@ -8,22 +8,19 @@ package com.azure.cosmos.implementation;
  */
 public class UserAgentContainer {
 
-    private static final int MAX_USER_AGENT_LENGTH = 255;
-    private final int maxSuffixLength;
+    private static final int MAX_SUFFIX_LENGTH = 64;
     private final String baseUserAgent;
     private String suffix;
     private String userAgent;
-    public final static String AZSDK_USERAGENT_PREFIX = "azsdk-java-";
 
     private UserAgentContainer(String sdkName, String sdkVersion) {
         this.baseUserAgent = Utils.getUserAgent(sdkName, sdkVersion);
         this.suffix = "";
         this.userAgent = baseUserAgent;
-        this.maxSuffixLength = MAX_USER_AGENT_LENGTH - 1 - baseUserAgent.length();
     }
-
+    
     public UserAgentContainer() {
-        this(HttpConstants.Versions.SDK_NAME, HttpConstants.Versions.getSdkVersion());
+        this(HttpConstants.Versions.SDK_NAME, HttpConstants.Versions.SDK_VERSION);
     }
 
     public String getSuffix() {
@@ -31,12 +28,12 @@ public class UserAgentContainer {
     }
 
     public void setSuffix(String suffix) {
-        if (suffix.length() > maxSuffixLength) {
-            suffix = suffix.substring(0, maxSuffixLength);
+        if (suffix.length() > MAX_SUFFIX_LENGTH) {
+            suffix = suffix.substring(0, MAX_SUFFIX_LENGTH);
         }
 
         this.suffix = suffix;
-        this.userAgent = baseUserAgent.concat(" ").concat(this.suffix);
+        this.userAgent = baseUserAgent.concat(this.suffix);
     }
 
     public String getUserAgent() {

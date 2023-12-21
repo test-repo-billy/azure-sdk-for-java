@@ -8,7 +8,6 @@ import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.amqp.exception.AmqpErrorCondition;
 import com.azure.core.amqp.exception.AmqpException;
-import com.azure.core.amqp.implementation.AmqpLinkProvider;
 import com.azure.core.amqp.implementation.AzureTokenManagerProvider;
 import com.azure.core.amqp.implementation.ClaimsBasedSecurityChannel;
 import com.azure.core.amqp.implementation.ConnectionOptions;
@@ -19,18 +18,13 @@ import com.azure.core.amqp.implementation.ReactorHandlerProvider;
 import com.azure.core.amqp.implementation.ReactorProvider;
 import com.azure.core.amqp.implementation.RequestResponseChannel;
 import com.azure.core.amqp.implementation.TokenManagerProvider;
-import com.azure.core.amqp.models.CbsAuthorizationType;
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.test.utils.metrics.TestMeter;
-import com.azure.core.util.ClientOptions;
 import com.azure.core.util.CoreUtils;
-import com.azure.core.util.Header;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.eventhubs.IntegrationTestBase;
 import com.azure.messaging.eventhubs.TestUtils;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
-import org.apache.qpid.proton.engine.SslDomain;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -43,8 +37,9 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Map;
+
+import static com.azure.core.amqp.implementation.CbsAuthorizationType.SHARED_ACCESS_SIGNATURE;
 
 /**
  * Verifies we authorize with Event Hubs CBS node correctly.
@@ -58,8 +53,6 @@ class CBSChannelTest extends IntegrationTestBase {
     @Mock
     private MessageSerializer messageSerializer;
 
-    private final ClientOptions clientOptions = new ClientOptions();
-
     private TestReactorConnection connection;
     private ClaimsBasedSecurityChannel cbsChannel;
     private ConnectionStringProperties connectionProperties;
@@ -67,7 +60,6 @@ class CBSChannelTest extends IntegrationTestBase {
     private AmqpRetryOptions retryOptions;
     private ReactorProvider reactorProvider;
     private ReactorHandlerProvider handlerProvider;
-    private AmqpLinkProvider linkProvider = new AmqpLinkProvider();
     private String tokenAudience;
 
     CBSChannelTest() {
@@ -86,17 +78,13 @@ class CBSChannelTest extends IntegrationTestBase {
         MockitoAnnotations.initMocks(this);
 
         connectionProperties = getConnectionStringProperties();
-        azureTokenManagerProvider = new AzureTokenManagerProvider(CbsAuthorizationType.SHARED_ACCESS_SIGNATURE,
+        azureTokenManagerProvider = new AzureTokenManagerProvider(SHARED_ACCESS_SIGNATURE,
             connectionProperties.getEndpoint().getHost(), ClientConstants.AZURE_ACTIVE_DIRECTORY_SCOPE);
         tokenAudience = azureTokenManagerProvider.getScopesFromResource(connectionProperties.getEntityPath());
 
         retryOptions = new AmqpRetryOptions().setTryTimeout(Duration.ofMinutes(1));
         reactorProvider = new ReactorProvider();
-
-        handlerProvider = new ReactorHandlerProvider(reactorProvider, new TestMeter(false));
-
-        clientOptions.setHeaders(
-            Arrays.asList(new Header("name", product), new Header("version", clientVersion)));
+        handlerProvider = new ReactorHandlerProvider(reactorProvider);
     }
 
     @Override
@@ -116,11 +104,10 @@ class CBSChannelTest extends IntegrationTestBase {
         TokenCredential tokenCredential = new EventHubSharedKeyCredential(
             connectionProperties.getSharedAccessKeyName(), connectionProperties.getSharedAccessKey());
         ConnectionOptions connectionOptions = new ConnectionOptions(connectionProperties.getEndpoint().getHost(),
-            tokenCredential, CbsAuthorizationType.SHARED_ACCESS_SIGNATURE, ClientConstants.AZURE_ACTIVE_DIRECTORY_SCOPE,
-            AmqpTransportType.AMQP, RETRY_OPTIONS, ProxyOptions.SYSTEM_DEFAULTS, Schedulers.boundedElastic(), clientOptions,
-            SslDomain.VerifyMode.VERIFY_PEER_NAME, "test-product", "test-client-version");
+            tokenCredential, SHARED_ACCESS_SIGNATURE, AmqpTransportType.AMQP,
+            RETRY_OPTIONS, ProxyOptions.SYSTEM_DEFAULTS, Schedulers.elastic());
         connection = new TestReactorConnection(CONNECTION_ID, connectionOptions, reactorProvider, handlerProvider,
-            linkProvider, azureTokenManagerProvider, messageSerializer);
+            azureTokenManagerProvider, messageSerializer, product, clientVersion);
 
         final Mono<RequestResponseChannel> requestResponseChannel = connection.getCBSChannel("valid-cbs");
         cbsChannel = new ClaimsBasedSecurityChannel(requestResponseChannel, tokenCredential,
@@ -129,8 +116,7 @@ class CBSChannelTest extends IntegrationTestBase {
         // Act & Assert
         StepVerifier.create(cbsChannel.authorize(tokenAudience, tokenAudience))
             .assertNext(expiration -> OffsetDateTime.now().isBefore(expiration))
-            .expectComplete()
-            .verify(TIMEOUT);
+            .verifyComplete();
     }
 
     @Test
@@ -140,11 +126,10 @@ class CBSChannelTest extends IntegrationTestBase {
             connectionProperties.getSharedAccessKeyName(), "Invalid shared access key.");
 
         final ConnectionOptions connectionOptions = new ConnectionOptions(connectionProperties.getEndpoint().getHost(),
-            invalidToken, CbsAuthorizationType.SHARED_ACCESS_SIGNATURE, ClientConstants.AZURE_ACTIVE_DIRECTORY_SCOPE,
-            AmqpTransportType.AMQP, RETRY_OPTIONS, ProxyOptions.SYSTEM_DEFAULTS, Schedulers.boundedElastic(), clientOptions,
-            SslDomain.VerifyMode.VERIFY_PEER, "test-product", "test-client-version");
+            invalidToken, SHARED_ACCESS_SIGNATURE, AmqpTransportType.AMQP, RETRY_OPTIONS, ProxyOptions.SYSTEM_DEFAULTS,
+            Schedulers.elastic());
         connection = new TestReactorConnection(CONNECTION_ID, connectionOptions, reactorProvider, handlerProvider,
-            linkProvider, azureTokenManagerProvider, messageSerializer);
+            azureTokenManagerProvider, messageSerializer, product, clientVersion);
 
         final Mono<RequestResponseChannel> requestResponseChannel = connection.getCBSChannel("invalid-sas");
         cbsChannel = new ClaimsBasedSecurityChannel(requestResponseChannel, invalidToken,
@@ -160,16 +145,17 @@ class CBSChannelTest extends IntegrationTestBase {
                 Assertions.assertFalse(exception.isTransient());
                 Assertions.assertFalse(CoreUtils.isNullOrEmpty(exception.getMessage()));
             })
-            .verify(TIMEOUT);
+            .verify();
     }
 
     private static final class TestReactorConnection extends ReactorConnection {
 
         private TestReactorConnection(String connectionId, ConnectionOptions connectionOptions,
-            ReactorProvider reactorProvider, ReactorHandlerProvider handlerProvider, AmqpLinkProvider linkProvider,
-            TokenManagerProvider tokenManagerProvider, MessageSerializer messageSerializer) {
-            super(connectionId, connectionOptions, reactorProvider, handlerProvider, linkProvider, tokenManagerProvider,
-                messageSerializer, SenderSettleMode.SETTLED, ReceiverSettleMode.SECOND, true);
+            ReactorProvider reactorProvider, ReactorHandlerProvider handlerProvider,
+            TokenManagerProvider tokenManagerProvider, MessageSerializer messageSerializer,
+            String product, String clientVersion) {
+            super(connectionId, connectionOptions, reactorProvider, handlerProvider, tokenManagerProvider,
+                messageSerializer, product, clientVersion, SenderSettleMode.SETTLED, ReceiverSettleMode.SECOND);
         }
 
         private Mono<RequestResponseChannel> getCBSChannel(String linkName) {

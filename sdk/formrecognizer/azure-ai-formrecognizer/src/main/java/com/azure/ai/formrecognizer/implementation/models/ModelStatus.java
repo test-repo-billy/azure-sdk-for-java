@@ -4,28 +4,21 @@
 
 package com.azure.ai.formrecognizer.implementation.models;
 
-/**
- * Status of the model.
- */
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+/** Defines values for ModelStatus. */
 public enum ModelStatus {
-    /**
-     * Enum value creating.
-     */
+    /** Enum value creating. */
     CREATING("creating"),
 
-    /**
-     * Enum value ready.
-     */
+    /** Enum value ready. */
     READY("ready"),
 
-    /**
-     * Enum value invalid.
-     */
+    /** Enum value invalid. */
     INVALID("invalid");
 
-    /**
-     * The actual serialized value for a ModelStatus instance.
-     */
+    /** The actual serialized value for a ModelStatus instance. */
     private final String value;
 
     ModelStatus(String value) {
@@ -34,14 +27,12 @@ public enum ModelStatus {
 
     /**
      * Parses a serialized value to a ModelStatus instance.
-     * 
+     *
      * @param value the serialized value to parse.
      * @return the parsed ModelStatus object, or null if unable to parse.
      */
+    @JsonCreator
     public static ModelStatus fromString(String value) {
-        if (value == null) {
-            return null;
-        }
         ModelStatus[] items = ModelStatus.values();
         for (ModelStatus item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -51,9 +42,7 @@ public enum ModelStatus {
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @JsonValue
     @Override
     public String toString() {
         return this.value;

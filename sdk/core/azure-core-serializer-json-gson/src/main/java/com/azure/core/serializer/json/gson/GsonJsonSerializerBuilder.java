@@ -8,14 +8,8 @@ import com.google.gson.Gson;
 /**
  * Fluent builder class that configures and instantiates instances of {@link GsonJsonSerializer}.
  */
-public final class GsonJsonSerializerBuilder {
+public class GsonJsonSerializerBuilder {
     private Gson gson;
-
-    /**
-     * Creates an instance of {@link GsonJsonSerializerBuilder}.
-     */
-    public GsonJsonSerializerBuilder() {
-    }
 
     /**
      * Constructs a new instance of {@link GsonJsonSerializer} with the configurations set in this builder.
@@ -23,7 +17,7 @@ public final class GsonJsonSerializerBuilder {
      * @return A new instance of {@link GsonJsonSerializer}.
      */
     public GsonJsonSerializer build() {
-        return gson == null
+        return (gson == null)
             ? new GsonJsonSerializer(new Gson())
             : new GsonJsonSerializer(gson);
     }

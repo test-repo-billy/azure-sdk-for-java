@@ -17,10 +17,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ContainerConfiguration {
     /**
      * The container technology to be used.
-     * Possible values include: 'dockerCompatible', 'criCompatible'.
      */
     @JsonProperty(value = "type", required = true)
-    private ContainerType type;
+    private String type;
 
     /**
      * The collection of container Image names.
@@ -40,21 +39,28 @@ public class ContainerConfiguration {
     private List<ContainerRegistry> containerRegistries;
 
     /**
-     * Get possible values include: 'dockerCompatible', 'criCompatible'.
+     * Creates an instance of ContainerConfiguration class.
+     */
+    public ContainerConfiguration() {
+        type = "dockerCompatible";
+    }
+
+    /**
+     * Get the type value.
      *
      * @return the type value
      */
-    public ContainerType type() {
+    public String type() {
         return this.type;
     }
 
     /**
-     * Set possible values include: 'dockerCompatible', 'criCompatible'.
+     * Set the type value.
      *
      * @param type the type value to set
      * @return the ContainerConfiguration object itself.
      */
-    public ContainerConfiguration withType(ContainerType type) {
+    public ContainerConfiguration withType(String type) {
         this.type = type;
         return this;
     }

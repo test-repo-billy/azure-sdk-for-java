@@ -5,6 +5,7 @@
 package com.azure.storage.file.share.implementation.models;
 
 import com.azure.core.annotation.Fluent;
+import com.azure.storage.file.share.models.HandleItem;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -12,7 +13,9 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** An enumeration of handles. */
+/**
+ * An enumeration of handles.
+ */
 @JacksonXmlRootElement(localName = "EnumerationResults")
 @Fluent
 public final class ListHandlesResponse {
@@ -27,22 +30,19 @@ public final class ListHandlesResponse {
     }
 
     /*
-     * The HandleList property.
+     * The handleList property.
      */
     @JsonProperty(value = "Entries")
     private EntriesWrapper handleList;
 
     /*
-     * The NextMarker property.
+     * The nextMarker property.
      */
     @JsonProperty(value = "NextMarker", required = true)
     private String nextMarker;
 
-    /** Creates an instance of ListHandlesResponse class. */
-    public ListHandlesResponse() {}
-
     /**
-     * Get the handleList property: The HandleList property.
+     * Get the handleList property: The handleList property.
      *
      * @return the handleList value.
      */
@@ -54,7 +54,7 @@ public final class ListHandlesResponse {
     }
 
     /**
-     * Set the handleList property: The HandleList property.
+     * Set the handleList property: The handleList property.
      *
      * @param handleList the handleList value to set.
      * @return the ListHandlesResponse object itself.
@@ -65,7 +65,7 @@ public final class ListHandlesResponse {
     }
 
     /**
-     * Get the nextMarker property: The NextMarker property.
+     * Get the nextMarker property: The nextMarker property.
      *
      * @return the nextMarker value.
      */
@@ -74,7 +74,7 @@ public final class ListHandlesResponse {
     }
 
     /**
-     * Set the nextMarker property: The NextMarker property.
+     * Set the nextMarker property: The nextMarker property.
      *
      * @param nextMarker the nextMarker value to set.
      * @return the ListHandlesResponse object itself.

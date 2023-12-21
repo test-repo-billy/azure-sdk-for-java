@@ -8,7 +8,6 @@
 
 package com.microsoft.azure.cognitiveservices.language.luis.authoring.models;
 
-import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -38,12 +37,6 @@ public class EntityPrediction {
      */
     @JsonProperty(value = "phrase", required = true)
     private String phrase;
-
-    /**
-     * The children property.
-     */
-    @JsonProperty(value = "children")
-    private List<EntityPrediction> children;
 
     /**
      * Get the entityName value.
@@ -122,26 +115,6 @@ public class EntityPrediction {
      */
     public EntityPrediction withPhrase(String phrase) {
         this.phrase = phrase;
-        return this;
-    }
-
-    /**
-     * Get the children value.
-     *
-     * @return the children value
-     */
-    public List<EntityPrediction> children() {
-        return this.children;
-    }
-
-    /**
-     * Set the children value.
-     *
-     * @param children the children value to set
-     * @return the EntityPrediction object itself.
-     */
-    public EntityPrediction withChildren(List<EntityPrediction> children) {
-        this.children = children;
         return this;
     }
 

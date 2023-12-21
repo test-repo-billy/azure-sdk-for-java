@@ -3,21 +3,16 @@
 
 package com.azure.core.implementation;
 
-import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility type exposing methods to deal with {@link Type}.
  */
 public final class TypeUtil {
-    private static final Map<Type, Type> SUPER_TYPE_MAP = new ConcurrentHashMap<>();
-
     /**
      * Find all super classes including provided class.
      *
@@ -65,6 +60,7 @@ public final class TypeUtil {
      * @param type the input type
      * @return the raw class
      */
+    @SuppressWarnings("unchecked")
     public static Class<?> getRawClass(Type type) {
         if (type instanceof ParameterizedType) {
             return (Class<?>) ((ParameterizedType) type).getRawType();
@@ -79,62 +75,45 @@ public final class TypeUtil {
      * @param type the input type
      * @return the direct super type
      */
-    public static Type getSuperType(final Type type) {
-        Type superType = SUPER_TYPE_MAP.get(type);
-        if (superType != null) {
-            return superType;
-        }
-
-        return SUPER_TYPE_MAP.computeIfAbsent(type, _type -> {
-            if (type instanceof ParameterizedType) {
-                final ParameterizedType parameterizedType = (ParameterizedType) type;
-                final Type genericSuperClass = ((Class<?>) parameterizedType.getRawType()).getGenericSuperclass();
-
-                if (genericSuperClass instanceof ParameterizedType) {
-                    /*
-                     * Find erased generic types for the super class and replace
-                     * with actual type arguments from the parameterized type
-                     */
-                    final Type[] superTypeArguments = getTypeArguments(genericSuperClass);
-                    final Type[] typeParameters =
-                        ((GenericDeclaration) parameterizedType.getRawType()).getTypeParameters();
-                    int k = 0;
-
-                    for (int i = 0; i != superTypeArguments.length; i++) {
-                        for (int j = 0; i < typeParameters.length; j++) {
-                            if (typeParameters[j].equals(superTypeArguments[i])) {
-                                superTypeArguments[i] = parameterizedType.getActualTypeArguments()[k++];
-                                break;
-                            }
-                        }
+    public static Type getSuperType(Type type) {
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            Type genericSuperClass = ((Class<?>) parameterizedType.getRawType()).getGenericSuperclass();
+            if (genericSuperClass instanceof ParameterizedType) {
+                /*
+                 * Find erased generic types for the super class and replace
+                 * with actual type arguments from the parameterized type
+                 */
+                Type[] superTypeArguments = getTypeArguments(genericSuperClass);
+                List<Type> typeParameters =
+                    Arrays.asList(((Class<?>) parameterizedType.getRawType()).getTypeParameters());
+                int j = 0;
+                for (int i = 0; i != superTypeArguments.length; i++) {
+                    if (typeParameters.contains(superTypeArguments[i])) {
+                        superTypeArguments[i] = parameterizedType.getActualTypeArguments()[j++];
                     }
-                    return createParameterizedType(((ParameterizedType) genericSuperClass).getRawType(),
-                        superTypeArguments);
-                } else {
-                    return genericSuperClass;
                 }
-            } else {
-                return ((Class<?>) type).getGenericSuperclass();
-            }
-        });
-    }
+                return new ParameterizedType() {
+                    @Override
+                    public Type[] getActualTypeArguments() {
+                        return superTypeArguments;
+                    }
 
-    /**
-     * Returns whether the {@code type}, or its generic raw type, implements the interface.
-     *
-     * @param type Type to check if it implements an interface.
-     * @param interfaceClass The interface.
-     * @return Whether the type implements the interface.
-     */
-    public static boolean typeImplementsInterface(Type type, Class<?> interfaceClass) {
-        if (getRawClass(type) == interfaceClass) {
-            return true; // Type is already the interface.
-        } else if (type instanceof ParameterizedType) {
-            return typeImplementsInterface(((ParameterizedType) type).getRawType(), interfaceClass);
+                    @Override
+                    public Type getRawType() {
+                        return ((ParameterizedType) genericSuperClass).getRawType();
+                    }
+
+                    @Override
+                    public Type getOwnerType() {
+                        return null;
+                    }
+                };
+            } else {
+                return genericSuperClass;
+            }
         } else {
-            Class<?> clazz = (Class<?>) type;
-            return Arrays.stream(clazz.getInterfaces())
-                .anyMatch(implementedInterface -> implementedInterface == interfaceClass);
+            return ((Class<?>) type).getGenericSuperclass();
         }
     }
 
@@ -161,7 +140,10 @@ public final class TypeUtil {
      * @return true if the first type is the same or a subtype for the second type
      */
     public static boolean isTypeOrSubTypeOf(Type subType, Type superType) {
-        return getRawClass(superType).isAssignableFrom(getRawClass(subType));
+        Class<?> sub = getRawClass(subType);
+        Class<?> sup = getRawClass(superType);
+
+        return sup.isAssignableFrom(sub);
     }
 
     /**
@@ -171,7 +153,7 @@ public final class TypeUtil {
      * @param genericTypes the generic arguments
      * @return the parameterized type
      */
-    public static ParameterizedType createParameterizedType(Type rawClass, Type... genericTypes) {
+    public static ParameterizedType createParameterizedType(Class<?> rawClass, Type... genericTypes) {
         return new ParameterizedType() {
             @Override
             public Type[] getActualTypeArguments() {
@@ -188,6 +170,17 @@ public final class TypeUtil {
                 return null;
             }
         };
+    }
+
+    /**
+     * Returns whether the rest response expects to have any body (by checking if the body parameter type is set to
+     * Void, in which case no body is expected).
+     *
+     * @param restResponseReturnType The RestResponse subtype containing the type arguments we are inspecting.
+     * @return True if a body is expected, false if a Void body is expected.
+     */
+    public static boolean restResponseTypeExpectsBody(ParameterizedType restResponseReturnType) {
+        return getRestResponseBodyType(restResponseReturnType) != Void.class;
     }
 
     /**

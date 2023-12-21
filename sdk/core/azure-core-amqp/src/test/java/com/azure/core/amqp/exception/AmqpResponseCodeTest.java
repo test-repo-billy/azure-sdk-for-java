@@ -5,10 +5,6 @@ package com.azure.core.amqp.exception;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class AmqpResponseCodeTest {
     /**
@@ -22,12 +18,6 @@ public class AmqpResponseCodeTest {
         AmqpResponseCode actual = AmqpResponseCode.fromValue(forbidden);
 
         Assertions.assertEquals(expected, actual);
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {-1, 42, 1024})
-    public void createFromInvalidInteger(int notDefined) {
-        assertNull(AmqpResponseCode.fromValue(notDefined));
     }
 
     /**

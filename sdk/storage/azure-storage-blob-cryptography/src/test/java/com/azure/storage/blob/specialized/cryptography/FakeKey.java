@@ -11,12 +11,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Extremely basic key resolver to test client side encryption
  */
-final class FakeKey implements AsyncKeyEncryptionKey, IKey {
-    private final String keyId;
-    private final byte[] randomData;
+public class FakeKey implements AsyncKeyEncryptionKey, IKey {
+
+    private String keyId;
+    private byte[] randomData;
 
     FakeKey(String keyId, byte[] randomData) {
         this.keyId = keyId;
@@ -38,7 +42,7 @@ final class FakeKey implements AsyncKeyEncryptionKey, IKey {
         return Mono.just(xor(encryptedKey, randomData));
     }
 
-    private static byte[] xor(byte[] arr1, byte[] arr2) {
+    private byte[] xor(byte[] arr1, byte[] arr2) {
         byte[] ret = new byte[arr1.length];
         for (int i = 0; i < arr1.length; i++) {
             ret[i] = (byte) (arr1[i] ^ arr2[i]);
@@ -67,39 +71,38 @@ final class FakeKey implements AsyncKeyEncryptionKey, IKey {
     }
 
     @Override
-    public ListenableFuture<byte[]> decryptAsync(byte[] bytes, byte[] bytes1, byte[] bytes2, byte[] bytes3, String s) {
+    public ListenableFuture<byte[]> decryptAsync(byte[] bytes, byte[] bytes1, byte[] bytes2, byte[] bytes3, String s) throws NoSuchAlgorithmException {
         return null;
     }
 
     @Override
     public ListenableFuture<Triple<byte[], byte[], String>> encryptAsync(byte[] bytes, byte[] bytes1, byte[] bytes2,
-        String s) {
+        String s) throws NoSuchAlgorithmException {
         return null;
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     @Override
-    public ListenableFuture<Pair<byte[], String>> wrapKeyAsync(byte[] bytes, String s) {
+    public ListenableFuture<Pair<byte[], String>> wrapKeyAsync(byte[] bytes, String s) throws NoSuchAlgorithmException {
         return Futures.immediateFuture(Pair.of(xor(bytes, randomData), s));
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     @Override
-    public ListenableFuture<byte[]> unwrapKeyAsync(byte[] bytes, String s) {
+    public ListenableFuture<byte[]> unwrapKeyAsync(byte[] bytes, String s) throws NoSuchAlgorithmException {
         return Futures.immediateFuture(xor(bytes, randomData));
     }
 
     @Override
-    public ListenableFuture<Pair<byte[], String>> signAsync(byte[] bytes, String s) {
+    public ListenableFuture<Pair<byte[], String>> signAsync(byte[] bytes, String s) throws NoSuchAlgorithmException {
         return null;
     }
 
     @Override
-    public ListenableFuture<Boolean> verifyAsync(byte[] bytes, byte[] bytes1, String s) {
+    public ListenableFuture<Boolean> verifyAsync(byte[] bytes, byte[] bytes1, String s) throws NoSuchAlgorithmException {
         return null;
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
+
     }
 }

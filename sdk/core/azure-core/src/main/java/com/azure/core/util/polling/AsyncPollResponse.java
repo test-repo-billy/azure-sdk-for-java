@@ -16,7 +16,7 @@ import java.util.function.Function;
  * AsyncPollResponse represents an event emitted by the {@link PollerFlux} that asynchronously polls
  * a long-running operation (LRO). An AsyncPollResponse event provides information such as the current
  * {@link LongRunningOperationStatus status} of the LRO, any {@link #getValue value} returned
- * by the poll, as well as other useful information provided by the service.
+ * in the poll, as well as other useful information provided by the service.
  * AsyncPollResponse also exposes {@link #cancelOperation} method to cancel the long-running operation
  * from reactor operator chain and {@link #getFinalResult()} method that returns final result of
  * the long-running operation.
@@ -25,8 +25,7 @@ import java.util.function.Function;
  * @param <U> The type of the final result of long-running operation.
  */
 public final class AsyncPollResponse<T, U> {
-    // AsyncPollResponse is a commonly used class, use a static logger.
-    private static final ClientLogger LOGGER = new ClientLogger(AsyncPollResponse.class);
+    private final ClientLogger logger = new ClientLogger(AsyncPollResponse.class);
     private final PollingContext<T> pollingContext;
     private final BiFunction<PollingContext<T>, PollResponse<T>, Mono<T>> cancellationOperation;
     private final Function<PollingContext<T>, Mono<U>> fetchResultOperation;
@@ -54,7 +53,6 @@ public final class AsyncPollResponse<T, U> {
 
     /**
      * Represents the status of the long-running operation at the time the last polling operation finished successfully.
-     *
      * @return A {@link LongRunningOperationStatus} representing the result of the poll operation.
      */
     public LongRunningOperationStatus getStatus() {
@@ -72,10 +70,7 @@ public final class AsyncPollResponse<T, U> {
     }
 
     /**
-     * Gets a {@link Mono} whereupon subscription it cancels the remote long-running operation if cancellation is
-     * supported by the service.
-     *
-     * @return A {@link Mono} whereupon subscription it cancels the remote long-running operation if cancellation
+     * @return a Mono, upon subscription it cancels the remote long-running operation if cancellation
      * is supported by the service.
      */
     public Mono<T> cancelOperation() {
@@ -84,20 +79,15 @@ public final class AsyncPollResponse<T, U> {
                 return this.cancellationOperation
                         .apply(this.pollingContext, this.pollingContext.getActivationResponse());
             } catch (RuntimeException re) {
-                return FluxUtil.monoError(LOGGER, re);
+                return FluxUtil.monoError(logger, re);
             }
         });
     }
 
     /**
-     * Gets a {@link Mono} whereupon subscription it fetches the final result of the long-running operation if it is
-     * supported by the service.
-     * <p>
-     * If the long-running operation isn't complete an empty {@link Mono} will be returned.
-     *
-     * @return A {@link Mono} whereupon subscription it fetches the final result of the long-running operation if it is
-     * supported by the service. If the long-running operation is not completed, then an empty {@link Mono} will be
-     * returned.
+     * @return a Mono, upon subscription it fetches the final result of long-running operation if it
+     * is supported by the service. If the long-running operation is not completed, then an empty
+     * Mono will be returned.
      */
     public Mono<U> getFinalResult() {
         return Mono.defer(() -> {
@@ -108,7 +98,7 @@ public final class AsyncPollResponse<T, U> {
                     return this.fetchResultOperation
                             .apply(this.pollingContext);
                 } catch (RuntimeException re) {
-                    return FluxUtil.monoError(LOGGER, re);
+                    return FluxUtil.monoError(logger, re);
                 }
             }
         });

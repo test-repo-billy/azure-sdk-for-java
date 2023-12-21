@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 package com.azure.cosmos.implementation.caches;
 
-import java.io.Serializable;
-
-interface IEqualityComparer<TValue> extends Serializable {
+interface IEqualityComparer<TValue> {
     boolean areEqual(TValue v1, TValue v2);
 }

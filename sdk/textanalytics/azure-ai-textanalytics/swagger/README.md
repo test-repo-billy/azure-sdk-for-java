@@ -2,61 +2,34 @@
 
 > see https://aka.ms/autorest
 
-This is the AutoRest configuration file for Text Analytics.
-
----
-## Getting Started
-To build the SDK for Text Analytics, simply [Install AutoRest](https://aka.ms/autorest) and
-in this folder, run:
-
-> `autorest`
-
-To see additional help and options, run:
-
-> `autorest --help`
-
-
 ### Setup
 ```ps
+Fork and clone https://github.com/Azure/autorest.java 
+git checkout v4
+git submodule update --init --recursive
+mvn package -Dlocal
+npm install
 npm install -g autorest
 ```
 
 ### Generation
 ```ps
 cd <swagger-folder>
-autorest
+autorest --java --use=C:/work/autorest.java
 ```
 
-### Code Generation
-```yaml
-use: '@autorest/java@4.1.22'
-input-file: https://raw.githubusercontent.com/Azure/azure-rest-api-specs/53240ebc58b3c4e99de723194032064db1d97e63/specification/cognitiveservices/data-plane/Language/stable/2023-04-01/analyzetext.json
+### Code generation settings
+``` yaml
+input-file: https://raw.githubusercontent.com/Azure/azure-rest-api-specs/master/specification/cognitiveservices/data-plane/TextAnalytics/stable/v3.0/TextAnalytics.json
 java: true
-output-folder: ../
-namespace: com.azure.ai.textanalytics
-models-subpackage: implementation.models
-custom-types-subpackage: models
-enable-sync-stack: true
-generate-client-interfaces: false
+output-folder: ..\
 generate-client-as-impl: true
-service-interface-as-public: true
+namespace: com.azure.ai.textanalytics
+generate-client-interfaces: false
+sync-methods: none
 license-header: MICROSOFT_MIT_SMALL
 add-context-parameter: true
+models-subpackage: implementation.models
+custom-types-subpackage: models
 context-client-method-parameter: true
-generic-response-type: true
-custom-types: HealthcareEntityRelationType,ExtractiveSummarySentencesOrder,HealthcareEntityCategory
-stream-style-serialization: true
-```
-
-### Renames
-```yaml
-directive:
-  - from: swagger-document
-    where: $.definitions.HealthcareRelation.properties.relationType
-    transform: >
-      $["x-ms-enum"].name = "HealthcareEntityRelationType";
-  - from: swagger-document
-    where: $.definitions.ExtractiveSummarizationSortingCriteria
-    transform: >
-        $["x-ms-enum"].name = "ExtractiveSummarySentencesOrder";
 ```

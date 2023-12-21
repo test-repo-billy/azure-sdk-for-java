@@ -145,9 +145,10 @@ public class EndpointSettingsImpl implements EndpointSettings {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @throws ErrorResponseException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the String object if successful.
      */
-    public void updateSettings(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
-        updateSettingsWithServiceResponseAsync(updateSettingsOptionalParameter).toBlocking().single().body();
+    public String updateSettings(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
+        return updateSettingsWithServiceResponseAsync(updateSettingsOptionalParameter).toBlocking().single().body();
     }
 
     /**
@@ -158,7 +159,7 @@ public class EndpointSettingsImpl implements EndpointSettings {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<Void> updateSettingsAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter, final ServiceCallback<Void> serviceCallback) {
+    public ServiceFuture<String> updateSettingsAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter, final ServiceCallback<String> serviceCallback) {
         return ServiceFuture.fromResponse(updateSettingsWithServiceResponseAsync(updateSettingsOptionalParameter), serviceCallback);
     }
 
@@ -167,12 +168,12 @@ public class EndpointSettingsImpl implements EndpointSettings {
      *
      * @param updateSettingsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the {@link ServiceResponse} object if successful.
+     * @return the observable to the String object
      */
-    public Observable<Void> updateSettingsAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
-        return updateSettingsWithServiceResponseAsync(updateSettingsOptionalParameter).map(new Func1<ServiceResponse<Void>, Void>() {
+    public Observable<String> updateSettingsAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
+        return updateSettingsWithServiceResponseAsync(updateSettingsOptionalParameter).map(new Func1<ServiceResponse<String>, String>() {
             @Override
-            public Void call(ServiceResponse<Void> response) {
+            public String call(ServiceResponse<String> response) {
                 return response.body();
             }
         });
@@ -183,9 +184,9 @@ public class EndpointSettingsImpl implements EndpointSettings {
      *
      * @param updateSettingsOptionalParameter the object representing the optional parameters to be set before calling this API
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the {@link ServiceResponse} object if successful.
+     * @return the observable to the String object
      */
-    public Observable<ServiceResponse<Void>> updateSettingsWithServiceResponseAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
+    public Observable<ServiceResponse<String>> updateSettingsWithServiceResponseAsync(UpdateSettingsOptionalParameter updateSettingsOptionalParameter) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -199,9 +200,9 @@ public class EndpointSettingsImpl implements EndpointSettings {
      *
      * @param activeLearning Active Learning settings of the endpoint.
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the {@link ServiceResponse} object if successful.
+     * @return the observable to the String object
      */
-    public Observable<ServiceResponse<Void>> updateSettingsWithServiceResponseAsync(EndpointSettingsDTOActiveLearning activeLearning) {
+    public Observable<ServiceResponse<String>> updateSettingsWithServiceResponseAsync(EndpointSettingsDTOActiveLearning activeLearning) {
         if (this.client.endpoint() == null) {
             throw new IllegalArgumentException("Parameter this.client.endpoint() is required and cannot be null.");
         }
@@ -210,11 +211,11 @@ public class EndpointSettingsImpl implements EndpointSettings {
         endpointSettingsPayload.withActiveLearning(activeLearning);
         String parameterizedHost = Joiner.on(", ").join("{Endpoint}", this.client.endpoint());
         return service.updateSettings(this.client.acceptLanguage(), endpointSettingsPayload, parameterizedHost, this.client.userAgent())
-            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<Void>>>() {
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponse<String>>>() {
                 @Override
-                public Observable<ServiceResponse<Void>> call(Response<ResponseBody> response) {
+                public Observable<ServiceResponse<String>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponse<Void> clientResponse = updateSettingsDelegate(response);
+                        ServiceResponse<String> clientResponse = updateSettingsDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -223,9 +224,9 @@ public class EndpointSettingsImpl implements EndpointSettings {
             });
     }
 
-    private ServiceResponse<Void> updateSettingsDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<Void, ErrorResponseException>newInstance(this.client.serializerAdapter())
-                .register(204, new TypeToken<Void>() { }.getType())
+    private ServiceResponse<String> updateSettingsDelegate(Response<ResponseBody> response) throws ErrorResponseException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<String, ErrorResponseException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<String>() { }.getType())
                 .registerError(ErrorResponseException.class)
                 .build(response);
     }
@@ -257,15 +258,15 @@ public class EndpointSettingsImpl implements EndpointSettings {
         }
 
         @Override
-        public void execute() {
-        updateSettingsWithServiceResponseAsync(activeLearning).toBlocking().single().body();
+        public String execute() {
+        return updateSettingsWithServiceResponseAsync(activeLearning).toBlocking().single().body();
     }
 
         @Override
-        public Observable<Void> executeAsync() {
-            return updateSettingsWithServiceResponseAsync(activeLearning).map(new Func1<ServiceResponse<Void>, Void>() {
+        public Observable<String> executeAsync() {
+            return updateSettingsWithServiceResponseAsync(activeLearning).map(new Func1<ServiceResponse<String>, String>() {
                 @Override
-                public Void call(ServiceResponse<Void> response) {
+                public String call(ServiceResponse<String> response) {
                     return response.body();
                 }
             });

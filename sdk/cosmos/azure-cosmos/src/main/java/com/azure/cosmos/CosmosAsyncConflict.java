@@ -3,12 +3,10 @@
 package com.azure.cosmos;
 
 import com.azure.core.util.Context;
-import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.Paths;
 import com.azure.cosmos.implementation.RequestOptions;
-import com.azure.cosmos.implementation.ResourceType;
-import com.azure.cosmos.models.CosmosConflictRequestOptions;
 import com.azure.cosmos.models.CosmosConflictResponse;
+import com.azure.cosmos.models.CosmosConflictRequestOptions;
 import com.azure.cosmos.models.ModelBridgeInternal;
 import reactor.core.publisher.Mono;
 
@@ -18,9 +16,8 @@ import static com.azure.core.util.FluxUtil.withContext;
  * Read and delete conflicts
  */
 public final class CosmosAsyncConflict {
-    private final CosmosAsyncContainer container;
 
-    @SuppressWarnings("EnforceFinalFields")
+    private final CosmosAsyncContainer container;
     private String id;
 
     /**
@@ -70,25 +67,33 @@ public final class CosmosAsyncConflict {
             options = new CosmosConflictRequestOptions();
         }
         RequestOptions requestOptions = ModelBridgeInternal.toRequestOptions(options);
+        if (!this.container.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return readInternal(requestOptions);
+        }
+
         return withContext(context -> readInternal(requestOptions, context));
     }
 
     /**
-     * Deletes a conflict.
+     * Reads all conflicts in a container.
      * <p>
-     * After subscription the operation will be performed. The {@link Mono} upon
-     * successful completion will contain a single resource response for the deleted
-     * conflict. In case of failure the {@link Mono} will error.
+     * After subscription the operation will be performed. The {@link Mono} will
+     * contain one or several feed response pages of the read conflicts. In case of
+     * failure the {@link Mono} will error.
      *
-     * @param options the request options.
-     * @return a {@link Mono} containing the single resource response for the deleted
-     * conflict or an error.
+     * @param options the feed options.
+     * @return a {@link Mono} containing one or several feed response pages of the
+     * read conflicts or an error.
      */
     public Mono<CosmosConflictResponse> delete(CosmosConflictRequestOptions options) {
         if (options == null) {
             options = new CosmosConflictRequestOptions();
         }
         RequestOptions requestOptions = ModelBridgeInternal.toRequestOptions(options);
+        if (!this.container.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return deleteInternal(requestOptions);
+        }
+
         return withContext(context -> deleteInternal(requestOptions, context));
     }
 
@@ -101,57 +106,41 @@ public final class CosmosAsyncConflict {
     }
 
     String getLink() {
-        return getParentLink()
-            + "/"
-            + getURIPathSegment()
-            + "/"
-            + getId();
+        StringBuilder builder = new StringBuilder();
+        builder.append(getParentLink());
+        builder.append("/");
+        builder.append(getURIPathSegment());
+        builder.append("/");
+        builder.append(getId());
+        return builder.toString();
     }
 
     private Mono<CosmosConflictResponse> readInternal(RequestOptions options, Context context) {
         String spanName = "readConflict." + getId();
-        Mono<CosmosConflictResponse> responseMono =
-            this.container.getDatabase().getDocClientWrapper().readConflict(getLink(), options)
-                          .map(ModelBridgeInternal::createCosmosConflictResponse).single();
+        Mono<CosmosConflictResponse> responseMono = this.readInternal(options);
+        return this.container.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+            spanName,
+            this.container.getDatabase().getId(),
+            this.container.getDatabase().getClient().getServiceEndpoint());
 
-        CosmosAsyncClient client = this.container.getDatabase().getClient();
+    }
 
-        return client
-            .getDiagnosticsProvider()
-            .traceEnabledCosmosResponsePublisher(
-                responseMono,
-                context,
-                spanName,
-                this.container.getDatabase().getId(),
-                this.container.getId(),
-                client,
-                null,
-                OperationType.Read,
-                ResourceType.Conflict,
-                options);
-
+    private Mono<CosmosConflictResponse> readInternal(RequestOptions options) {
+        return this.container.getDatabase().getDocClientWrapper().readConflict(getLink(), options)
+            .map(response -> ModelBridgeInternal.createCosmosConflictResponse(response)).single();
     }
 
     private Mono<CosmosConflictResponse> deleteInternal(RequestOptions options, Context context) {
         String spanName = "deleteConflict." + getId();
-        Mono<CosmosConflictResponse> responseMono =
-            this.container.getDatabase().getDocClientWrapper().deleteConflict(getLink(), options)
-                          .map(ModelBridgeInternal::createCosmosConflictResponse).single();
+        Mono<CosmosConflictResponse> responseMono = deleteInternal(options);
+        return this.container.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+            spanName,
+            this.container.getDatabase().getId(),
+            this.container.getDatabase().getClient().getServiceEndpoint());
+    }
 
-        CosmosAsyncClient client = this.container.getDatabase().getClient();
-
-        return client
-            .getDiagnosticsProvider()
-            .traceEnabledCosmosResponsePublisher(
-                responseMono,
-                context,
-                spanName,
-                this.container.getDatabase().getId(),
-                this.container.getId(),
-                client,
-                null,
-                OperationType.Delete,
-                ResourceType.Conflict,
-                options);
+    private Mono<CosmosConflictResponse> deleteInternal(RequestOptions options) {
+        return this.container.getDatabase().getDocClientWrapper().deleteConflict(getLink(), options)
+            .map(response -> ModelBridgeInternal.createCosmosConflictResponse(response)).single();
     }
 }

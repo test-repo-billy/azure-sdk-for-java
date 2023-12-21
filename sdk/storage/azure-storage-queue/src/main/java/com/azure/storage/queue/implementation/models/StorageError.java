@@ -8,21 +8,20 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** The StorageError model. */
+/**
+ * The StorageError model.
+ */
 @JacksonXmlRootElement(localName = "StorageError")
 @Fluent
 public final class StorageError {
     /*
-     * The Message property.
+     * The message property.
      */
     @JsonProperty(value = "Message")
     private String message;
 
-    /** Creates an instance of StorageError class. */
-    public StorageError() {}
-
     /**
-     * Get the message property: The Message property.
+     * Get the message property: The message property.
      *
      * @return the message value.
      */
@@ -31,7 +30,7 @@ public final class StorageError {
     }
 
     /**
-     * Set the message property: The Message property.
+     * Set the message property: The message property.
      *
      * @param message the message value to set.
      * @return the StorageError object itself.

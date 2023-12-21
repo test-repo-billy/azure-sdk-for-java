@@ -12,7 +12,9 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The BlockList model. */
+/**
+ * The BlockList model.
+ */
 @JacksonXmlRootElement(localName = "BlockList")
 @Fluent
 public final class BlockList {
@@ -27,7 +29,7 @@ public final class BlockList {
     }
 
     /*
-     * The CommittedBlocks property.
+     * The committedBlocks property.
      */
     @JsonProperty(value = "CommittedBlocks")
     private CommittedBlocksWrapper committedBlocks;
@@ -43,16 +45,13 @@ public final class BlockList {
     }
 
     /*
-     * The UncommittedBlocks property.
+     * The uncommittedBlocks property.
      */
     @JsonProperty(value = "UncommittedBlocks")
     private UncommittedBlocksWrapper uncommittedBlocks;
 
-    /** Creates an instance of BlockList class. */
-    public BlockList() {}
-
     /**
-     * Get the committedBlocks property: The CommittedBlocks property.
+     * Get the committedBlocks property: The committedBlocks property.
      *
      * @return the committedBlocks value.
      */
@@ -64,7 +63,7 @@ public final class BlockList {
     }
 
     /**
-     * Set the committedBlocks property: The CommittedBlocks property.
+     * Set the committedBlocks property: The committedBlocks property.
      *
      * @param committedBlocks the committedBlocks value to set.
      * @return the BlockList object itself.
@@ -75,7 +74,7 @@ public final class BlockList {
     }
 
     /**
-     * Get the uncommittedBlocks property: The UncommittedBlocks property.
+     * Get the uncommittedBlocks property: The uncommittedBlocks property.
      *
      * @return the uncommittedBlocks value.
      */
@@ -87,7 +86,7 @@ public final class BlockList {
     }
 
     /**
-     * Set the uncommittedBlocks property: The UncommittedBlocks property.
+     * Set the uncommittedBlocks property: The uncommittedBlocks property.
      *
      * @param uncommittedBlocks the uncommittedBlocks value to set.
      * @return the BlockList object itself.

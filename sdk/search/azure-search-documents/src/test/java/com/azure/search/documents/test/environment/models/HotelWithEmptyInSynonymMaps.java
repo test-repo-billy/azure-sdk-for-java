@@ -3,15 +3,15 @@
 
 package com.azure.search.documents.test.environment.models;
 
-import com.azure.search.documents.indexes.SearchableField;
+import com.azure.search.documents.indexes.SearchableFieldProperty;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This is a class to test whether we filter out the empty String in synonymMaps.
  */
 public class HotelWithEmptyInSynonymMaps {
+    @SearchableFieldProperty(synonymMapNames = {"asynonymMaps", "", "  ", "maps"})
     private List<String> tags;
 
     /**
@@ -19,9 +19,8 @@ public class HotelWithEmptyInSynonymMaps {
      *
      * @return The tags of hotel.
      */
-    @SearchableField(synonymMapNames = {"asynonymMaps", "", "  ", "maps"})
     public List<String> getTags() {
-        return (tags == null) ? null : new ArrayList<>(tags);
+        return tags;
     }
 
     /**
@@ -31,7 +30,7 @@ public class HotelWithEmptyInSynonymMaps {
      * @return The {@link HotelWithEmptyInSynonymMaps} object itself.
      */
     public HotelWithEmptyInSynonymMaps setTags(List<String> tags) {
-        this.tags = (tags == null) ? null : new ArrayList<>(tags);
+        this.tags = tags;
         return this;
     }
 }

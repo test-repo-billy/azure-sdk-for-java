@@ -3,15 +3,15 @@
 
 package com.azure.cosmos.implementation.directconnectivity;
 
-import com.azure.cosmos.SessionRetryOptions;
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.ConnectionPolicy;
-import com.azure.cosmos.implementation.DiagnosticsClientContext;
-import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.IAuthorizationTokenProvider;
 import com.azure.cosmos.implementation.SessionContainer;
 import com.azure.cosmos.implementation.UserAgentContainer;
-import com.azure.cosmos.implementation.clienttelemetry.ClientTelemetry;
+
+// TODO: DANOBLE: no support for ICommunicationEventSource ask Ji
+//  Links:
+//  https://msdata.visualstudio.com/CosmosDB/SDK/_workitems/edit/262496
 
 // We suppress the "try" warning here because the close() method's signature
 // allows it to throw InterruptedException which is strongly advised against
@@ -22,49 +22,27 @@ import com.azure.cosmos.implementation.clienttelemetry.ClientTelemetry;
 public class StoreClientFactory implements AutoCloseable {
 
     private final Configs configs;
+    private final Protocol protocol;
     private final TransportClient transportClient;
     private volatile boolean isClosed;
 
     public StoreClientFactory(
-        IAddressResolver addressResolver,
-        DiagnosticsClientContext.DiagnosticsClientConfig diagnosticsClientConfig,
         Configs configs,
         ConnectionPolicy connectionPolicy,
         UserAgentContainer userAgent,
-        boolean enableTransportClientSharing,
-        ClientTelemetry clientTelemetry,
-        GlobalEndpointManager globalEndpointManager) {
+        boolean enableTransportClientSharing) {
 
         this.configs = configs;
-        Protocol protocol = configs.getProtocol();
+        this.protocol = configs.getProtocol();
         if (enableTransportClientSharing) {
-            this.transportClient = SharedTransportClient.getOrCreateInstance(
-                protocol,
-                configs,
-                connectionPolicy,
-                userAgent,
-                diagnosticsClientConfig,
-                addressResolver,
-                clientTelemetry,
-                globalEndpointManager);
+            this.transportClient = SharedTransportClient.getOrCreateInstance(protocol, configs, connectionPolicy, userAgent);
         } else {
             if (protocol == Protocol.HTTPS) {
-                this.transportClient = new HttpTransportClient(configs, connectionPolicy, userAgent, globalEndpointManager);
+                this.transportClient = new HttpTransportClient(configs, connectionPolicy, userAgent);
             } else if (protocol == Protocol.TCP) {
-
-                RntbdTransportClient.Options rntbdOptions =
-                    new RntbdTransportClient.Options.Builder(connectionPolicy).userAgent(userAgent).build();
-                this.transportClient =
-                    new RntbdTransportClient(
-                        rntbdOptions,
-                        configs.getSslContext(),
-                        addressResolver,
-                        clientTelemetry,
-                        globalEndpointManager);
-                diagnosticsClientConfig.withRntbdOptions(rntbdOptions.toDiagnosticsString());
-
+                this.transportClient = new RntbdTransportClient(configs, connectionPolicy, userAgent);
             } else {
-                throw new IllegalArgumentException(String.format("protocol: %s", protocol));
+                throw new IllegalArgumentException(String.format("protocol: %s", this.protocol));
             }
         }
     }
@@ -78,24 +56,20 @@ public class StoreClientFactory implements AutoCloseable {
     // TODO enableReadRequestsFallback ask Ji
     // TODO useFallbackClient ask Ji
     public StoreClient createStoreClient(
-        DiagnosticsClientContext diagnosticsClientContext,
         IAddressResolver addressResolver,
         SessionContainer sessionContainer,
         GatewayServiceConfigurationReader serviceConfigurationReader,
         IAuthorizationTokenProvider authorizationTokenProvider,
-        boolean useMultipleWriteLocations,
-        SessionRetryOptions sessionRetryOptions) {
+        boolean useMultipleWriteLocations) {
         this.throwIfClosed();
 
-        return new StoreClient(diagnosticsClientContext,
-            configs,
+        return new StoreClient(configs,
             addressResolver,
             sessionContainer,
             serviceConfigurationReader,
             authorizationTokenProvider,
             this.transportClient,
-            useMultipleWriteLocations,
-            sessionRetryOptions);
+            useMultipleWriteLocations);
     }
 
     private void throwIfClosed() {

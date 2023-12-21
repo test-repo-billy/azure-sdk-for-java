@@ -2,6 +2,6 @@
 // Licensed under the MIT License.
 
 /**
- * Package containing Azure Cognitive Search paged response classes.
+ * Package containing Search utility classes.
  */
 package com.azure.search.documents.util;

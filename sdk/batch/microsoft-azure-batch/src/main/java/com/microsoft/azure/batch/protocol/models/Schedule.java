@@ -13,8 +13,7 @@ import org.joda.time.Period;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * The schedule according to which Jobs will be created. All times are fixed
- * respective to UTC and are not impacted by daylight saving time.
+ * The schedule according to which Jobs will be created.
  */
 public class Schedule {
     /**

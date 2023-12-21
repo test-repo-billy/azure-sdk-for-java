@@ -77,8 +77,6 @@ public class HttpRequestException extends AzureException {
     }
 
     /**
-     * Gets the {@link HttpRequest} being sent when the exception occurred.
-     *
      * @return The {@link HttpRequest} being sent when the exception occurred.
      */
     public HttpRequest getRequest() {

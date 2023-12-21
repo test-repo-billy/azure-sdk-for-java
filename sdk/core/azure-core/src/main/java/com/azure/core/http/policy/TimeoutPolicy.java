@@ -12,23 +12,21 @@ import java.time.Duration;
 
 /**
  * The pipeline policy that limits the time allowed between sending a request and receiving the response.
- * @deprecated Consider configuring timeouts with {@link com.azure.core.util.HttpClientOptions}.
  */
-@Deprecated
 public class TimeoutPolicy implements HttpPipelinePolicy {
-    private final Duration timeoutDuration;
+    private final Duration timoutDuration;
 
     /**
      * Creates a TimeoutPolicy.
      *
-     * @param timeoutDuration the timeout duration
+     * @param timoutDuration the timeout duration
      */
-    public TimeoutPolicy(Duration timeoutDuration) {
-        this.timeoutDuration = timeoutDuration;
+    public TimeoutPolicy(Duration timoutDuration) {
+        this.timoutDuration = timoutDuration;
     }
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        return next.process().timeout(this.timeoutDuration);
+        return next.process().timeout(this.timoutDuration);
     }
 }

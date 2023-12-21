@@ -6,11 +6,9 @@ package com.azure.messaging.eventhubs.implementation;
 import com.azure.core.amqp.AmqpRetryOptions;
 import com.azure.core.amqp.implementation.AmqpChannelProcessor;
 import com.azure.core.amqp.implementation.RetryUtil;
+import com.azure.core.util.logging.ClientLogger;
 
-import java.util.Collections;
 import java.util.Objects;
-
-import static com.azure.messaging.eventhubs.implementation.ClientConstants.ENTITY_PATH_KEY;
 
 /**
  * Subscribes to an upstream Mono that creates {@link EventHubAmqpConnection} then publishes the created connection
@@ -21,9 +19,10 @@ public class EventHubConnectionProcessor extends AmqpChannelProcessor<EventHubAm
     private final String eventHubName;
     private final AmqpRetryOptions retryOptions;
 
-    public EventHubConnectionProcessor(String fullyQualifiedNamespace, String eventHubName, AmqpRetryOptions retryOptions) {
-        super(fullyQualifiedNamespace, channel -> channel.getEndpointStates(),
-            RetryUtil.getRetryPolicy(retryOptions), Collections.singletonMap(ENTITY_PATH_KEY, eventHubName));
+    public EventHubConnectionProcessor(String fullyQualifiedNamespace, String eventHubName,
+        AmqpRetryOptions retryOptions) {
+        super(fullyQualifiedNamespace, eventHubName, channel -> channel.getEndpointStates(),
+            RetryUtil.getRetryPolicy(retryOptions), new ClientLogger(EventHubConnectionProcessor.class));
 
         this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
             "'fullyQualifiedNamespace' cannot be null.");

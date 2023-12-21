@@ -9,7 +9,7 @@ import java.util.Optional;
 
 import static com.azure.core.util.tracing.Tracer.ENTITY_PATH_KEY;
 import static com.azure.core.util.tracing.Tracer.HOST_NAME_KEY;
-import static com.azure.core.util.tracing.Tracer.PARENT_TRACE_CONTEXT_KEY;
+import static com.azure.core.util.tracing.Tracer.PARENT_SPAN_KEY;
 
 /**
  * Code snippets for {@link Context}
@@ -24,11 +24,11 @@ public class ContextJavaDocCodeSnippets {
         // Create an empty context having no data
         Context emptyContext = Context.NONE;
 
-        // OpenTelemetry context can be optionally passed using PARENT_TRACE_CONTEXT_KEY
-        // when OpenTelemetry context is not provided explicitly, ambient
-        // io.opentelemetry.context.Context.current() is used
+        // Tracing spans created by users can be passed to calling methods in sdk clients using Context object
+        final String userParentSpan = "user-parent-span";
 
-        // Context contextWithSpan = new Context(PARENT_TRACE_CONTEXT_KEY, openTelemetryContext);
+        // Create a context using the provided key and user parent span
+        Context keyValueContext = new Context(PARENT_SPAN_KEY, userParentSpan);
         // END: com.azure.core.util.context#object-object
     }
 
@@ -53,14 +53,12 @@ public class ContextJavaDocCodeSnippets {
      */
     public void addDataToContext() {
         // BEGIN: com.azure.core.util.context.addData#object-object
-        // Users can pass parent trace context information and additional metadata to attach to spans created by SDKs
-        // using the com.azure.core.util.Context object.
+        // Users can send parent span information and pass additional metadata to attach to spans of the calling methods
+        // using the Context object
         final String hostNameValue = "host-name-value";
         final String entityPathValue = "entity-path-value";
-
-        // TraceContext represents a tracing solution context type - io.opentelemetry.context.Context for OpenTelemetry.
-        final TraceContext parentContext = TraceContext.root();
-        Context parentSpanContext = new Context(PARENT_TRACE_CONTEXT_KEY, parentContext);
+        final String userParentSpan = "user-parent-span";
+        Context parentSpanContext = new Context(PARENT_SPAN_KEY, userParentSpan);
 
         // Add a new key value pair to the existing context object.
         Context updatedContext = parentSpanContext.addData(HOST_NAME_KEY, hostNameValue)
@@ -119,11 +117,5 @@ public class ContextJavaDocCodeSnippets {
             System.out.println("Key2 does not exist.");
         }
         // END: com.azure.core.util.Context.getValues
-    }
-
-    static class TraceContext {
-        public static TraceContext root() {
-            return new TraceContext();
-        }
     }
 }

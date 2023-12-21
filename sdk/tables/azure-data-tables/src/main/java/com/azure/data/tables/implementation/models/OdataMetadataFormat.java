@@ -33,11 +33,7 @@ public final class OdataMetadataFormat extends ExpandableStringEnum<OdataMetadat
         return fromString(name, OdataMetadataFormat.class);
     }
 
-    /**
-     * Gets known OdataMetadataFormat values.
-     *
-     * @return known OdataMetadataFormat values.
-     */
+    /** @return known OdataMetadataFormat values. */
     public static Collection<OdataMetadataFormat> values() {
         return values(OdataMetadataFormat.class);
     }

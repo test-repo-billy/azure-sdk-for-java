@@ -3,7 +3,6 @@
 
 package com.azure.storage.blob.sas;
 
-import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.blob.BlobServiceVersion;
@@ -23,10 +22,10 @@ import java.time.OffsetDateTime;
  * representation of the SAS which can then be applied to a new client using the .sasToken(String) method on the
  * desired client builder.
  *
- * @see <a href=https://docs.microsoft.com/azure/storage/common/storage-sas-overview>Storage SAS overview</a>
+ * @see <a href=https://docs.microsoft.com/en-ca/azure/storage/common/storage-sas-overview>Storage SAS overview</a>
  * @see <a href=https://docs.microsoft.com/rest/api/storageservices/constructing-a-service-sas>Constructing a Service
  * SAS</a>
- * @see <a href=https://docs.microsoft.com/rest/api/storageservices/create-user-delegation-sas>Constructing a
+ * @see <a href=https://docs.microsoft.com/en-us/rest/api/storageservices/create-user-delegation-sas>Constructing a
  * User Delegation SAS</a>
  */
 public final class BlobServiceSasSignatureValues {
@@ -45,24 +44,9 @@ public final class BlobServiceSasSignatureValues {
      */
     private static final String SAS_CONTAINER_CONSTANT = "c";
 
-    private static final ClientLogger LOGGER = new ClientLogger(BlobServiceSasSignatureValues.class);
+    private final ClientLogger logger = new ClientLogger(BlobServiceSasSignatureValues.class);
 
-    private static final String VERSION = Configuration.getGlobalConfiguration()
-        .get(Constants.PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, BlobServiceVersion.getLatest().getVersion());
-
-    /**
-     * Pin down to highest version that worked with string to sign defined here.
-     */
-    private static final String VERSION_DEPRECATED_SHARED_KEY_SAS_STRING_TO_SIGN =
-        Configuration.getGlobalConfiguration()
-            .get(Constants.PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, BlobServiceVersion.V2020_10_02.getVersion());
-
-    /**
-     * Pin down to highest version that worked with string to sign defined here.
-     */
-    private static final String VERSION_DEPRECATED_USER_DELEGATION_SAS_STRING_TO_SIGN =
-        Configuration.getGlobalConfiguration()
-            .get(Constants.PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, BlobServiceVersion.V2019_12_12.getVersion());
+    private String version;
 
     private SasProtocol protocol;
 
@@ -93,12 +77,6 @@ public final class BlobServiceSasSignatureValues {
     private String contentLanguage;
 
     private String contentType;
-
-    private String preauthorizedAgentObjectId; /* saoid */
-
-    private String correlationId;
-
-    private String encryptionScope;
 
     /**
      * Creates an object with empty values for all fields.
@@ -172,6 +150,9 @@ public final class BlobServiceSasSignatureValues {
     public BlobServiceSasSignatureValues(String version, SasProtocol sasProtocol, OffsetDateTime startTime,
         OffsetDateTime expiryTime, String permission, SasIpRange sasIpRange, String identifier, String cacheControl,
         String contentDisposition, String contentEncoding, String contentLanguage, String contentType) {
+        if (version != null) {
+            this.version = version;
+        }
         this.protocol = sasProtocol;
         this.startTime = startTime;
         this.expiryTime = expiryTime;
@@ -190,7 +171,7 @@ public final class BlobServiceSasSignatureValues {
      * targeted by the library.
      */
     public String getVersion() {
-        return VERSION;
+        return version;
     }
 
     /**
@@ -199,12 +180,9 @@ public final class BlobServiceSasSignatureValues {
      *
      * @param version Version to target
      * @return the updated BlobServiceSASSignatureValues object
-     * @deprecated The version is set to the latest version of sas. Users should stop calling this API as it is now
-     * treated as a no-op.
      */
-    @Deprecated
     public BlobServiceSasSignatureValues setVersion(String version) {
-        /* No-op.*/
+        this.version = version;
         return this;
     }
 
@@ -306,7 +284,6 @@ public final class BlobServiceSasSignatureValues {
     /**
      * Sets the {@link SasIpRange} which determines the IP ranges that are allowed to use the SAS.
      *
-     * @see <a href=https://docs.microsoft.com/rest/api/storageservices/create-service-sas#specifying-ip-address-or-ip-range>Specifying IP Address or IP range</a>
      * @param sasIpRange Allowed IP range to set
      * @return the updated BlobServiceSASSignatureValues object
      */
@@ -400,7 +377,7 @@ public final class BlobServiceSasSignatureValues {
 
     /**
      * @return the name of the access policy on the container this SAS references if any. Please see
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/establishing-a-stored-access-policy">here</a>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/establishing-a-stored-access-policy">here</a>
      * for more information.
      */
     public String getIdentifier() {
@@ -409,7 +386,7 @@ public final class BlobServiceSasSignatureValues {
 
     /**
      * Sets the name of the access policy on the container this SAS references if any. Please see
-     * <a href="https://docs.microsoft.com/rest/api/storageservices/establishing-a-stored-access-policy">here</a>
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/establishing-a-stored-access-policy">here</a>
      * for more information.
      *
      * @param identifier Name of the access policy
@@ -511,57 +488,13 @@ public final class BlobServiceSasSignatureValues {
     }
 
     /**
-     * @return The AAD object ID of a user assumed to be authorized by the owner of the user delegation key to perform
-     * the action granted by the SAS token. The service will validate the SAS token and ensure that the owner of the
-     * user delegation key has the required permissions before granting access but no additional permission check for
-     * the agent object id will be performed.
-     */
-    public String getPreauthorizedAgentObjectId() {
-        return preauthorizedAgentObjectId;
-    }
-
-    /**
-     * Sets the AAD object ID of a user assumed to be authorized by the owner of the user delegation key to perform the
-     * action granted by the SAS token.
-     *
-     * @param preauthorizedAgentObjectId The AAD object ID of a user assumed to be authorized by the owner of the user
-     * delegation key to perform the action granted by the SAS token. The service will validate the SAS token and
-     * ensure that the owner of the user delegation key has the required permissions before granting access but no
-     * additional permission check for the agent object id will be performed.
-     * @return the updated BlobServiceSASSignatureValues object
-     */
-    public BlobServiceSasSignatureValues setPreauthorizedAgentObjectId(String preauthorizedAgentObjectId) {
-        this.preauthorizedAgentObjectId = preauthorizedAgentObjectId;
-        return this;
-    }
-
-    /**
-     * @return the correlation id value for the SAS.
-     */
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
-    /**
-     * Sets the correlation id value for the SAS.
-     *
-     * <p>Note: This parameter is only valid for user delegation SAS. </p>
-     *
-     * @param correlationId A correlation ID used to correlate the storage audit logs with the audit logs used by the
-     * principal generating and distributing SAS.
-     * @return the updated BlobServiceSasSignatureValues object
-     */
-    public BlobServiceSasSignatureValues setCorrelationId(String correlationId) {
-        this.correlationId = correlationId;
-        return this;
-    }
-
-    /**
      * Uses an account's shared key credential to sign these signature values to produce the proper SAS query
      * parameters.
      *
      * <p><strong>Notes on SAS generation</strong></p>
      * <ul>
+     * <li>If {@link #setVersion(String) version} is not set, the {@link BlobServiceVersion#getLatest() latest service
+     * version} is used.</li>
      * <li>If {@link #setIdentifier(String) identifier} is set, {@link #setExpiryTime(OffsetDateTime) expiryTime} and
      * permissions should not be set. These values are inherited from the stored access policy.</li>
      * <li>Otherwise, {@link #setExpiryTime(OffsetDateTime) expiryTime} and {@link #getPermissions() permissions} must
@@ -599,10 +532,9 @@ public final class BlobServiceSasSignatureValues {
         final String canonicalName = getCanonicalName(storageSharedKeyCredentials.getAccountName());
         final String signature = storageSharedKeyCredentials.computeHmac256(stringToSign(canonicalName));
 
-        return new BlobServiceSasQueryParameters(VERSION_DEPRECATED_SHARED_KEY_SAS_STRING_TO_SIGN, this.protocol,
-            this.startTime, this.expiryTime, this.sasIpRange, this.identifier, this.resource, this.permissions,
-            signature, this.cacheControl, this.contentDisposition, this.contentEncoding, this.contentLanguage,
-            this.contentType, null /* delegate */);
+        return new BlobServiceSasQueryParameters(this.version, this.protocol, this.startTime, this.expiryTime,
+            this.sasIpRange, this.identifier, this.resource, this.permissions, signature, this.cacheControl,
+            this.contentDisposition, this.contentEncoding, this.contentLanguage, this.contentType, null /* delegate */);
     }
 
     /**
@@ -610,6 +542,8 @@ public final class BlobServiceSasSignatureValues {
      *
      * <p><strong>Notes on SAS generation</strong></p>
      * <ul>
+     * <li>If {@link #setVersion(String) version} is not set, the {@link BlobServiceVersion#getLatest() latest service
+     * version} is used.</li>
      * <li>If {@link #setIdentifier(String) identifier} is set, {@link #setExpiryTime(OffsetDateTime) expiryTime} and
      * permissions should not be set. These values are inherited from the stored access policy.</li>
      * <li>Otherwise, {@link #setExpiryTime(OffsetDateTime) expiryTime} and {@link #getPermissions() permissions} must
@@ -652,10 +586,11 @@ public final class BlobServiceSasSignatureValues {
         String signature = StorageImplUtils.computeHMac256(
             delegationKey.getValue(), stringToSign(delegationKey, canonicalName));
 
-        return new BlobServiceSasQueryParameters(VERSION_DEPRECATED_USER_DELEGATION_SAS_STRING_TO_SIGN, this.protocol,
-            this.startTime, this.expiryTime, this.sasIpRange, null /* identifier */, this.resource, this.permissions,
-            signature, this.cacheControl, this.contentDisposition, this.contentEncoding, this.contentLanguage,
-            this.contentType, delegationKey);
+
+        return new BlobServiceSasQueryParameters(this.version, this.protocol, this.startTime, this.expiryTime,
+            this.sasIpRange, null /* identifier */, this.resource, this.permissions, signature,
+            this.cacheControl, this.contentDisposition, this.contentEncoding, this.contentLanguage, this.contentType,
+            delegationKey);
     }
 
     /**
@@ -670,9 +605,13 @@ public final class BlobServiceSasSignatureValues {
      *
      * Taken from:
      * https://github.com/Azure/azure-storage-blob-go/blob/master/azblob/sas_service.go#L33
-     * https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Blobs/src/Sas/BlobSasBuilder.cs
+     * https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/storage/Azure.Storage.Blobs/src/Sas/BlobSasBuilder.cs
      */
     private void ensureState() {
+        if (version == null) {
+            version = BlobServiceVersion.getLatest().getVersion();
+        }
+
         if (CoreUtils.isNullOrEmpty(blobName)) {
             resource = SAS_CONTAINER_CONSTANT;
         } else if (snapshotId != null) {
@@ -692,7 +631,7 @@ public final class BlobServiceSasSignatureValues {
                     break;
                 default:
                     // We won't reparse the permissions if we don't know the type.
-                    LOGGER.info("Not re-parsing permissions. Resource type '{}' is unknown.", resource);
+                    logger.info("Not re-parsing permissions. Resource type '{}' is unknown.", resource);
                     break;
             }
         }
@@ -705,8 +644,8 @@ public final class BlobServiceSasSignatureValues {
         // Container: "/blob/account/containername"
         // Blob:      "/blob/account/containername/blobname"
         return CoreUtils.isNullOrEmpty(blobName)
-            ? "/blob/" + account + "/" + containerName
-            : "/blob/" + account + "/" + containerName + "/" + blobName.replace('\\', '/');
+            ? String.format("/blob/%s/%s", account, containerName)
+            : String.format("/blob/%s/%s/%s", account, containerName, blobName.replace("\\", "/"));
     }
 
     private String stringToSign(String canonicalName) {
@@ -718,7 +657,7 @@ public final class BlobServiceSasSignatureValues {
             this.identifier == null ? "" : this.identifier,
             this.sasIpRange == null ? "" : this.sasIpRange.toString(),
             this.protocol == null ? "" : this.protocol.toString(),
-            VERSION_DEPRECATED_SHARED_KEY_SAS_STRING_TO_SIGN, /* Pin down to version so old string to sign works. */
+            version,
             resource,
             this.snapshotId == null ? "" : this.snapshotId,
             this.cacheControl == null ? "" : this.cacheControl,
@@ -743,7 +682,7 @@ public final class BlobServiceSasSignatureValues {
             key.getSignedVersion() == null ? "" : key.getSignedVersion(),
             this.sasIpRange == null ? "" : this.sasIpRange.toString(),
             this.protocol == null ? "" : this.protocol.toString(),
-            VERSION_DEPRECATED_USER_DELEGATION_SAS_STRING_TO_SIGN, /* Pin down to version so old string to sign works. */
+            version,
             resource,
             this.snapshotId == null ? "" : this.snapshotId,
             this.cacheControl == null ? "" : this.cacheControl,

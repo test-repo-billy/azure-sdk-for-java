@@ -31,8 +31,7 @@ public interface EventHubClient {
      * @throws EventHubException If Service Bus service encountered problems during connection creation.
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
-    static EventHubClient createFromConnectionStringSync(final String connectionString,
-        final ScheduledExecutorService executor)
+    static EventHubClient createFromConnectionStringSync(final String connectionString, final ScheduledExecutorService executor)
             throws EventHubException, IOException {
         return createFromConnectionStringSync(connectionString, null, executor);
     }
@@ -47,8 +46,7 @@ public interface EventHubClient {
      * @throws EventHubException If Service Bus service encountered problems during connection creation.
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
-    static EventHubClient createFromConnectionStringSync(final String connectionString, final RetryPolicy retryPolicy,
-        final ScheduledExecutorService executor)
+    static EventHubClient createFromConnectionStringSync(final String connectionString, final RetryPolicy retryPolicy, final ScheduledExecutorService executor)
             throws EventHubException, IOException {
         return ExceptionUtil.syncWithIOException(() -> createFromConnectionString(connectionString, retryPolicy, executor).get());
     }
@@ -66,7 +64,8 @@ public interface EventHubClient {
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
     static EventHubClient createFromConnectionStringSync(final String connectionString, final RetryPolicy retryPolicy,
-        final ScheduledExecutorService executor, final ProxyConfiguration configuration)
+                                                         final ScheduledExecutorService executor,
+                                                         final ProxyConfiguration configuration)
         throws EventHubException, IOException {
         return ExceptionUtil.syncWithIOException(() -> createFromConnectionString(connectionString, retryPolicy, executor, configuration).get());
     }
@@ -86,8 +85,9 @@ public interface EventHubClient {
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
     static EventHubClient createFromConnectionStringSync(final String connectionString, final RetryPolicy retryPolicy,
-        final ScheduledExecutorService executor, final ProxyConfiguration configuration,
-        final Duration maximumSilentTime)
+                                                         final ScheduledExecutorService executor,
+                                                         final ProxyConfiguration configuration,
+                                                         final Duration maximumSilentTime)
         throws EventHubException, IOException {
         return ExceptionUtil.syncWithIOException(() -> createFromConnectionString(connectionString, retryPolicy, executor, configuration, maximumSilentTime).get());
     }
@@ -100,11 +100,11 @@ public interface EventHubClient {
      * @param connectionString The connection string to be used. See {@link ConnectionStringBuilder} to construct a connectionString.
      * @param executor         An {@link ScheduledExecutorService} to run all tasks performed by {@link EventHubClient}.
      * @return CompletableFuture{@literal <EventHubClient>} which can be used to create Senders and Receivers to EventHub
+     * @throws EventHubException If Service Bus service encountered problems during connection creation.
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
-    static CompletableFuture<EventHubClient> createFromConnectionString(final String connectionString,
-        final ScheduledExecutorService executor)
-            throws IOException {
+    static CompletableFuture<EventHubClient> createFromConnectionString(final String connectionString, final ScheduledExecutorService executor)
+            throws EventHubException, IOException {
         return createFromConnectionString(connectionString, null, executor);
     }
 
@@ -117,11 +117,12 @@ public interface EventHubClient {
      * @param retryPolicy      A custom {@link RetryPolicy} to be used when communicating with EventHub.
      * @param executor         An {@link ScheduledExecutorService} to run all tasks performed by {@link EventHubClient}.
      * @return CompletableFuture{@literal <EventHubClient>} which can be used to create Senders and Receivers to EventHub
+     * @throws EventHubException If Service Bus service encountered problems during connection creation.
      * @throws IOException       If the underlying Proton-J layer encounter network errors.
      */
     static CompletableFuture<EventHubClient> createFromConnectionString(
             final String connectionString, final RetryPolicy retryPolicy, final ScheduledExecutorService executor)
-            throws IOException {
+            throws EventHubException, IOException {
         return EventHubClientImpl.create(connectionString, retryPolicy, executor, null);
     }
 
@@ -182,6 +183,7 @@ public interface EventHubClient {
      * @param executor      An {@link ScheduledExecutorService} to run all tasks performed by {@link EventHubClient}.
      * @param options        Options {@link EventHubClientOptions} for creating the client. Uses all defaults if null.
      * @return EventHubClient which can be used to create Senders and Receivers to EventHub
+     * @throws EventHubException If the EventHubs service encountered problems during connection creation.
      * @throws IOException If the underlying Proton-J layer encounter network errors.
      */
     static CompletableFuture<EventHubClient> createWithAzureActiveDirectory(
@@ -190,7 +192,7 @@ public interface EventHubClient {
             final AzureActiveDirectoryTokenProvider.AuthenticationCallback authCallback,
             final String authority,
             final ScheduledExecutorService executor,
-            final EventHubClientOptions options) throws IOException {
+            final EventHubClientOptions options) throws EventHubException, IOException {
         ITokenProvider tokenProvider = new AzureActiveDirectoryTokenProvider(authCallback, authority, null);
         return createWithTokenProvider(endpointAddress, eventHubName, tokenProvider, executor, options);
     }
@@ -206,6 +208,7 @@ public interface EventHubClient {
      * @param executor      An {@link ScheduledExecutorService} to run all tasks performed by {@link EventHubClient}.
      * @param options        Options {@link EventHubClientOptions} for creating the client. Uses all defaults if null.
      * @return EventHubClient which can be used to create Senders and Receivers to EventHub
+     * @throws EventHubException If the EventHubs service encountered problems during connection creation.
      * @throws IOException If the underlying Proton-J layer encounter network errors.
      */
     static CompletableFuture<EventHubClient> createWithTokenProvider(
@@ -213,7 +216,7 @@ public interface EventHubClient {
             final String eventHubName,
             final ITokenProvider tokenProvider,
             final ScheduledExecutorService executor,
-            final EventHubClientOptions options) throws IOException {
+            final EventHubClientOptions options) throws EventHubException, IOException {
         return EventHubClientImpl.create(endpointAddress, eventHubName, tokenProvider, executor, options);
     }
 

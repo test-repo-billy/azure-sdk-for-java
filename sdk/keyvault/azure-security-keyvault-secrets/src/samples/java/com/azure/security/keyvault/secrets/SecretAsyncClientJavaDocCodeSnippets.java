@@ -3,105 +3,129 @@
 
 package com.azure.security.keyvault.secrets;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpPipeline;
+import com.azure.core.http.HttpPipelineBuilder;
 import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.core.http.policy.HttpLogOptions;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.core.http.policy.RetryPolicy;
+import com.azure.security.keyvault.secrets.implementation.KeyVaultCredentialPolicy;
 import com.azure.security.keyvault.secrets.models.KeyVaultSecret;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.models.SecretProperties;
 import reactor.util.context.Context;
 
 import java.time.OffsetDateTime;
 
 /**
- * This class contains code samples for generating javadocs through doclets for {@link SecretAsyncClient}.
+ * This class contains code samples for generating javadocs through doclets for {@link SecretClient}
  */
 public final class SecretAsyncClientJavaDocCodeSnippets {
-    private final String key1 = "key1";
-    private final String key2 = "key2";
-    private final String value1 = "val1";
-    private final String value2 = "val2";
+
+    private String key1 = "key1";
+    private String key2 = "key2";
+    private String value1 = "val1";
+    private String value2 = "val2";
 
     /**
-     * Generates code sample for creating a {@link SecretAsyncClient}.
-     *
-     * @return An instance of {@link SecretAsyncClient}.
+     * Generates code sample for creating a {@link SecretAsyncClient}
+     * @return An instance of {@link SecretAsyncClient}
      */
     public SecretAsyncClient createAsyncClientWithHttpclient() {
-        // BEGIN: com.azure.security.keyvault.secrets.SecretAsyncClient.instantiation.withHttpClient
+        // BEGIN: com.azure.security.keyvault.secrets.async.secretclient.withhttpclient.instantiation
         SecretAsyncClient secretAsyncClient = new SecretClientBuilder()
             .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
-            .vaultUrl("<your-key-vault-url>")
+            .vaultUrl("https://myvault.azure.net/")
             .credential(new DefaultAzureCredentialBuilder().build())
             .httpClient(HttpClient.createDefault())
             .buildAsyncClient();
-        // END: com.azure.security.keyvault.secrets.SecretAsyncClient.instantiation.withHttpClient
+        // END: com.azure.security.keyvault.secrets.async.secretclient.withhttpclient.instantiation
         return secretAsyncClient;
     }
 
     /**
-     * Generates code sample for creating a {@link SecretAsyncClient}.
-     *
-     * @return An instance of {@link SecretAsyncClient}.
+     * Implementation for async SecretAsyncClient
+     * @return sync SecretAsyncClient
      */
     private SecretAsyncClient getAsyncSecretClient() {
-        // BEGIN: com.azure.security.keyvault.secrets.SecretAsyncClient.instantiation
+
+        // BEGIN: com.azure.security.keyvault.secrets.async.secretclient.construct
         SecretAsyncClient secretAsyncClient = new SecretClientBuilder()
             .credential(new DefaultAzureCredentialBuilder().build())
-            .vaultUrl("<your-key-vault-url>")
+            .vaultUrl("https://myvault.vault.azure.net/")
+            .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
             .buildAsyncClient();
-        // END: com.azure.security.keyvault.secrets.SecretAsyncClient.instantiation
+        // END: com.azure.security.keyvault.secrets.async.secretclient.construct
         return secretAsyncClient;
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#getSecret(String, String)}.
+     * Generates code sample for creating a {@link SecretAsyncClient}
+     * @return An instance of {@link SecretAsyncClient}
+     */
+    public SecretAsyncClient createAsyncClientWithPipeline() {
+        TokenCredential credential = null; // link to some identity samples
+        // BEGIN: com.azure.security.keyvault.secrets.async.secretclient.pipeline.instantiation
+        HttpPipeline pipeline = new HttpPipelineBuilder()
+            .policies(new KeyVaultCredentialPolicy(credential), new RetryPolicy())
+            .build();
+        SecretAsyncClient secretAsyncClient = new SecretClientBuilder()
+            .pipeline(pipeline)
+            .vaultUrl("https://myvault.azure.net/")
+            .buildAsyncClient();
+        // END: com.azure.security.keyvault.secrets.async.secretclient.pipeline.instantiation
+        return secretAsyncClient;
+    }
+
+    /**
+     * Method to insert code snippets for {@link SecretAsyncClient#getSecret(String, String)}
      */
     public void getSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.getSecret#string-string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.getSecret#string-string
         String secretVersion = "6A385B124DEF4096AF1361A85B16C204";
         secretAsyncClient.getSecret("secretName", secretVersion)
             // Passing a Context is optional and useful if you want a set of data to flow through the request.
             // Otherwise, the line below can be removed.
-            .contextWrite(Context.of(key1, value1, key2, value2))
+            .subscriberContext(Context.of(key1, value1, key2, value2))
             .subscribe(secretWithVersion ->
                 System.out.printf("Secret is returned with name %s and value %s %n",
                     secretWithVersion.getName(), secretWithVersion.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.getSecret#string-string
+        // END: com.azure.keyvault.secrets.secretclient.getSecret#string-string
 
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.getSecret#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.getSecret#string
         secretAsyncClient.getSecret("secretName")
             .subscribe(secretWithVersion ->
                 System.out.printf("Secret is returned with name %s and value %s %n",
                     secretWithVersion.getName(), secretWithVersion.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.getSecret#string
+        // END: com.azure.keyvault.secrets.secretclient.getSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#getSecretWithResponse(String, String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#getSecretWithResponse(String, String)}
      */
     public void getSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
 
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.getSecretWithResponse#string-string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.getSecretWithResponse#string-string
         String secretVersion = "6A385B124DEF4096AF1361A85B16C204";
         secretAsyncClient.getSecretWithResponse("secretName", secretVersion)
             // Passing a Context is optional and useful if you want a set of data to flow through the request.
             // Otherwise, the line below can be removed.
-            .contextWrite(Context.of(key1, value1, key2, value2))
+            .subscriberContext(Context.of(key1, value1, key2, value2))
             .subscribe(secretWithVersion ->
                 System.out.printf("Secret is returned with name %s and value %s %n",
                     secretWithVersion.getValue().getName(), secretWithVersion.getValue().getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.getSecretWithResponse#string-string
+        // END: com.azure.keyvault.secrets.secretclient.getSecretWithResponse#string-string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#setSecret(KeyVaultSecret)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#setSecret(KeyVaultSecret)}
      */
     public void setSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.setSecret#secret
+        // BEGIN: com.azure.keyvault.secrets.secretclient.setSecret#secret
         SecretProperties properties = new SecretProperties()
             .setExpiresOn(OffsetDateTime.now().plusDays(60));
         KeyVaultSecret newSecret = new KeyVaultSecret("secretName", "secretValue")
@@ -109,39 +133,39 @@ public final class SecretAsyncClientJavaDocCodeSnippets {
 
         secretAsyncClient.setSecret(newSecret)
             .subscribe(secretResponse ->
-                System.out.printf("Secret is created with name %s and value %s %n",
-                    secretResponse.getName(), secretResponse.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.setSecret#secret
+            System.out.printf("Secret is created with name %s and value %s %n",
+                secretResponse.getName(), secretResponse.getValue()));
+        // END: com.azure.keyvault.secrets.secretclient.setSecret#secret
 
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.setSecret#string-string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.setSecret#string-string
         secretAsyncClient.setSecret("secretName", "secretValue")
             .subscribe(secretResponse ->
                 System.out.printf("Secret is created with name %s and value %s%n",
                     secretResponse.getName(), secretResponse.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.setSecret#string-string
+        // END: com.azure.keyvault.secrets.secretclient.setSecret#string-string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#setSecretWithResponse(KeyVaultSecret)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#setSecretWithResponse(KeyVaultSecret)}
      */
     public void setSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.setSecretWithResponse#secret
+        // BEGIN: com.azure.keyvault.secrets.secretclient.setSecretWithResponse#secret
         KeyVaultSecret newSecret = new KeyVaultSecret("secretName", "secretValue").
             setProperties(new SecretProperties().setExpiresOn(OffsetDateTime.now().plusDays(60)));
         secretAsyncClient.setSecretWithResponse(newSecret)
             .subscribe(secretResponse ->
                 System.out.printf("Secret is created with name %s and value %s %n",
                     secretResponse.getValue().getName(), secretResponse.getValue().getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.setSecretWithResponse#secret
+        // END: com.azure.keyvault.secrets.secretclient.setSecretWithResponse#secret
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#updateSecretProperties(SecretProperties)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#updateSecretProperties(SecretProperties)}
      */
     public void updateSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.updateSecretProperties#secretProperties
+        // BEGIN: com.azure.keyvault.secrets.secretclient.updateSecretProperties#secretProperties
         secretAsyncClient.getSecret("secretName")
             .subscribe(secretResponseValue -> {
                 SecretProperties secretProperties = secretResponseValue.getProperties();
@@ -152,16 +176,15 @@ public final class SecretAsyncClientJavaDocCodeSnippets {
                         System.out.printf("Secret's updated not before time %s %n",
                             secretResponse.getNotBefore().toString()));
             });
-        // END: com.azure.keyvault.secrets.SecretClient.updateSecretProperties#secretProperties
+        // END: com.azure.keyvault.secrets.secretclient.updateSecretProperties#secretProperties
     }
 
     /**
-     * Method to insert code snippets for
-     * {@link SecretAsyncClient#updateSecretPropertiesWithResponse(SecretProperties)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#updateSecretPropertiesWithResponse(SecretProperties)}
      */
     public void updateSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.updateSecretPropertiesWithResponse#secretProperties
+        // BEGIN: com.azure.keyvault.secrets.secretclient.updateSecretPropertiesWithResponse#secretProperties
         secretAsyncClient.getSecret("secretName")
             .subscribe(secretResponseValue -> {
                 SecretProperties secretProperties = secretResponseValue.getProperties();
@@ -172,147 +195,147 @@ public final class SecretAsyncClientJavaDocCodeSnippets {
                         System.out.printf("Secret's updated not before time %s %n",
                             secretResponse.getValue().getNotBefore().toString()));
             });
-        // END: com.azure.keyvault.secrets.SecretClient.updateSecretPropertiesWithResponse#secretProperties
+        // END: com.azure.keyvault.secrets.secretclient.updateSecretPropertiesWithResponse#secretProperties
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#beginDeleteSecret(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#beginDeleteSecret(String)}
      */
     public void deleteSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.deleteSecret#String
+        // BEGIN: com.azure.keyvault.secrets.secretclient.deleteSecret#string
         secretAsyncClient.beginDeleteSecret("secretName")
             .subscribe(pollResponse -> {
                 System.out.println("Delete Status: " + pollResponse.getStatus().toString());
                 System.out.println("Deleted Secret Name: " + pollResponse.getValue().getName());
                 System.out.println("Deleted Secret Value: " + pollResponse.getValue().getValue());
             });
-        // END: com.azure.keyvault.secrets.SecretClient.deleteSecret#String
+        // END: com.azure.keyvault.secrets.secretclient.deleteSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#getDeletedSecret(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#getDeletedSecret(String)}
      */
     public void getDeletedSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.getDeletedSecret#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.getDeletedSecret#string
         secretAsyncClient.getDeletedSecret("secretName")
             .subscribe(deletedSecretResponse ->
                 System.out.printf("Deleted Secret's Recovery Id %s %n", deletedSecretResponse.getRecoveryId()));
-        // END: com.azure.keyvault.secrets.SecretClient.getDeletedSecret#string
+        // END: com.azure.keyvault.secrets.secretclient.getDeletedSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#getDeletedSecretWithResponse(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#getDeletedSecretWithResponse(String)}
      */
     public void getDeletedSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.getDeletedSecretWithResponse#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.getDeletedSecretWithResponse#string
         secretAsyncClient.getDeletedSecretWithResponse("secretName")
             .subscribe(deletedSecretResponse ->
                 System.out.printf("Deleted Secret's Recovery Id %s %n",
                     deletedSecretResponse.getValue().getRecoveryId()));
-        // END: com.azure.keyvault.secrets.SecretClient.getDeletedSecretWithResponse#string
+        // END: com.azure.keyvault.secrets.secretclient.getDeletedSecretWithResponse#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#purgeDeletedSecret(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#purgeDeletedSecret(String)}
      */
     public void purgeDeletedSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.purgeDeletedSecret#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.purgeDeletedSecret#string
         secretAsyncClient.purgeDeletedSecret("deletedSecretName")
             .doOnSuccess(purgeResponse ->
                 System.out.println("Successfully Purged deleted Secret"))
             .subscribe();
-        // END: com.azure.keyvault.secrets.SecretClient.purgeDeletedSecret#string
+        // END: com.azure.keyvault.secrets.secretclient.purgeDeletedSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#purgeDeletedSecretWithResponse(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#purgeDeletedSecretWithResponse(String)}
      */
     public void purgeDeletedSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.purgeDeletedSecretWithResponse#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.purgeDeletedSecretWithResponse#string
         secretAsyncClient.purgeDeletedSecretWithResponse("deletedSecretName")
             .subscribe(purgeResponse ->
                 System.out.printf("Purge Status response %d %n", purgeResponse.getStatusCode()));
-        // END: com.azure.keyvault.secrets.SecretClient.purgeDeletedSecretWithResponse#string
+        // END: com.azure.keyvault.secrets.secretclient.purgeDeletedSecretWithResponse#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#beginRecoverDeletedSecret(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#beginRecoverDeletedSecret(String)}
      */
     public void recoverDeletedSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.recoverDeletedSecret#String
+        // BEGIN: com.azure.keyvault.secrets.secretclient.recoverDeletedSecret#string
         secretAsyncClient.beginRecoverDeletedSecret("deletedSecretName")
             .subscribe(pollResponse -> {
                 System.out.println("Recovery Status: " + pollResponse.getStatus().toString());
                 System.out.println("Recovered Secret Name: " + pollResponse.getValue().getName());
                 System.out.println("Recovered Secret Value: " + pollResponse.getValue().getValue());
             });
-        // END: com.azure.keyvault.secrets.SecretClient.recoverDeletedSecret#String
+        // END: com.azure.keyvault.secrets.secretclient.recoverDeletedSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#backupSecret(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#backupSecret(String)}
      */
     public void backupSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.backupSecret#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.backupSecret#string
         secretAsyncClient.backupSecret("secretName")
             .subscribe(secretBackupResponse ->
                 System.out.printf("Secret's Backup Byte array's length %s%n", secretBackupResponse.length));
-        // END: com.azure.keyvault.secrets.SecretClient.backupSecret#string
+        // END: com.azure.keyvault.secrets.secretclient.backupSecret#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#backupSecretWithResponse(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#backupSecretWithResponse(String)}
      */
     public void backupSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.backupSecretWithResponse#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.backupSecretWithResponse#string
         secretAsyncClient.backupSecretWithResponse("secretName")
             .subscribe(secretBackupResponse ->
                 System.out.printf("Secret's Backup Byte array's length %s%n", secretBackupResponse.getValue().length));
-        // END: com.azure.keyvault.secrets.SecretClient.backupSecretWithResponse#string
+        // END: com.azure.keyvault.secrets.secretclient.backupSecretWithResponse#string
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#restoreSecretBackup(byte[])}.
+     * Method to insert code snippets for {@link SecretAsyncClient#restoreSecretBackup(byte[])}
      */
     public void restoreSecretCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.restoreSecret#byte
+        // BEGIN: com.azure.keyvault.secrets.secretclient.restoreSecret#byte
         // Pass the secret backup byte array to the restore operation.
         byte[] secretBackupByteArray = {};
         secretAsyncClient.restoreSecretBackup(secretBackupByteArray)
             .subscribe(secretResponse -> System.out.printf("Restored Secret with name %s and value %s %n",
                 secretResponse.getName(), secretResponse.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.restoreSecret#byte
+        // END: com.azure.keyvault.secrets.secretclient.restoreSecret#byte
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#restoreSecretBackupWithResponse(byte[])}.
+     * Method to insert code snippets for {@link SecretAsyncClient#restoreSecretBackupWithResponse(byte[])}
      */
     public void restoreSecretWithResponseCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.restoreSecretWithResponse#byte
+        // BEGIN: com.azure.keyvault.secrets.secretclient.restoreSecretWithResponse#byte
         // Pass the secret backup byte array to the restore operation.
         byte[] secretBackupByteArray = {};
         secretAsyncClient.restoreSecretBackupWithResponse(secretBackupByteArray)
             .subscribe(secretResponse -> System.out.printf("Restored Secret with name %s and value %s %n",
                 secretResponse.getValue().getName(), secretResponse.getValue().getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.restoreSecretWithResponse#byte
+        // END: com.azure.keyvault.secrets.secretclient.restoreSecretWithResponse#byte
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#listPropertiesOfSecrets()}.
+     * Method to insert code snippets for {@link SecretAsyncClient#listPropertiesOfSecrets()}
      */
     public void listSecretsCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.listSecrets
+        // BEGIN: com.azure.keyvault.secrets.secretclient.listSecrets
         secretAsyncClient.listPropertiesOfSecrets()
             .flatMap(secretProperties -> {
                 String name = secretProperties.getName();
@@ -323,27 +346,27 @@ public final class SecretAsyncClientJavaDocCodeSnippets {
             })
             .subscribe(secretResponse -> System.out.printf("Received secret with name %s and type %s",
                 secretResponse.getName(), secretResponse.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.listSecrets
+        // END: com.azure.keyvault.secrets.secretclient.listSecrets
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#listDeletedSecrets()}.
+     * Method to insert code snippets for {@link SecretAsyncClient#listDeletedSecrets()}
      */
     public void listDeletedSecretsCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.listDeletedSecrets
+        // BEGIN: com.azure.keyvault.secrets.secretclient.listDeletedSecrets
         secretAsyncClient.listDeletedSecrets()
-            .subscribe(deletedSecretResponse -> System.out.printf("Deleted Secret's Recovery Id %s %n",
+            .subscribe(deletedSecretResponse ->  System.out.printf("Deleted Secret's Recovery Id %s %n",
                 deletedSecretResponse.getRecoveryId()));
-        // END: com.azure.keyvault.secrets.SecretClient.listDeletedSecrets
+        // END: com.azure.keyvault.secrets.secretclient.listDeletedSecrets
     }
 
     /**
-     * Method to insert code snippets for {@link SecretAsyncClient#listPropertiesOfSecretVersions(String)}.
+     * Method to insert code snippets for {@link SecretAsyncClient#listPropertiesOfSecretVersions(String)}
      */
     public void listSecretVersionsCodeSnippets() {
         SecretAsyncClient secretAsyncClient = getAsyncSecretClient();
-        // BEGIN: com.azure.keyvault.secrets.SecretClient.listSecretVersions#string
+        // BEGIN: com.azure.keyvault.secrets.secretclient.listSecretVersions#string
         secretAsyncClient.listPropertiesOfSecretVersions("secretName")
             .flatMap(secretProperties -> {
                 System.out.println("Get secret value for version: " + secretProperties.getVersion());
@@ -351,6 +374,6 @@ public final class SecretAsyncClientJavaDocCodeSnippets {
             })
             .subscribe(secret -> System.out.printf("Received secret with name %s and type %s%n",
                 secret.getName(), secret.getValue()));
-        // END: com.azure.keyvault.secrets.SecretClient.listSecretVersions#string
+        // END: com.azure.keyvault.secrets.secretclient.listSecretVersions#string
     }
 }

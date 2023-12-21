@@ -10,8 +10,6 @@ import java.util.Map;
  */
 public class FileSystemItem {
     private String name;
-    private Boolean deleted;
-    private String version;
     private FileSystemItemProperties properties;
     private Map<String, String> metadata;
 
@@ -32,46 +30,6 @@ public class FileSystemItem {
      */
     public FileSystemItem setName(String name) {
         this.name = name;
-        return this;
-    }
-
-    /**
-     * Get the deleted property: The deleted property.
-     *
-     * @return the deleted value.
-     */
-    public Boolean isDeleted() {
-        return this.deleted;
-    }
-
-    /**
-     * Set the deleted property: The deleted property.
-     *
-     * @param deleted the deleted value to set.
-     * @return the FileSystemItem object itself.
-     */
-    public FileSystemItem setDeleted(Boolean deleted) {
-        this.deleted = deleted;
-        return this;
-    }
-
-    /**
-     * Get the version property: The version property.
-     *
-     * @return the version value.
-     */
-    public String getVersion() {
-        return this.version;
-    }
-
-    /**
-     * Set the version property: The version property.
-     *
-     * @param version the version value to set.
-     * @return the FileSystemItem object itself.
-     */
-    public FileSystemItem setVersion(String version) {
-        this.version = version;
         return this;
     }
 

@@ -6,7 +6,7 @@ package com.azure.ai.textanalytics.models;
 import com.azure.core.annotation.Immutable;
 
 /**
- * The {@code TextAnalyticsWarning} model.
+ * The {@link TextAnalyticsWarning} model.
  */
 @Immutable
 public final class TextAnalyticsWarning {
@@ -21,7 +21,7 @@ public final class TextAnalyticsWarning {
     private final String message;
 
     /**
-     * Creates a {@code TextAnalyticsWarning} model that describes text analytics warning.
+     * Creates a {@link TextAnalyticsWarning} model that describes text analytics warning.
      *
      * @param warningCode The warning code value
      * @param message The warning message.

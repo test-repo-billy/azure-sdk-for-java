@@ -4,10 +4,8 @@
 package com.azure.storage.blob.batch;
 
 import com.azure.core.http.rest.Response;
-import com.azure.core.util.Configuration;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.AccessTier;
 import com.azure.storage.blob.models.BlobRequestConditions;
@@ -20,15 +18,8 @@ import java.util.List;
  * Code snippets for {@link BlobBatchAsyncClient}
  */
 public class BlobBatchAsyncClientJavaDocCodeSnippets {
-    private static final String ENDPOINT = Configuration.getGlobalConfiguration().get("PRIMARY_STORAGE_BLOB_ENDPOINT");
-    private static final String SASTOKEN = Configuration.getGlobalConfiguration().get("SAS_TOKEN");
-
-    private BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                                                    .endpoint(ENDPOINT)
-                                                    .sasToken(SASTOKEN)
-                                                    .buildClient();
-    
-    private BlobBatchAsyncClient batchAsyncClient = new BlobBatchClientBuilder(blobServiceClient).buildAsyncClient();
+    private BlobBatchAsyncClient batchAsyncClient = new BlobBatchClientBuilder(new BlobServiceClientBuilder()
+        .buildClient()).buildAsyncClient();
 
     /**
      * Code snippet for {@link BlobBatchAsyncClient#submitBatch(BlobBatch)}
@@ -72,10 +63,10 @@ public class BlobBatchAsyncClientJavaDocCodeSnippets {
      * Code snippet for {@link BlobBatchAsyncClient#deleteBlobs(List, DeleteSnapshotsOptionType)}
      */
     public void deleteBlobs() {
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient("<CONTAINER_NAME>");
-        BlobClient blobClient1 = containerClient.getBlobClient("<BLOB_NAME1>");
-        BlobClient blobClient2 = containerClient.getBlobClient("<BLOB_NAME2>");
-        BlobClient blobClient3 = containerClient.getBlobClient("<BLOB_NAME3>");
+        BlobClientBuilder blobClientBuilder = new BlobClientBuilder();
+        BlobClient blobClient1 = blobClientBuilder.buildClient();
+        BlobClient blobClient2 = blobClientBuilder.buildClient();
+        BlobClient blobClient3 = blobClientBuilder.buildClient();
 
         // BEGIN: com.azure.storage.blob.batch.BlobBatchAsyncClient.deleteBlobs#List-DeleteSnapshotsOptionType
         List<String> blobUrls = new ArrayList<>();
@@ -94,10 +85,10 @@ public class BlobBatchAsyncClientJavaDocCodeSnippets {
      * Code snippet for {@link BlobBatchAsyncClient#setBlobsAccessTier(List, AccessTier)}
      */
     public void setBlobsAccessTier() {
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient("<CONTAINER_NAME>");
-        BlobClient blobClient1 = containerClient.getBlobClient("<BLOB_NAME1>");
-        BlobClient blobClient2 = containerClient.getBlobClient("<BLOB_NAME2>");
-        BlobClient blobClient3 = containerClient.getBlobClient("<BLOB_NAME3>");
+        BlobClientBuilder blobClientBuilder = new BlobClientBuilder();
+        BlobClient blobClient1 = blobClientBuilder.buildClient();
+        BlobClient blobClient2 = blobClientBuilder.buildClient();
+        BlobClient blobClient3 = blobClientBuilder.buildClient();
 
         // BEGIN: com.azure.storage.blob.batch.BlobBatchAsyncClient.setBlobsAccessTier#List-AccessTier
         List<String> blobUrls = new ArrayList<>();

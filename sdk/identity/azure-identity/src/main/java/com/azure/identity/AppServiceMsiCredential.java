@@ -7,7 +7,6 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.annotation.Immutable;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.util.Configuration;
-import com.azure.core.util.logging.ClientLogger;
 import com.azure.identity.implementation.IdentityClient;
 import reactor.core.publisher.Mono;
 
@@ -15,13 +14,11 @@ import reactor.core.publisher.Mono;
  * The Managed Service Identity credential for Azure App Service.
  */
 @Immutable
-class AppServiceMsiCredential extends ManagedIdentityServiceCredential {
-    private static final ClientLogger LOGGER = new ClientLogger(AppServiceMsiCredential.class);
-
-    private final String identityEndpoint;
-    private final String identityHeader;
+class AppServiceMsiCredential {
     private final String msiEndpoint;
     private final String msiSecret;
+    private final IdentityClient identityClient;
+    private final String clientId;
 
     /**
      * Creates an instance of {@link AppServiceMsiCredential}.
@@ -30,18 +27,20 @@ class AppServiceMsiCredential extends ManagedIdentityServiceCredential {
      * @param identityClient The identity client to acquire a token with.
      */
     AppServiceMsiCredential(String clientId, IdentityClient identityClient) {
-        super(clientId, identityClient, "AZURE APP SERVICE MSI/IDENTITY ENDPOINT");
         Configuration configuration = Configuration.getGlobalConfiguration().clone();
-        this.identityEndpoint = configuration.get(Configuration.PROPERTY_IDENTITY_ENDPOINT);
-        this.identityHeader = configuration.get(Configuration.PROPERTY_IDENTITY_HEADER);
         this.msiEndpoint = configuration.get(Configuration.PROPERTY_MSI_ENDPOINT);
         this.msiSecret = configuration.get(Configuration.PROPERTY_MSI_SECRET);
-        if (identityEndpoint != null) {
-            validateEndpointProtocol(this.identityEndpoint, "MSI", LOGGER);
-        }
-        if (msiEndpoint != null) {
-            validateEndpointProtocol(this.msiEndpoint, "MSI", LOGGER);
-        }
+        this.identityClient = identityClient;
+        this.clientId = clientId;
+    }
+
+    /**
+     * Gets the client ID of the user assigned or system assigned identity.
+     *
+     * @return The client ID of user assigned or system assigned identity.
+     */
+    public String getClientId() {
+        return this.clientId;
     }
 
     /**
@@ -51,6 +50,6 @@ class AppServiceMsiCredential extends ManagedIdentityServiceCredential {
      * @return A publisher that emits an {@link AccessToken}.
      */
     public Mono<AccessToken> authenticate(TokenRequestContext request) {
-        return identityClient.authenticateWithManagedIdentityConfidentialClient(request);
+        return identityClient.authenticateToManagedIdentityEndpoint(msiEndpoint, msiSecret, request);
     }
 }

@@ -2,31 +2,38 @@
 // Licensed under the MIT License.
 package com.azure.cosmos.implementation;
 
-import com.azure.cosmos.implementation.apachecommons.lang.tuple.ImmutablePair;
 import com.azure.cosmos.implementation.query.metrics.ClientSideMetrics;
 import com.azure.cosmos.implementation.query.metrics.FetchExecutionRange;
+import com.azure.cosmos.implementation.query.metrics.QueryMetricsTextWriter;
 import com.azure.cosmos.implementation.query.metrics.SchedulingTimeSpan;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.azure.cosmos.implementation.apachecommons.lang.tuple.ImmutablePair;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static com.azure.cosmos.implementation.guava27.Strings.lenientFormat;
 
 /**
  * Query metrics in the Azure Cosmos database service.
  * This metric represents a moving average for a set of queries whose metrics have been aggregated together.
  */
 public final class QueryMetrics {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(QueryMetrics.class);
+    public final static QueryMetrics ZERO = new QueryMetrics(
+            new ArrayList<>(), /* */
+            0, /* retrievedDocumentCount */
+            0, /* retrievedDocumentSize */
+            0, /* outputDocumentCount */
+            0, /* outputDocumentSize */
+            0, /* indexHitCount */
+            Duration.ZERO,
+            QueryPreparationTimes.ZERO,
+            Duration.ZERO,
+            Duration.ZERO,
+            Duration.ZERO,
+            RuntimeExecutionTimes.ZERO,
+            Duration.ZERO,
+            ClientSideMetrics.ZERO);
     private final long retrievedDocumentCount;
     private final long retrievedDocumentSize;
     private final long outputDocumentCount;
@@ -41,13 +48,12 @@ public final class QueryMetrics {
     private final Duration documentWriteTime;
     private final ClientSideMetrics clientSideMetrics;
     private final List<String> activityIds;
-    private final IndexUtilizationInfo indexUtilizationInfo;
 
     public QueryMetrics(List<String> activities, long retrievedDocumentCount, long retrievedDocumentSize, long outputDocumentCount,
                         long outputDocumentSize, long indexHitCount, Duration totalQueryExecutionTime,
                         QueryPreparationTimes queryPreparationTimes, Duration indexLookupTime, Duration documentLoadTime,
                         Duration vmExecutionTime, RuntimeExecutionTimes runtimeExecutionTimes, Duration documentWriteTime,
-                        ClientSideMetrics clientSideMetrics, IndexUtilizationInfo indexUtilizationInfo) {
+                        ClientSideMetrics clientSideMetrics) {
         this.retrievedDocumentCount = retrievedDocumentCount;
         this.retrievedDocumentSize = retrievedDocumentSize;
         this.outputDocumentCount = outputDocumentCount;
@@ -62,7 +68,6 @@ public final class QueryMetrics {
         this.documentWriteTime = documentWriteTime;
         this.clientSideMetrics = clientSideMetrics;
         this.activityIds = activities;
-        this.indexUtilizationInfo = indexUtilizationInfo;
     }
 
     /**
@@ -166,40 +171,28 @@ public final class QueryMetrics {
     }
 
     /**
-     * @return the indexUtilizationInfo
-     */
-    public IndexUtilizationInfo getIndexUtilizationInfo() {
-        return indexUtilizationInfo;
-    }
-
-    /**
      * @return number of reties in the Azure Cosmos database service.
      */
     public long getRetries() {
         return this.clientSideMetrics.getRetries();
     }
 
-    public static QueryMetrics addQueryMetrics(QueryMetrics... additionalQueryMetrics) {
-        List<QueryMetrics> queryMetricsList = new ArrayList<>(Arrays.asList(additionalQueryMetrics));
+    public QueryMetrics add(QueryMetrics... queryMetricsArgs) {
+        ArrayList<QueryMetrics> queryMetricsList = new ArrayList<QueryMetrics>();
+        for (QueryMetrics queryMetrics : queryMetricsArgs) {
+            queryMetricsList.add(queryMetrics);
+        }
+
+        queryMetricsList.add(this);
 
         return QueryMetrics.createFromCollection(queryMetricsList);
     }
 
-    /**
-     * Utility method to merge two query metrics map.
-     * @param base metrics map which will be updated with new values.
-     * @param addOn metrics map whose values will be merge in base map.
-     */
-    public static void mergeQueryMetricsMap(Map<String, QueryMetrics> base, Map<String, QueryMetrics> addOn) {
-        for (Map.Entry<String, QueryMetrics> entry : addOn.entrySet()) {
-            base.compute(entry.getKey(), (key, value) -> {
-                if (value == null) {
-                    return entry.getValue();
-                } else {
-                    return QueryMetrics.addQueryMetrics(value, entry.getValue());
-                }
-            });
-        }
+    private String toTextString(int indentLevel) {
+        StringBuilder stringBuilder = new StringBuilder();
+        QueryMetricsTextWriter queryMetricsTextWriter = new QueryMetricsTextWriter(stringBuilder);
+        queryMetricsTextWriter.writeQueryMetrics(this);
+        return stringBuilder.toString();
     }
 
     public static QueryMetrics createFromCollection(Collection<QueryMetrics> queryMetricsCollection) {
@@ -217,7 +210,6 @@ public final class QueryMetrics {
         Duration documentWriteTime = Duration.ZERO;
         Collection<ClientSideMetrics> clientSideMetricsCollection = new ArrayList<ClientSideMetrics>();
         List<String> activityIds = new ArrayList<>();
-        Collection<IndexUtilizationInfo> indexUtilizationInfoCollection = new ArrayList<IndexUtilizationInfo>();
 
         for (QueryMetrics queryMetrics : queryMetricsCollection) {
             if (queryMetrics == null) {
@@ -237,7 +229,6 @@ public final class QueryMetrics {
             runtimeExecutionTimesCollection.add(queryMetrics.runtimeExecutionTimes);
             documentWriteTime = documentWriteTime.plus(queryMetrics.documentWriteTime);
             clientSideMetricsCollection.add(queryMetrics.clientSideMetrics);
-            indexUtilizationInfoCollection.add(queryMetrics.indexUtilizationInfo);
         }
 
         return new QueryMetrics(activityIds, retrievedDocumentCount, retrievedDocumentSize, outputDocumentCount,
@@ -245,17 +236,18 @@ public final class QueryMetrics {
                 indexHitDocumentCount, totalQueryExecutionTime,
                 QueryPreparationTimes.createFromCollection(queryPreparationTimesCollection), indexLookupTime, documentLoadTime,
                 vmExecutionTime, RuntimeExecutionTimes.createFromCollection(runtimeExecutionTimesCollection),
-                documentWriteTime, ClientSideMetrics.createFromCollection(clientSideMetricsCollection), IndexUtilizationInfo.createFromCollection(indexUtilizationInfoCollection));
+                documentWriteTime, ClientSideMetrics.createFromCollection(clientSideMetricsCollection));
     }
 
     public static QueryMetrics createFromDelimitedString(String delimitedString) {
+        HashMap<String, Double> metrics = QueryMetricsUtils.parseDelimitedString(delimitedString);
         return QueryMetrics.createFromDelimitedStringAndClientSideMetrics(delimitedString,
                 new ClientSideMetrics(0, 0, new ArrayList<FetchExecutionRange>(),
-                        new ArrayList<ImmutablePair<String, SchedulingTimeSpan>>()), "", "");
+                        new ArrayList<ImmutablePair<String, SchedulingTimeSpan>>()), "");
     }
 
     public static QueryMetrics createFromDelimitedStringAndClientSideMetrics(String delimitedString, ClientSideMetrics clientSideMetrics,
-                                                                      String activityId, String indexUtilizationInfoJSONString) {
+                                                                      String activityId) {
         HashMap<String, Double> metrics = QueryMetricsUtils.parseDelimitedString(delimitedString);
         double indexHitRatio;
         double retrievedDocumentCount;
@@ -266,10 +258,6 @@ public final class QueryMetrics {
         double outputDocumentSize = metrics.get(QueryMetricsConstants.OutputDocumentSize);
         double retrievedDocumentSize = metrics.get(QueryMetricsConstants.RetrievedDocumentSize);
         Duration totalQueryExecutionTime = QueryMetricsUtils.getDurationFromMetrics(metrics, QueryMetricsConstants.TotalQueryExecutionTimeInMs);
-        IndexUtilizationInfo indexUtilizationInfo = null;
-        if (indexUtilizationInfoJSONString != null) {
-            indexUtilizationInfo = IndexUtilizationInfo.createFromJSONString(Utils.decodeBase64String(indexUtilizationInfoJSONString));
-        }
 
         List<String> activities = new ArrayList<>();
         activities.add(activityId);
@@ -288,21 +276,11 @@ public final class QueryMetrics {
                 QueryMetricsUtils.getDurationFromMetrics(metrics, QueryMetricsConstants.VMExecutionTimeInMs),
                 RuntimeExecutionTimes.createFromDelimitedString(delimitedString),
                 QueryMetricsUtils.getDurationFromMetrics(metrics, QueryMetricsConstants.DocumentWriteTimeInMs),
-                clientSideMetrics,
-                indexUtilizationInfo);
+                clientSideMetrics);
     }
 
     @Override
     public String toString() {
-        try {
-            return Utils.getDurationEnabledObjectMapper().writeValueAsString(this);
-        } catch (final JsonProcessingException error) {
-            LOGGER.debug("could not convert {} value to JSON due to:", this.getClass(), error);
-            try {
-                return lenientFormat("{\"error\":%s}", Utils.getDurationEnabledObjectMapper().writeValueAsString(error.toString()));
-            } catch (final JsonProcessingException exception) {
-                return "null";
-            }
-        }
+        return toTextString(0);
     }
 }

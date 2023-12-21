@@ -6,45 +6,29 @@ package com.azure.storage.file.datalake.implementation.util;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import reactor.core.Exceptions;
 
-import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class DataLakeImplUtils {
     public static String endpointToDesiredEndpoint(String endpoint, String desiredEndpoint, String currentEndpoint) {
-        // Add the . on either side to prevent overwriting an account name.
+        // Add the . on either side to prevent overwriting an endpoint if a user provides a
         String desiredStringToMatch = "." + desiredEndpoint + ".";
-        String currentRegexToMatch = "\\." + currentEndpoint + "\\.";
+        String currentStringToMatch = "." + currentEndpoint + ".";
         if (endpoint.contains(desiredStringToMatch)) {
             return endpoint;
         } else {
-            return endpoint.replaceFirst(currentRegexToMatch, desiredStringToMatch);
+            return endpoint.replaceFirst(currentStringToMatch, desiredStringToMatch);
         }
     }
 
     public static Throwable transformBlobStorageException(Throwable ex) {
-        if (ex instanceof BlobStorageException) {
-            return transformSingleBlobStorageException((BlobStorageException) ex);
-        } else if (Exceptions.isMultiple(ex)) {
-            List<Throwable> suppressed = Exceptions.unwrapMultiple(ex);
-            suppressed = suppressed.stream().map(e -> {
-                if (e instanceof BlobStorageException) {
-                    return transformSingleBlobStorageException((BlobStorageException) e);
-                } else {
-                    return e;
-                }
-            }).collect(Collectors.toList());
-            return Exceptions.multiple(suppressed);
-        } else {
+        if (!(ex instanceof BlobStorageException)) {
             return ex;
+        } else {
+            BlobStorageException exception = (BlobStorageException) ex;
+            return new DataLakeStorageException(exception.getServiceMessage(), exception.getResponse(),
+                exception.getValue());
         }
-    }
-
-    private static DataLakeStorageException transformSingleBlobStorageException(BlobStorageException ex) {
-        return new DataLakeStorageException(ex.getServiceMessage(), ex.getResponse(),
-            ex.getValue());
     }
 
     public static <T> T returnOrConvertException(Supplier<T> supplier, ClientLogger logger) {

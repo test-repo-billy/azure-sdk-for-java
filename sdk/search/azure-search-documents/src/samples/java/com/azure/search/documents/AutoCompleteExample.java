@@ -10,11 +10,14 @@ import com.azure.core.util.Context;
 import com.azure.search.documents.models.AutocompleteItem;
 import com.azure.search.documents.models.AutocompleteMode;
 import com.azure.search.documents.models.AutocompleteOptions;
+import com.azure.search.documents.models.RequestOptions;
 import com.azure.search.documents.util.AutocompletePagedResponse;
+
+import java.util.UUID;
 
 /**
  * This sample is based on the hotels-sample index available to install from the portal.
- * See https://docs.microsoft.com/azure/search/search-get-started-portal
+ * See https://docs.microsoft.com/en-us/azure/search/search-get-started-portal
  */
 public class AutoCompleteExample {
 
@@ -43,8 +46,11 @@ public class AutoCompleteExample {
         AutocompleteOptions params = new AutocompleteOptions().setAutocompleteMode(
             AutocompleteMode.ONE_TERM_WITH_CONTEXT);
 
+        RequestOptions requestOptions = new RequestOptions()
+            .setClientRequestId(UUID.randomUUID());
+
         PagedIterableBase<AutocompleteItem, AutocompletePagedResponse> results = searchClient.autocomplete("coffee m",
-            "sg", params, Context.NONE);
+            "sg", params, requestOptions, Context.NONE);
 
         System.out.println("Received results with one term context:");
         results.forEach(result -> System.out.println(result.getText()));
@@ -62,8 +68,11 @@ public class AutoCompleteExample {
             .setHighlightPreTag("<b>")
             .setHighlightPostTag("</b>");
 
+        RequestOptions requestOptions = new RequestOptions()
+            .setClientRequestId(UUID.randomUUID());
+
         PagedIterableBase<AutocompleteItem, AutocompletePagedResponse> results = searchClient.autocomplete("co", "sg", params,
-            Context.NONE);
+            requestOptions, Context.NONE);
 
         System.out.println("Received results with highlighting:");
         results.forEach(result -> System.out.println(result.getText()));
@@ -80,8 +89,11 @@ public class AutoCompleteExample {
             .setUseFuzzyMatching(true)
             .setFilter("HotelId ne '6' and Category eq 'Budget'");
 
+        RequestOptions requestOptions = new RequestOptions()
+            .setClientRequestId(UUID.randomUUID());
+
         PagedIterableBase<AutocompleteItem, AutocompletePagedResponse> results = searchClient.autocomplete("su", "sg", params,
-            Context.NONE);
+            requestOptions, Context.NONE);
 
         System.out.println("Received results with filter and fuzzy:");
         results.forEach(result -> System.out.println(result.getText()));

@@ -31,7 +31,6 @@ public final class Constants {
         public static final String COUNT = "_count";
         public static final String E_TAG = "_etag";
         public static final String VALUE = "_value";
-        public static final String TRACKING_ID = "_trackingId";
 
         public static final String CONSISTENCY_POLICY = "consistencyPolicy";
         public static final String DEFAULT_CONSISTENCY_LEVEL = "defaultConsistencyLevel";
@@ -170,7 +169,6 @@ public final class Constants {
       //Authorization
         public static final String MASTER_TOKEN = "master";
         public static final String RESOURCE_TOKEN = "resource";
-        public static final String AAD_TOKEN = "aad";
         public static final String TOKEN_VERSION = "1.0";
         public static final String AUTH_SCHEMA_TYPE = "type";
         public static final String AUTH_VERSION = "ver";
@@ -181,10 +179,6 @@ public final class Constants {
 
         public static final int DEFAULT_MAX_PAGE_SIZE = 100;
         public static final String ENABLE_MULTIPLE_WRITE_LOCATIONS = "enableMultipleWriteLocations";
-
-        // Change feed policy
-        public static final String CHANGE_FEED_POLICY = "changeFeedPolicy";
-        public static final String LOG_RETENTION_DURATION = "retentionDuration";
 
         // Conflict resolution policy
         public static final String CONFLICT_RESOLUTION_POLICY = "conflictResolutionPolicy";
@@ -197,44 +191,6 @@ public final class Constants {
         public static final String SSL_COMPLETION_HANDLER_NAME = "ssl-completion-handler";
         public static final String HTTP_PROXY_HANDLER_NAME = "http-proxy-handler";
         public static final String LOGGING_HANDLER_NAME = "logging-handler";
-
-        // encryption
-        public static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
-        public static final String KEY_WRAP_METADATA = "keyWrapMetadata";
-        public static final String WRAPPED_DATA_ENCRYPTION_KEY = "wrappedDataEncryptionKey";
-        public static final String CLIENT_ENCRYPTION_POLICY = "clientEncryptionPolicy";
-        public static final String  KeyWrapMetadataType = "type";
-        public static final String  KeyWrapMetadataValue = "value";
-        public static final String  EncryptedInfo = "_ei";
-        public final static  String RANDOMIZED = "Randomized";
-        public final static  String DETERMINISTIC = "Deterministic";
-
-        // Feed Ranges
-        public static final String RANGE = "Range";
-        public static final String FEED_RANGE_PARTITION_KEY = "PK";
-        public static final String FEED_RANGE_PARTITION_KEY_RANGE_ID = "PKRangeId";
-
-        // Feed Range Composite Continuation Token
-        public static final String FEED_RANGE_COMPOSITE_CONTINUATION_VERSION = "V";
-        public static final String FEED_RANGE_COMPOSITE_CONTINUATION_RESOURCE_ID = "Rid";
-        public static final String FEED_RANGE_COMPOSITE_CONTINUATION_CONTINUATION = "Continuation";
-
-        // Change feed state
-        public static final String CHANGE_FEED_STATE_VERSION = "V";
-        public static final String CHANGE_FEED_STATE_RESOURCE_ID = "Rid";
-        public static final String CHANGE_FEED_STATE_MODE = "Mode";
-        public static final String CHANGE_FEED_STATE_CONTINUATION = "Continuation";
-        public static final String CHANGE_FEED_STATE_START_FROM = "StartFrom";
-
-        // Change feed startFrom
-        public static final String CHANGE_FEED_START_FROM_TYPE = "Type";
-        public static final String CHANGE_FEED_START_FROM_POINT_IN_TIME_MS = "PointInTimeMs";
-        public static final String CHANGE_FEED_START_FROM_ETAG = "Etag";
-
-        // Computed Properties
-        public static final String COMPUTED_PROPERTIES = "computedProperties";
-        public static final String COMPUTED_PROPERTIES_NAME = "name";
-        public static final String COMPUTED_PROPERTIES_QUERY = "query";
     }
 
     public static final class UrlEncodingInfo {
@@ -251,6 +207,4 @@ public final class Constants {
     public static final class QueryExecutionContext {
         public static final String INCREMENTAL_FEED_HEADER_VALUE = "Incremental feed";
     }
-
-    public static final int QUERYPLAN_CACHE_SIZE = 5000;
 }

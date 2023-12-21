@@ -121,6 +121,12 @@ public interface BatchServiceClient {
     Accounts accounts();
 
     /**
+     * Gets the Jobs object to access its operations.
+     * @return the Jobs object.
+     */
+    Jobs jobs();
+
+    /**
      * Gets the Certificates object to access its operations.
      * @return the Certificates object.
      */
@@ -139,12 +145,6 @@ public interface BatchServiceClient {
     JobSchedules jobSchedules();
 
     /**
-     * Gets the Jobs object to access its operations.
-     * @return the Jobs object.
-     */
-    Jobs jobs();
-
-    /**
      * Gets the Tasks object to access its operations.
      * @return the Tasks object.
      */
@@ -155,11 +155,5 @@ public interface BatchServiceClient {
      * @return the ComputeNodes object.
      */
     ComputeNodes computeNodes();
-
-    /**
-     * Gets the ComputeNodeExtensions object to access its operations.
-     * @return the ComputeNodeExtensions object.
-     */
-    ComputeNodeExtensions computeNodeExtensions();
 
 }

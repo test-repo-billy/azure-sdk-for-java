@@ -14,7 +14,6 @@ import com.microsoft.azure.batch.protocol.Accounts;
 import com.microsoft.azure.batch.protocol.Applications;
 import com.microsoft.azure.batch.protocol.BatchServiceClient;
 import com.microsoft.azure.batch.protocol.Certificates;
-import com.microsoft.azure.batch.protocol.ComputeNodeExtensions;
 import com.microsoft.azure.batch.protocol.ComputeNodes;
 import com.microsoft.azure.batch.protocol.Files;
 import com.microsoft.azure.batch.protocol.Jobs;
@@ -183,6 +182,19 @@ public class BatchServiceClientImpl extends AzureServiceClient implements BatchS
     }
 
     /**
+     * The Jobs object to access its operations.
+     */
+    private Jobs jobs;
+
+    /**
+     * Gets the Jobs object to access its operations.
+     * @return the Jobs object.
+     */
+    public Jobs jobs() {
+        return this.jobs;
+    }
+
+    /**
      * The Certificates object to access its operations.
      */
     private Certificates certificates;
@@ -222,19 +234,6 @@ public class BatchServiceClientImpl extends AzureServiceClient implements BatchS
     }
 
     /**
-     * The Jobs object to access its operations.
-     */
-    private Jobs jobs;
-
-    /**
-     * Gets the Jobs object to access its operations.
-     * @return the Jobs object.
-     */
-    public Jobs jobs() {
-        return this.jobs;
-    }
-
-    /**
      * The Tasks object to access its operations.
      */
     private Tasks tasks;
@@ -258,19 +257,6 @@ public class BatchServiceClientImpl extends AzureServiceClient implements BatchS
      */
     public ComputeNodes computeNodes() {
         return this.computeNodes;
-    }
-
-    /**
-     * The ComputeNodeExtensions object to access its operations.
-     */
-    private ComputeNodeExtensions computeNodeExtensions;
-
-    /**
-     * Gets the ComputeNodeExtensions object to access its operations.
-     * @return the ComputeNodeExtensions object.
-     */
-    public ComputeNodeExtensions computeNodeExtensions() {
-        return this.computeNodeExtensions;
     }
 
     /**
@@ -304,20 +290,19 @@ public class BatchServiceClientImpl extends AzureServiceClient implements BatchS
     }
 
     protected void initialize() {
-        this.apiVersion = "2023-05-01.17.0";
+        this.apiVersion = "2020-03-01.11.0";
         this.acceptLanguage = "en-US";
         this.longRunningOperationRetryTimeout = 30;
         this.generateClientRequestId = true;
         this.applications = new ApplicationsImpl(restClient().retrofit(), this);
         this.pools = new PoolsImpl(restClient().retrofit(), this);
         this.accounts = new AccountsImpl(restClient().retrofit(), this);
+        this.jobs = new JobsImpl(restClient().retrofit(), this);
         this.certificates = new CertificatesImpl(restClient().retrofit(), this);
         this.files = new FilesImpl(restClient().retrofit(), this);
         this.jobSchedules = new JobSchedulesImpl(restClient().retrofit(), this);
-        this.jobs = new JobsImpl(restClient().retrofit(), this);
         this.tasks = new TasksImpl(restClient().retrofit(), this);
         this.computeNodes = new ComputeNodesImpl(restClient().retrofit(), this);
-        this.computeNodeExtensions = new ComputeNodeExtensionsImpl(restClient().retrofit(), this);
         this.azureClient = new AzureClient(this);
     }
 
@@ -328,6 +313,6 @@ public class BatchServiceClientImpl extends AzureServiceClient implements BatchS
      */
     @Override
     public String userAgent() {
-        return String.format("%s (%s, %s)", super.userAgent(), "BatchServiceClient", "2023-05-01.17.0");
+        return String.format("%s (%s, %s)", super.userAgent(), "BatchServiceClient", "2020-03-01.11.0");
     }
 }

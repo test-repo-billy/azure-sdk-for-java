@@ -3,9 +3,10 @@
 
 package com.azure.search.documents.test.environment.models;
 
-import com.azure.search.documents.indexes.SearchableField;
+import com.azure.search.documents.indexes.SearchableFieldProperty;
 
-public class HotelAnalyzerException extends RuntimeException {
+public class HotelAnalyzerException {
+    @SearchableFieldProperty(analyzerName = "en.microsoft", indexAnalyzer = "whitespce")
     private String tag;
 
     /**
@@ -13,7 +14,6 @@ public class HotelAnalyzerException extends RuntimeException {
      *
      * @return The tag of hotel.
      */
-    @SearchableField(analyzerName = "en.microsoft", indexAnalyzerName = "whitespce")
     public String getTag() {
         return tag;
     }

@@ -23,12 +23,6 @@ public class RecognizePrintedTextOptionalParameter {
     private OcrLanguages language;
 
     /**
-     * Optional parameter to specify the version of the AI model. Accepted
-     * values are: "latest", "2021-04-01". Defaults to "latest".
-     */
-    private String modelVersion;
-
-    /**
      * Gets or sets the preferred language for the response.
      */
     private String thisclientacceptLanguage;
@@ -50,26 +44,6 @@ public class RecognizePrintedTextOptionalParameter {
      */
     public RecognizePrintedTextOptionalParameter withLanguage(OcrLanguages language) {
         this.language = language;
-        return this;
-    }
-
-    /**
-     * Get the modelVersion value.
-     *
-     * @return the modelVersion value
-     */
-    public String modelVersion() {
-        return this.modelVersion;
-    }
-
-    /**
-     * Set the modelVersion value.
-     *
-     * @param modelVersion the modelVersion value to set
-     * @return the RecognizePrintedTextOptionalParameter object itself.
-     */
-    public RecognizePrintedTextOptionalParameter withModelVersion(String modelVersion) {
-        this.modelVersion = modelVersion;
         return this;
     }
 

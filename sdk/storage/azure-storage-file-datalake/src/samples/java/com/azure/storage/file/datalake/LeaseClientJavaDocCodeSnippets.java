@@ -12,15 +12,12 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 
 public class LeaseClientJavaDocCodeSnippets {
-    private final DataLakeLeaseClient client = new DataLakeLeaseClientBuilder()
+    private DataLakeLeaseClient client = new DataLakeLeaseClientBuilder()
         .fileClient(JavaDocCodeSnippetsHelpers.getFileClient("fileName"))
         .buildClient();
-    private final Duration timeout = Duration.ofSeconds(30);
-    private final String key = "key";
-    private final String value = "value";
-    private final RequestConditions yourOptionalRequestConditions = new RequestConditions()
-        .setIfModifiedSince(OffsetDateTime.now().minusDays(3))
-        .setIfUnmodifiedSince(OffsetDateTime.now().minusHours(3));
+    private Duration timeout = Duration.ofSeconds(30);
+    private String key = "key";
+    private String value = "value";
 
     /**
      * Code snippets for {@link DataLakeLeaseClient#acquireLease(int)}
@@ -73,11 +70,8 @@ public class LeaseClientJavaDocCodeSnippets {
      */
     public void acquireLeaseWithResponseCodeSnippets() {
         // BEGIN: com.azure.storage.file.datalake.specialized.DataLakeLeaseClient.acquireLeaseWithResponse#int-RequestConditions-Duration-Context
-        // Optional HTTP request conditions that can be used to narrow the scope of the request.
-        // The request conditions can be used to have the leasing request only succeed if the resource has been
-        // modified and/or unmodified within a certain time frame and/or matches and/or doesn't match a specific ETag,
-        // or any ETag.
-        RequestConditions modifiedRequestConditions = yourOptionalRequestConditions;
+        RequestConditions modifiedRequestConditions = new RequestConditions()
+            .setIfModifiedSince(OffsetDateTime.now().minusDays(3));
 
         System.out.printf("Lease ID is %s%n", client
             .acquireLeaseWithResponse(60, modifiedRequestConditions, timeout, new Context(key, value))
@@ -90,11 +84,8 @@ public class LeaseClientJavaDocCodeSnippets {
      */
     public void renewLeaseWithResponseCodeSnippets() {
         // BEGIN: com.azure.storage.file.datalake.specialized.DataLakeLeaseClient.renewLeaseWithResponse#RequestConditions-Duration-Context
-        // Optional HTTP request conditions that can be used to narrow the scope of the request.
-        // The request conditions can be used to have the leasing request only succeed if the resource has been
-        // modified and/or unmodified within a certain time frame and/or matches and/or doesn't match a specific ETag,
-        // or any ETag.
-        RequestConditions modifiedRequestConditions = yourOptionalRequestConditions;
+        RequestConditions modifiedRequestConditions = new RequestConditions()
+            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
 
         System.out.printf("Renewed lease ID is %s%n",
             client.renewLeaseWithResponse(modifiedRequestConditions, timeout, new Context(key, value))
@@ -107,11 +98,8 @@ public class LeaseClientJavaDocCodeSnippets {
      */
     public void releaseLeaseWithResponseCodeSnippets() {
         // BEGIN: com.azure.storage.file.datalake.specialized.DataLakeLeaseClient.releaseLeaseWithResponse#RequestConditions-Duration-Context
-        // Optional HTTP request conditions that can be used to narrow the scope of the request.
-        // The request conditions can be used to have the leasing request only succeed if the resource has been
-        // modified and/or unmodified within a certain time frame and/or matches and/or doesn't match a specific ETag,
-        // or any ETag.
-        RequestConditions modifiedRequestConditions = yourOptionalRequestConditions;
+        RequestConditions modifiedRequestConditions = new RequestConditions()
+            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
 
         System.out.printf("Release lease completed with status %d%n",
             client.releaseLeaseWithResponse(modifiedRequestConditions, timeout, new Context(key, value))
@@ -125,11 +113,8 @@ public class LeaseClientJavaDocCodeSnippets {
     public void breakLeaseWithResponseCodeSnippets() {
         // BEGIN: com.azure.storage.file.datalake.specialized.DataLakeLeaseClient.breakLeaseWithResponse#Integer-RequestConditions-Duration-Context
         Integer retainLeaseInSeconds = 5;
-        // Optional HTTP request conditions that can be used to narrow the scope of the request.
-        // The request conditions can be used to have the leasing request only succeed if the resource has been
-        // modified and/or unmodified within a certain time frame and/or matches and/or doesn't match a specific ETag,
-        // or any ETag.
-        RequestConditions modifiedRequestConditions = yourOptionalRequestConditions;
+        RequestConditions modifiedRequestConditions = new RequestConditions()
+            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
 
         System.out.printf("The broken lease has %d seconds remaining on the lease", client
             .breakLeaseWithResponse(retainLeaseInSeconds, modifiedRequestConditions, timeout, new Context(key, value))
@@ -142,11 +127,8 @@ public class LeaseClientJavaDocCodeSnippets {
      */
     public void changeLeaseWithResponseCodeSnippets() {
         // BEGIN: com.azure.storage.file.datalake.specialized.DataLakeLeaseClient.changeLeaseWithResponse#String-RequestConditions-Duration-Context
-        // Optional HTTP request conditions that can be used to narrow the scope of the request.
-        // The request conditions can be used to have the leasing request only succeed if the resource has been
-        // modified and/or unmodified within a certain time frame and/or matches and/or doesn't match a specific ETag,
-        // or any ETag.
-        RequestConditions modifiedRequestConditions = yourOptionalRequestConditions;
+        RequestConditions modifiedRequestConditions = new RequestConditions()
+            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
 
         System.out.printf("Changed lease ID is %s%n",
             client.changeLeaseWithResponse("proposedId", modifiedRequestConditions, timeout, new Context(key, value))

@@ -17,10 +17,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class JobScheduleUpdateParameter {
     /**
      * The schedule according to which Jobs will be created.
-     * All times are fixed respective to UTC and are not impacted by daylight
-     * saving time. If you do not specify this element, it is equivalent to
-     * passing the default schedule: that is, a single Job scheduled to run
-     * immediately.
+     * If you do not specify this element, it is equivalent to passing the
+     * default schedule: that is, a single Job scheduled to run immediately.
      */
     @JsonProperty(value = "schedule", required = true)
     private Schedule schedule;
@@ -42,7 +40,7 @@ public class JobScheduleUpdateParameter {
     private List<MetadataItem> metadata;
 
     /**
-     * Get all times are fixed respective to UTC and are not impacted by daylight saving time. If you do not specify this element, it is equivalent to passing the default schedule: that is, a single Job scheduled to run immediately.
+     * Get if you do not specify this element, it is equivalent to passing the default schedule: that is, a single Job scheduled to run immediately.
      *
      * @return the schedule value
      */
@@ -51,7 +49,7 @@ public class JobScheduleUpdateParameter {
     }
 
     /**
-     * Set all times are fixed respective to UTC and are not impacted by daylight saving time. If you do not specify this element, it is equivalent to passing the default schedule: that is, a single Job scheduled to run immediately.
+     * Set if you do not specify this element, it is equivalent to passing the default schedule: that is, a single Job scheduled to run immediately.
      *
      * @param schedule the schedule value to set
      * @return the JobScheduleUpdateParameter object itself.

@@ -27,43 +27,15 @@ import java.util.UUID;
  *
  * <p><strong>Instantiating LeaseClients</strong></p>
  *
- * <!-- src_embed com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithBlobAndLeaseId -->
- * <pre>
- * BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder&#40;&#41;
- *     .blobClient&#40;blobClient&#41;
- *     .leaseId&#40;leaseId&#41;
- *     .buildClient&#40;&#41;;
- * </pre>
- * <!-- end com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithBlobAndLeaseId -->
+ * {@codesnippet com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithBlobAndLeaseId}
  *
- * <!-- src_embed com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithContainerAndLeaseId -->
- * <pre>
- * BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder&#40;&#41;
- *     .containerClient&#40;blobContainerClient&#41;
- *     .leaseId&#40;leaseId&#41;
- *     .buildClient&#40;&#41;;
- * </pre>
- * <!-- end com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithContainerAndLeaseId -->
+ * {@codesnippet com.azure.storage.blob.specialized.BlobLeaseClientBuilder.syncInstantiationWithContainerAndLeaseId}
  *
  * <p><strong>Instantiating LeaseAsyncClients</strong></p>
  *
- * <!-- src_embed com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithBlobAndLeaseId -->
- * <pre>
- * BlobLeaseAsyncClient blobLeaseAsyncClient = new BlobLeaseClientBuilder&#40;&#41;
- *     .blobAsyncClient&#40;blobAsyncClient&#41;
- *     .leaseId&#40;leaseId&#41;
- *     .buildAsyncClient&#40;&#41;;
- * </pre>
- * <!-- end com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithBlobAndLeaseId -->
+ * {@codesnippet com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithBlobAndLeaseId}
  *
- * <!-- src_embed com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithContainerAndLeaseId -->
- * <pre>
- * BlobLeaseAsyncClient blobLeaseAsyncClient = new BlobLeaseClientBuilder&#40;&#41;
- *     .containerAsyncClient&#40;blobContainerAsyncClient&#41;
- *     .leaseId&#40;leaseId&#41;
- *     .buildAsyncClient&#40;&#41;;
- * </pre>
- * <!-- end com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithContainerAndLeaseId -->
+ * {@codesnippet com.azure.storage.blob.specialized.BlobLeaseClientBuilder.asyncInstantiationWithContainerAndLeaseId}
  *
  * @see BlobLeaseClient
  * @see BlobLeaseAsyncClient
@@ -72,8 +44,6 @@ import java.util.UUID;
 public final class BlobLeaseClientBuilder {
     private HttpPipeline pipeline;
     private String url;
-    private String containerName;
-    private String blobName;
     private String leaseId;
     private boolean isBlob;
     private String accountName;
@@ -95,7 +65,7 @@ public final class BlobLeaseClientBuilder {
      */
     public BlobLeaseAsyncClient buildAsyncClient() {
         BlobServiceVersion version = (serviceVersion == null) ? BlobServiceVersion.getLatest() : serviceVersion;
-        return new BlobLeaseAsyncClient(pipeline, url, containerName, blobName, getLeaseId(), isBlob, accountName, version.getVersion());
+        return new BlobLeaseAsyncClient(pipeline, url, getLeaseId(), isBlob, accountName, version.getVersion());
     }
 
     /**
@@ -109,9 +79,7 @@ public final class BlobLeaseClientBuilder {
     public BlobLeaseClientBuilder blobClient(BlobClientBase blobClient) {
         Objects.requireNonNull(blobClient);
         this.pipeline = blobClient.getHttpPipeline();
-        this.url = blobClient.getAccountUrl();
-        this.containerName = blobClient.getContainerName();
-        this.blobName = blobClient.getBlobName();
+        this.url = blobClient.getBlobUrl();
         this.isBlob = true;
         this.accountName = blobClient.getAccountName();
         this.serviceVersion = blobClient.getServiceVersion();
@@ -129,9 +97,7 @@ public final class BlobLeaseClientBuilder {
     public BlobLeaseClientBuilder blobAsyncClient(BlobAsyncClientBase blobAsyncClient) {
         Objects.requireNonNull(blobAsyncClient);
         this.pipeline = blobAsyncClient.getHttpPipeline();
-        this.url = blobAsyncClient.getAccountUrl();
-        this.containerName = blobAsyncClient.getContainerName();
-        this.blobName = blobAsyncClient.getBlobName();
+        this.url = blobAsyncClient.getBlobUrl();
         this.isBlob = true;
         this.accountName = blobAsyncClient.getAccountName();
         this.serviceVersion = blobAsyncClient.getServiceVersion();
@@ -149,8 +115,7 @@ public final class BlobLeaseClientBuilder {
     public BlobLeaseClientBuilder containerClient(BlobContainerClient blobContainerClient) {
         Objects.requireNonNull(blobContainerClient);
         this.pipeline = blobContainerClient.getHttpPipeline();
-        this.url = blobContainerClient.getAccountUrl();
-        this.containerName = blobContainerClient.getBlobContainerName();
+        this.url = blobContainerClient.getBlobContainerUrl();
         this.isBlob = false;
         this.accountName = blobContainerClient.getAccountName();
         this.serviceVersion = blobContainerClient.getServiceVersion();
@@ -168,8 +133,7 @@ public final class BlobLeaseClientBuilder {
     public BlobLeaseClientBuilder containerAsyncClient(BlobContainerAsyncClient blobContainerAsyncClient) {
         Objects.requireNonNull(blobContainerAsyncClient);
         this.pipeline = blobContainerAsyncClient.getHttpPipeline();
-        this.url = blobContainerAsyncClient.getAccountUrl();
-        this.containerName = blobContainerAsyncClient.getBlobContainerName();
+        this.url = blobContainerAsyncClient.getBlobContainerUrl();
         this.isBlob = false;
         this.accountName = blobContainerAsyncClient.getAccountName();
         this.serviceVersion = blobContainerAsyncClient.getServiceVersion();

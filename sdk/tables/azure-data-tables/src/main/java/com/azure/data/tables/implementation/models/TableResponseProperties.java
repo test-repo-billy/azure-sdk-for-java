@@ -6,10 +6,8 @@ package com.azure.data.tables.implementation.models;
 
 import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** The properties for the table response. */
-@JacksonXmlRootElement(localName = "TableResponseProperties")
+/** The TableResponseProperties model. */
 @Fluent
 public class TableResponseProperties {
     /*
@@ -35,9 +33,6 @@ public class TableResponseProperties {
      */
     @JsonProperty(value = "odata.editLink")
     private String odataEditLink;
-
-    /** Creates an instance of TableResponseProperties class. */
-    public TableResponseProperties() {}
 
     /**
      * Get the tableName property: The name of the table.

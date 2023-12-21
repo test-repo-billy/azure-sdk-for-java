@@ -3,8 +3,6 @@
 
 package com.azure.core.http.policy;
 
-import com.azure.core.implementation.http.policy.InstrumentationPolicy;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -19,15 +17,8 @@ public final class HttpPolicyProviders {
     private static final List<AfterRetryPolicyProvider> AFTER_PROVIDER = new ArrayList<>();
 
     static {
-        // Use as classloader to load provider-configuration files and provider classes the classloader
-        // that loaded this class. In most cases this will be the System classloader.
-        // But this choice here provides additional flexibility in managed environments that control
-        // classloading differently (OSGi, Spring and others) and don't depend on the
-        // System classloader to load BeforeRetryPolicyProvider and AfterRetryPolicyProvider classes.
-        ServiceLoader.load(BeforeRetryPolicyProvider.class, HttpPolicyProviders.class.getClassLoader())
-            .forEach(BEFORE_PROVIDER::add);
-        ServiceLoader.load(AfterRetryPolicyProvider.class, HttpPolicyProviders.class.getClassLoader())
-            .forEach(AFTER_PROVIDER::add);
+        ServiceLoader.load(BeforeRetryPolicyProvider.class).forEach(BEFORE_PROVIDER::add);
+        ServiceLoader.load(AfterRetryPolicyProvider.class).forEach(AFTER_PROVIDER::add);
     }
 
     private HttpPolicyProviders() {
@@ -49,7 +40,6 @@ public final class HttpPolicyProviders {
      * @param policies Policy list to append the policies.
      */
     public static void addAfterRetryPolicies(List<HttpPipelinePolicy> policies) {
-        policies.add(new InstrumentationPolicy());
         addPolices(policies, AFTER_PROVIDER);
     }
 

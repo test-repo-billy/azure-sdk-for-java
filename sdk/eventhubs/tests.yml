@@ -1,7 +1,7 @@
 trigger: none
 
-stages:
-  - template: /eng/pipelines/templates/stages/archetype-sdk-tests.yml
+jobs:
+  - template: ../../eng/pipelines/templates/jobs/archetype-sdk-tests.yml
     parameters:
       ServiceDirectory: eventhubs
       Artifacts:
@@ -11,15 +11,7 @@ stages:
         - name: azure-messaging-eventhubs-checkpointstore-blob
           groupId: com.azure
           safeName: azuremessagingeventhubscheckpointstoreblob
-        - name: azure-messaging-eventhubs-checkpointstore-jedis
-          groupId: com.azure
-          safeName: azuremessagingeventhubscheckpointstorejedis
       TimeoutInMinutes: 120
-      SupportedClouds: 'Public,UsGov,China'
       EnvVars:
+        AZURE_TEST_MODE: RECORD
         AZURE_LOG_LEVEL: 2
-      AdditionalMatrixConfigs:
-        - Name: version_overrides_tests
-          Path: sdk/eventhubs/version-overrides-matrix.json
-          Selection: all
-          GenerateVMJobs: true

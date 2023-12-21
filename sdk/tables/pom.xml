@@ -8,9 +8,7 @@
   <artifactId>azure-tables-service</artifactId>
   <packaging>pom</packaging>
   <version>1.0.0</version><!-- Need not change for every release-->
-
   <modules>
-      <module>azure-data-tables</module>
-      <module>azure-data-tables-perf</module>
+    <module>azure-data-tables</module>
   </modules>
 </project>

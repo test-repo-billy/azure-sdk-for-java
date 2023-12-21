@@ -3,9 +3,7 @@
 package com.azure.cosmos;
 
 import com.azure.core.util.Context;
-import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.Paths;
-import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.StoredProcedure;
 import com.azure.cosmos.models.CosmosStoredProcedureResponse;
 import com.azure.cosmos.models.CosmosStoredProcedureProperties;
@@ -21,8 +19,8 @@ import java.util.List;
  */
 public class CosmosAsyncStoredProcedure {
 
-    private final CosmosAsyncContainer cosmosContainer;
     @SuppressWarnings("EnforceFinalFields")
+    private final CosmosAsyncContainer cosmosContainer;
     private String id;
 
     CosmosAsyncStoredProcedure(String id, CosmosAsyncContainer cosmosContainer) {
@@ -76,6 +74,10 @@ public class CosmosAsyncStoredProcedure {
      * @return an {@link Mono} containing the single resource response with the read stored procedure or an error.
      */
     public Mono<CosmosStoredProcedureResponse> read(CosmosStoredProcedureRequestOptions options) {
+        if (!cosmosContainer.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return readInternal(options);
+        }
+
         return withContext(context -> readInternal(options, context));
     }
 
@@ -105,6 +107,10 @@ public class CosmosAsyncStoredProcedure {
      * @return an {@link Mono} containing the single resource response for the deleted stored procedure or an error.
      */
     public Mono<CosmosStoredProcedureResponse> delete(CosmosStoredProcedureRequestOptions options) {
+        if (!cosmosContainer.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return deleteInternal(options);
+        }
+
         return withContext(context -> deleteInternal(options, context));
     }
 
@@ -122,6 +128,10 @@ public class CosmosAsyncStoredProcedure {
      */
     public Mono<CosmosStoredProcedureResponse> execute(List<Object> procedureParams,
                                                             CosmosStoredProcedureRequestOptions options) {
+        if (!cosmosContainer.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return executeInternal(procedureParams, options);
+        }
+
         return withContext(context -> executeInternal(procedureParams, options, context));
     }
 
@@ -154,6 +164,10 @@ public class CosmosAsyncStoredProcedure {
      */
     public Mono<CosmosStoredProcedureResponse> replace(CosmosStoredProcedureProperties storedProcedureProperties,
                                                             CosmosStoredProcedureRequestOptions options) {
+        if (!cosmosContainer.getDatabase().getClient().getTracerProvider().isEnabled()) {
+            return replaceInternal(storedProcedureProperties, options);
+        }
+
         return withContext(context -> replaceInternal(storedProcedureProperties, options,
             context));
     }
@@ -167,123 +181,99 @@ public class CosmosAsyncStoredProcedure {
     }
 
     String getLink() {
-        return getParentLink()
-            + "/"
-            + getURIPathSegment()
-            + "/"
-            + getId();
+        StringBuilder builder = new StringBuilder();
+        builder.append(getParentLink());
+        builder.append("/");
+        builder.append(getURIPathSegment());
+        builder.append("/");
+        builder.append(getId());
+        return builder.toString();
     }
 
     private Mono<CosmosStoredProcedureResponse> readInternal(CosmosStoredProcedureRequestOptions options,
                                                           Context context) {
-        if (options == null) {
-            options = new CosmosStoredProcedureRequestOptions();
-        }
-
         String spanName = "readStoredProcedure." + cosmosContainer.getId();
-        Mono<CosmosStoredProcedureResponse> responseMono = cosmosContainer
-            .getDatabase()
-            .getDocClientWrapper()
-            .readStoredProcedure(
-                getLink(),
-                ModelBridgeInternal.toRequestOptions(options))
-            .map(ModelBridgeInternal::createCosmosStoredProcedureResponse).single();
-        CosmosAsyncClient client = cosmosContainer.getDatabase().getClient();
-
-        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
-            responseMono,
+        Mono<CosmosStoredProcedureResponse> responseMono = readInternal(options);
+        return this.cosmosContainer.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono,
             context,
             spanName,
             cosmosContainer.getDatabase().getId(),
-            cosmosContainer.getId(),
-            client,
-            null,
-            OperationType.Read,
-            ResourceType.StoredProcedure,
-            ModelBridgeInternal.toRequestOptions(options));
+            cosmosContainer.getDatabase().getClient().getServiceEndpoint());
+    }
+
+    private Mono<CosmosStoredProcedureResponse> readInternal(CosmosStoredProcedureRequestOptions options) {
+        if (options == null) {
+            options = new CosmosStoredProcedureRequestOptions();
+        }
+        return cosmosContainer.getDatabase().getDocClientWrapper().readStoredProcedure(getLink(),
+            ModelBridgeInternal.toRequestOptions(options))
+            .map(response -> ModelBridgeInternal.createCosmosStoredProcedureResponse(response)).single();
     }
 
     private Mono<CosmosStoredProcedureResponse> deleteInternal(CosmosStoredProcedureRequestOptions options,
                                                             Context context) {
+        String spanName = "deleteStoredProcedure." + cosmosContainer.getId();
+        Mono<CosmosStoredProcedureResponse> responseMono = deleteInternal(options);
+        return this.cosmosContainer.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono,
+            context,
+            spanName,
+            cosmosContainer.getDatabase().getId(),
+            cosmosContainer.getDatabase().getClient().getServiceEndpoint());
+    }
+
+    private Mono<CosmosStoredProcedureResponse> deleteInternal(CosmosStoredProcedureRequestOptions options) {
         if (options == null) {
             options = new CosmosStoredProcedureRequestOptions();
         }
 
-        String spanName = "deleteStoredProcedure." + cosmosContainer.getId();
-        Mono<CosmosStoredProcedureResponse> responseMono = cosmosContainer.getDatabase()
+        return cosmosContainer.getDatabase()
             .getDocClientWrapper()
             .deleteStoredProcedure(getLink(), ModelBridgeInternal.toRequestOptions(options))
-            .map(ModelBridgeInternal::createCosmosStoredProcedureResponse)
+            .map(response -> ModelBridgeInternal.createCosmosStoredProcedureResponse(response))
             .single();
-        CosmosAsyncClient client = cosmosContainer.getDatabase().getClient();
-
-        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(responseMono,
-            context,
-            spanName,
-            cosmosContainer.getDatabase().getId(),
-            cosmosContainer.getId(),
-            client,
-            null,
-            OperationType.Delete,
-            ResourceType.StoredProcedure,
-            ModelBridgeInternal.toRequestOptions(options));
     }
 
     private Mono<CosmosStoredProcedureResponse> executeInternal(List<Object> procedureParams,
                                                              CosmosStoredProcedureRequestOptions options,
                                                              Context context) {
+        String spanName = "executeStoredProcedure." + cosmosContainer.getId();
+        Mono<CosmosStoredProcedureResponse> responseMono = executeInternal(procedureParams, options);
+        return this.cosmosContainer.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context, spanName, cosmosContainer.getDatabase().getId(), cosmosContainer.getDatabase().getClient().getServiceEndpoint());
+    }
+
+    private Mono<CosmosStoredProcedureResponse> executeInternal(List<Object> procedureParams,
+                                                                     CosmosStoredProcedureRequestOptions options) {
         if (options == null) {
             options = new CosmosStoredProcedureRequestOptions();
         }
 
-        String spanName = "executeStoredProcedure." + cosmosContainer.getId();
-        Mono<CosmosStoredProcedureResponse> responseMono = cosmosContainer.getDatabase()
+        return cosmosContainer.getDatabase()
             .getDocClientWrapper()
             .executeStoredProcedure(getLink(), ModelBridgeInternal.toRequestOptions(options), procedureParams)
-            .map(ModelBridgeInternal::createCosmosStoredProcedureResponse)
+            .map(response -> ModelBridgeInternal.createCosmosStoredProcedureResponse(response))
             .single();
-        CosmosAsyncClient client = cosmosContainer.getDatabase().getClient();
-
-        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
-            responseMono,
-            context,
-            spanName,
-            cosmosContainer.getDatabase().getId(),
-            cosmosContainer.getId(),
-            client,
-            null,
-            OperationType.ExecuteJavaScript,
-            ResourceType.StoredProcedure,
-            ModelBridgeInternal.toRequestOptions(options));
     }
 
     private Mono<CosmosStoredProcedureResponse> replaceInternal(CosmosStoredProcedureProperties storedProcedureSettings,
                                                              CosmosStoredProcedureRequestOptions options,
                                                              Context context) {
+        String spanName = "replaceStoredProcedure." + cosmosContainer.getId();
+        Mono<CosmosStoredProcedureResponse> responseMono = replaceInternal(storedProcedureSettings, options);
+        return this.cosmosContainer.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context, spanName, cosmosContainer.getDatabase().getId(), cosmosContainer.getDatabase().getClient().getServiceEndpoint());
+    }
+
+    private Mono<CosmosStoredProcedureResponse> replaceInternal(CosmosStoredProcedureProperties storedProcedureSettings,
+                                                                     CosmosStoredProcedureRequestOptions options) {
         if (options == null) {
             options = new CosmosStoredProcedureRequestOptions();
         }
 
-        String spanName = "replaceStoredProcedure." + cosmosContainer.getId();
-        Mono<CosmosStoredProcedureResponse> responseMono = cosmosContainer.getDatabase()
+        return cosmosContainer.getDatabase()
             .getDocClientWrapper()
             .replaceStoredProcedure(new StoredProcedure(ModelBridgeInternal.toJsonFromJsonSerializable(
                 ModelBridgeInternal.getResource(storedProcedureSettings))),
                 ModelBridgeInternal.toRequestOptions(options))
-            .map(ModelBridgeInternal::createCosmosStoredProcedureResponse)
+            .map(response -> ModelBridgeInternal.createCosmosStoredProcedureResponse(response))
             .single();
-        CosmosAsyncClient client = cosmosContainer.getDatabase().getClient();
-
-        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
-            responseMono,
-            context,
-            spanName,
-            cosmosContainer.getDatabase().getId(),
-            cosmosContainer.getId(),
-            client,
-            null,
-            OperationType.Replace,
-            ResourceType.StoredProcedure,
-            ModelBridgeInternal.toRequestOptions(options));
     }
 }

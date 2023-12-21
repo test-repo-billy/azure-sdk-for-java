@@ -9,7 +9,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.Map;
 
-/** An Azure Storage Queue. */
+/**
+ * An Azure Storage Queue.
+ */
 @JacksonXmlRootElement(localName = "Queue")
 @Fluent
 public final class QueueItem {
@@ -20,13 +22,10 @@ public final class QueueItem {
     private String name;
 
     /*
-     * Dictionary of <string>
+     * The metadata property.
      */
     @JsonProperty(value = "Metadata")
     private Map<String, String> metadata;
-
-    /** Creates an instance of QueueItem class. */
-    public QueueItem() {}
 
     /**
      * Get the name property: The name of the Queue.
@@ -49,7 +48,7 @@ public final class QueueItem {
     }
 
     /**
-     * Get the metadata property: Dictionary of &lt;string&gt;.
+     * Get the metadata property: The metadata property.
      *
      * @return the metadata value.
      */
@@ -58,7 +57,7 @@ public final class QueueItem {
     }
 
     /**
-     * Set the metadata property: Dictionary of &lt;string&gt;.
+     * Set the metadata property: The metadata property.
      *
      * @param metadata the metadata value to set.
      * @return the QueueItem object itself.

@@ -3,14 +3,14 @@
 
 package com.azure.ai.formrecognizer.models;
 
-import com.azure.ai.formrecognizer.implementation.FormTableHelper;
+import com.azure.core.annotation.Immutable;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Represents a table recognized from the input document.
+ * The FormTable model.
  */
+@Immutable
 public final class FormTable {
 
     /*
@@ -31,57 +31,46 @@ public final class FormTable {
     /*
      * The 1 based page number.
      */
-    private final int pageNumber;
-
-    private FieldBoundingBox boundingBox;
-
-    static {
-        FormTableHelper.setAccessor(new FormTableHelper.FormTableAccessor() {
-            @Override
-            public void setBoundingBox(FormTable formTable, FieldBoundingBox boundingBox) {
-                formTable.setBoundingBox(boundingBox);
-            }
-        });
-    }
+    private final Integer pageNumber;
 
     /**
      * Constructs a FormTable object.
      *
-     * @param rowCount the number of rows in the table.
-     * @param columnCount the number of columns in the table.
-     * @param cells the list of cells contained in the table.
+     * @param rowCount Number of rows.
+     * @param columnCount Number of columns.
+     * @param cells ist of cells contained in the table.
      * @param pageNumber the 1-based page number in the input document.
      */
     public FormTable(final int rowCount, final int columnCount, final List<FormTableCell> cells,
-        final int pageNumber) {
+        final Integer pageNumber) {
         this.rowCount = rowCount;
         this.columnCount = columnCount;
-        this.cells = cells == null ? null : Collections.unmodifiableList(cells);
+        this.cells = cells;
         this.pageNumber = pageNumber;
     }
 
     /**
-     * Get the number of rows in the table.
+     * Get the rows property: Number of rows.
      *
-     * @return the number of rows in the table.
+     * @return the rows value.
      */
     public int getRowCount() {
         return this.rowCount;
     }
 
     /**
-     * Get the number of columns in the table.
+     * Get the columns property: Number of columns.
      *
-     * @return the number of columns in the table.
+     * @return the columns value.
      */
     public int getColumnCount() {
         return this.columnCount;
     }
 
     /**
-     * Get the list of cells contained in the table.
+     * Get the cells property: List of cells contained in the table.
      *
-     * @return the unmodifiable list of cells in the table.
+     * @return the cells value.
      */
     public List<FormTableCell> getCells() {
         return this.cells;
@@ -90,30 +79,9 @@ public final class FormTable {
     /**
      * Get the 1-based page number in the input document.
      *
-     * @return the 1-based page number in the input document.
+     * @return the page number value.
      */
-    public int getPageNumber() {
+    public Integer getPageNumber() {
         return this.pageNumber;
-    }
-
-    /**
-     * The private setter to set the appearance property
-     * via {@link FormTableHelper.FormTableAccessor}.
-     *
-     * @param boundingBox the bounding box of the form table.
-     * @return the updated FormTable object.
-     */
-    private FormTable setBoundingBox(FieldBoundingBox boundingBox) {
-        this.boundingBox = boundingBox;
-        return this;
-    }
-
-    /**
-     * Get the bounding box information for the the form table.
-     *
-     * @return the bounding box information for the the form table.
-     */
-    public FieldBoundingBox getBoundingBox() {
-        return boundingBox;
     }
 }

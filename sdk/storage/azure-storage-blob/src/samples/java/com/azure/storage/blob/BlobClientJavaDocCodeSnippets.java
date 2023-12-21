@@ -4,14 +4,12 @@
 package com.azure.storage.blob;
 
 import com.azure.core.http.RequestConditions;
-import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
 import com.azure.storage.blob.models.AccessTier;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobRange;
 import com.azure.storage.blob.models.BlobRequestConditions;
-import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 import com.azure.storage.blob.models.DeleteSnapshotsOptionType;
 import com.azure.storage.blob.models.DownloadRetryOptions;
 import com.azure.storage.blob.models.ParallelTransferOptions;
@@ -36,8 +34,7 @@ import java.util.Map;
  */
 @SuppressWarnings("unused")
 public class BlobClientJavaDocCodeSnippets {
-    private BlobClient client = new BlobClientBuilder().endpoint("https://storageaccount.blob.core.windows.net")
-        .containerName("containerName").blobName("blobName").sasToken("sasToken").buildClient();
+    private BlobClient client = JavaDocCodeSnippetsHelpers.getBlobClient("blobName");
     private String leaseId = "leaseId";
     private String copyId = "copyId";
     private String url = "https://sample.com";
@@ -89,16 +86,6 @@ public class BlobClientJavaDocCodeSnippets {
     }
 
     /**
-     * Code snippets for {@link BlobClient#downloadContent()}
-     */
-    public void downloadContent() {
-        // BEGIN: com.azure.storage.blob.BlobClient.downloadContent
-        BinaryData data = client.downloadContent();
-        System.out.printf("Downloaded %s", data.toString());
-        // END: com.azure.storage.blob.BlobClient.downloadContent
-    }
-
-    /**
      * Code snippets for {@link BlobClient#downloadToFile(String)} and
      * {@link BlobClient#downloadToFileWithResponse(String, BlobRange, ParallelTransferOptions, DownloadRetryOptions, BlobRequestConditions, boolean, Duration, Context)}
      */
@@ -112,7 +99,7 @@ public class BlobClientJavaDocCodeSnippets {
         BlobRange range = new BlobRange(1024, 2048L);
         DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(5);
 
-        client.downloadToFileWithResponse(file, range, new ParallelTransferOptions().setBlockSizeLong(4L * Constants.MB),
+        client.downloadToFileWithResponse(file, range, new ParallelTransferOptions(4 * Constants.MB, null, null),
             options, null, false, timeout, new Context(key2, value2));
         System.out.println("Completed download to file");
         // END: com.azure.storage.blob.BlobClient.downloadToFileWithResponse#String-BlobRange-ParallelTransferOptions-DownloadRetryOptions-BlobRequestConditions-boolean-Duration-Context
@@ -367,18 +354,8 @@ public class BlobClientJavaDocCodeSnippets {
     public void getContainerName() {
         // BEGIN: com.azure.storage.blob.specialized.BlobClientBase.getContainerName
         String containerName = client.getContainerName();
-        System.out.println("The name of the container is " + containerName);
+        System.out.println("The name of the blob is " + containerName);
         // END: com.azure.storage.blob.specialized.BlobClientBase.getContainerName
-    }
-
-    /**
-     * Generates a code sample for using {@link BlobClient#getContainerClient()}
-     */
-    public void getContainerClient() {
-        // BEGIN: com.azure.storage.blob.specialized.BlobClientBase.getContainerClient
-        BlobContainerClient containerClient = client.getContainerClient();
-        System.out.println("The name of the container is " + containerClient.getBlobContainerName());
-        // END: com.azure.storage.blob.specialized.BlobClientBase.getContainerClient
     }
 
     /**
@@ -440,8 +417,8 @@ public class BlobClientJavaDocCodeSnippets {
         BlobRequestConditions requestConditions = new BlobRequestConditions()
             .setLeaseId(leaseId)
             .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
-        Long blockSize = 100L * 1024L * 1024L; // 100 MB;
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions().setBlockSizeLong(blockSize);
+        Integer blockSize = 100 * 1024 * 1024; // 100 MB;
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions(blockSize, null, null);
 
         try {
             client.uploadFromFile(filePath, parallelTransferOptions, headers, metadata,
@@ -451,37 +428,5 @@ public class BlobClientJavaDocCodeSnippets {
             System.err.printf("Failed to upload from file %s%n", ex.getMessage());
         }
         // END: com.azure.storage.blob.BlobClient.uploadFromFile#String-ParallelTransferOptions-BlobHttpHeaders-Map-AccessTier-BlobRequestConditions-Duration
-    }
-
-    /**
-     * Code snippet for {@link BlobClient#uploadFromFileWithResponse(BlobUploadFromFileOptions, Duration, Context)}
-     *
-     * @throws IOException If an I/O error occurs
-     */
-    public void uploadFromFile3() throws IOException {
-        // BEGIN: com.azure.storage.blob.BlobClient.uploadFromFileWithResponse#BlobUploadFromFileOptions-Duration-Context
-        BlobHttpHeaders headers = new BlobHttpHeaders()
-            .setContentMd5("data".getBytes(StandardCharsets.UTF_8))
-            .setContentLanguage("en-US")
-            .setContentType("binary");
-
-        Map<String, String> metadata = Collections.singletonMap("metadata", "value");
-        Map<String, String> tags = Collections.singletonMap("tag", "value");
-        BlobRequestConditions requestConditions = new BlobRequestConditions()
-            .setLeaseId(leaseId)
-            .setIfUnmodifiedSince(OffsetDateTime.now().minusDays(3));
-        Long blockSize = 100 * 1024 * 1024L; // 100 MB;
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions().setBlockSizeLong(blockSize);
-
-        try {
-            client.uploadFromFileWithResponse(new BlobUploadFromFileOptions(filePath)
-                .setParallelTransferOptions(parallelTransferOptions).setHeaders(headers).setMetadata(metadata)
-                .setTags(tags).setTier(AccessTier.HOT).setRequestConditions(requestConditions), timeout,
-                new Context(key2, value2));
-            System.out.println("Upload from file succeeded");
-        } catch (UncheckedIOException ex) {
-            System.err.printf("Failed to upload from file %s%n", ex.getMessage());
-        }
-        // END: com.azure.storage.blob.BlobClient.uploadFromFileWithResponse#BlobUploadFromFileOptions-Duration-Context
     }
 }

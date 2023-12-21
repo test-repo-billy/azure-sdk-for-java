@@ -6,7 +6,6 @@ import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.share.models.ShareAccessPolicy;
-import com.azure.storage.file.share.models.ShareAccessTier;
 import com.azure.storage.file.share.models.ShareFileHttpHeaders;
 import com.azure.storage.file.share.models.ShareRequestConditions;
 import com.azure.storage.file.share.models.ShareSignedIdentifier;
@@ -15,15 +14,6 @@ import com.azure.storage.file.share.models.ShareInfo;
 import com.azure.storage.file.share.models.ShareProperties;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
-import com.azure.storage.file.share.options.ShareCreateOptions;
-import com.azure.storage.file.share.options.ShareDeleteOptions;
-import com.azure.storage.file.share.options.ShareDirectoryCreateOptions;
-import com.azure.storage.file.share.options.ShareGetAccessPolicyOptions;
-import com.azure.storage.file.share.options.ShareGetPropertiesOptions;
-import com.azure.storage.file.share.options.ShareGetStatisticsOptions;
-import com.azure.storage.file.share.options.ShareSetAccessPolicyOptions;
-import com.azure.storage.file.share.options.ShareSetPropertiesOptions;
-import com.azure.storage.file.share.options.ShareSetMetadataOptions;
 import com.azure.storage.file.share.sas.ShareSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 
@@ -155,20 +145,6 @@ public class ShareJavaDocCodeSamples {
             Duration.ofSeconds(1), new Context(key1, value1));
         System.out.println("Complete creating the shares with status code: " + response.getStatusCode());
         // END: ShareClient.createWithResponse#map-integer-duration-context.quota
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#createWithResponse(ShareCreateOptions,
-     * Duration, Context)} with Quota.
-     */
-    public void createWithResponseOptions() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: ShareClient.createWithResponse#ShareCreateOptions-Duration-Context
-        Response<ShareInfo> response = shareClient.createWithResponse(new ShareCreateOptions()
-                .setMetadata(Collections.singletonMap("share", "metadata")).setQuotaInGb(1)
-                .setAccessTier(ShareAccessTier.HOT), Duration.ofSeconds(1), new Context(key1, value1));
-        System.out.println("Complete creating the shares with status code: " + response.getStatusCode());
-        // END: ShareClient.createWithResponse#ShareCreateOptions-Duration-Context
     }
 
     /**
@@ -382,19 +358,6 @@ public class ShareJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareClient#deleteWithResponse(ShareDeleteOptions, Duration, Context)}
-     */
-    public void deleteShareWithResponse2() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteWithResponse#ShareDeleteOptions-Duration-Context
-        Response<Void> response = shareClient.deleteWithResponse(new ShareDeleteOptions()
-                .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1), new Context(key1, value1));
-        System.out.println("Complete deleting the share with status code: " + response.getStatusCode());
-        // END: com.azure.storage.file.share.ShareClient.deleteWithResponse#ShareDeleteOptions-Duration-Context
-    }
-
-    /**
      * Generates a code sample for using {@link ShareClient#getProperties()}
      */
     public void getProperties() {
@@ -418,19 +381,6 @@ public class ShareJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareClient#getPropertiesWithResponse(ShareGetPropertiesOptions, Duration, Context)}
-     */
-    public void getPropertiesWithResponse2() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.getPropertiesWithResponse#ShareGetPropertiesOptions-Duration-Context
-        ShareProperties properties = shareClient.getPropertiesWithResponse(new ShareGetPropertiesOptions()
-            .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1), new Context(key1, value1)).getValue();
-        System.out.printf("Share quota: %d, Metadata: %s", properties.getQuota(), properties.getMetadata());
-        // END: com.azure.storage.file.share.ShareClient.getPropertiesWithResponse#ShareGetPropertiesOptions-Duration-Context
-    }
-
-    /**
      * Generates a code sample for using {@link ShareClient#setQuota(int)}
      */
     public void setQuota() {
@@ -450,30 +400,6 @@ public class ShareJavaDocCodeSamples {
             Duration.ofSeconds(1), new Context(key1, value1));
         System.out.printf("Setting the share quota completed with status code %d", response.getStatusCode());
         // END: com.azure.storage.file.share.ShareClient.setQuotaWithResponse#int-duration-context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#setProperties(ShareSetPropertiesOptions)}
-     */
-    public void setProperties() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: ShareClient.setProperties#ShareSetPropertiesOptions
-        System.out.println("Setting the share access tier completed." + shareClient.setProperties(
-            new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT).setQuotaInGb(1024)));
-        // END: ShareClient.setProperties#ShareSetPropertiesOptions
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#setPropertiesWithResponse(ShareSetPropertiesOptions, Duration, Context)}
-     */
-    public void setPropertiesWithResponse() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.setPropertiesWithResponse#ShareSetPropertiesOptions-Duration-Context
-        Response<ShareInfo> response = shareClient.setPropertiesWithResponse(
-            new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT).setQuotaInGb(1024),
-            Duration.ofSeconds(1), new Context(key1, value1));
-        System.out.printf("Setting the share access tier completed with status code %d", response.getStatusCode());
-        // END: com.azure.storage.file.share.ShareClient.setPropertiesWithResponse#ShareSetPropertiesOptions-Duration-Context
     }
 
     /**
@@ -500,20 +426,6 @@ public class ShareJavaDocCodeSamples {
         // END: com.azure.storage.file.share.ShareClient.setMetadataWithResponse#map-duration-context
     }
 
-    /**
-     * Generates a code sample for using {@link ShareClient#setMetadataWithResponse(Map, Duration, Context)}
-     */
-    public void setMetadataWithResponse2() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.setMetadataWithResponse#ShareSetMetadataOptions-Duration-Context
-        Response<ShareInfo> response = shareClient.setMetadataWithResponse(new ShareSetMetadataOptions()
-                .setMetadata(Collections.singletonMap("share", "updatedMetadata"))
-                .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1),
-            new Context(key1, value1));
-        System.out.printf("Setting the share metadata completed with status code %d", response.getStatusCode());
-        // END: com.azure.storage.file.share.ShareClient.setMetadataWithResponse#ShareSetMetadataOptions-Duration-Context
-    }
 
     /**
      * Generates a code sample for using {@link ShareClient#setMetadata(Map)} to clear the metadata.
@@ -531,7 +443,7 @@ public class ShareJavaDocCodeSamples {
      * Generates a code sample for using {@link ShareClient#getAccessPolicy()}
      */
     public void getAccessPolicy() {
-        ShareClient shareClient = createClientWithConnectionString();
+        ShareClient shareClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.share.ShareClient.getAccessPolicy
         for (ShareSignedIdentifier result : shareClient.getAccessPolicy()) {
             System.out.printf("Access policy %s allows these permissions: %s",
@@ -541,25 +453,10 @@ public class ShareJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareClient#getAccessPolicy(ShareGetAccessPolicyOptions)}
-     */
-    public void getAccessPolicy2() {
-        ShareClient shareClient = createClientWithConnectionString();
-        // BEGIN: com.azure.storage.file.share.ShareClient.getAccessPolicy#ShareGetAccessPolicyOptions
-        for (ShareSignedIdentifier result : shareClient
-            .getAccessPolicy(new ShareGetAccessPolicyOptions()
-                .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)))) {
-            System.out.printf("Access policy %s allows these permissions: %s",
-                result.getId(), result.getAccessPolicy().getPermissions());
-        }
-        // END: com.azure.storage.file.share.ShareClient.getAccessPolicy#ShareGetAccessPolicyOptions
-    }
-
-    /**
      * Generates a code sample for using {@link ShareClient#setAccessPolicy(List)}
      */
     public void setAccessPolicy() {
-        ShareClient shareClient = createClientWithConnectionString();
+        ShareClient shareClient = createClientWithSASToken();
         // BEGIN: ShareClient.setAccessPolicy#List
         ShareAccessPolicy accessPolicy = new ShareAccessPolicy().setPermissions("r")
             .setStartsOn(OffsetDateTime.now(ZoneOffset.UTC))
@@ -576,7 +473,7 @@ public class ShareJavaDocCodeSamples {
      * Generates a code sample for using {@link ShareClient#setAccessPolicyWithResponse(List, Duration, Context)}
      */
     public void setAccessPolicyWithResponse() {
-        ShareClient shareClient = createClientWithConnectionString();
+        ShareClient shareClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.share.ShareClient.setAccessPolicyWithResponse#list-duration-context
         ShareAccessPolicy accessPolicy = new ShareAccessPolicy().setPermissions("r")
             .setStartsOn(OffsetDateTime.now(ZoneOffset.UTC))
@@ -588,26 +485,6 @@ public class ShareJavaDocCodeSamples {
             Duration.ofSeconds(1), new Context(key1, value1));
         System.out.printf("Setting access policies completed with status code %d", response.getStatusCode());
         // END: com.azure.storage.file.share.ShareClient.setAccessPolicyWithResponse#list-duration-context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#setAccessPolicyWithResponse(ShareSetAccessPolicyOptions, Duration, Context)}
-     */
-    public void setAccessPolicyWithResponse2() {
-        ShareClient shareClient = createClientWithConnectionString();
-        // BEGIN: com.azure.storage.file.share.ShareClient.setAccessPolicyWithResponse#ShareSetAccessPolicyOptions-Duration-Context
-        ShareAccessPolicy accessPolicy = new ShareAccessPolicy().setPermissions("r")
-            .setStartsOn(OffsetDateTime.now(ZoneOffset.UTC))
-            .setExpiresOn(OffsetDateTime.now(ZoneOffset.UTC).plusDays(10));
-
-        ShareSignedIdentifier permission = new ShareSignedIdentifier().setId("mypolicy").setAccessPolicy(accessPolicy);
-
-        Response<ShareInfo> response = shareClient.setAccessPolicyWithResponse(
-            new ShareSetAccessPolicyOptions().setPermissions(Collections.singletonList(permission))
-                .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1), new Context(key1, value1));
-        System.out.printf("Setting access policies completed with status code %d", response.getStatusCode());
-        // END: com.azure.storage.file.share.ShareClient.setAccessPolicyWithResponse#ShareSetAccessPolicyOptions-Duration-Context
     }
 
 
@@ -632,20 +509,6 @@ public class ShareJavaDocCodeSamples {
             Duration.ofSeconds(1), new Context(key1, value1));
         System.out.printf("The share is using %d GB", response.getValue().getShareUsageInGB());
         // END: com.azure.storage.file.share.ShareClient.getStatisticsWithResponse#duration-context
-    }
-
-
-    /**
-     * Generates a code sample for using {@link ShareClient#getStatisticsWithResponse(ShareGetStatisticsOptions, Duration, Context)}
-     */
-    public void getStatisticsWithResponse2() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.getStatisticsWithResponse#ShareGetStatisticsOptions-Duration-Context
-        Response<ShareStatistics> response = shareClient.getStatisticsWithResponse(
-            new ShareGetStatisticsOptions().setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1), new Context(key1, value1));
-        System.out.printf("The share is using %d GB", response.getValue().getShareUsageInGB());
-        // END: com.azure.storage.file.share.ShareClient.getStatisticsWithResponse#ShareGetStatisticsOptions-Duration-Context
     }
 
     /**
@@ -712,9 +575,9 @@ public class ShareJavaDocCodeSamples {
      * Generates a code sample for using {@link ShareClient#getShareName()}
      */
     public void getShareName() {
-        ShareClient shareClient = createClientWithSASToken();
+        ShareClient shareAsyncClient = createClientWithSASToken();
         // BEGIN: com.azure.storage.file.share.ShareClient.getShareName
-        String shareName = shareClient.getShareName();
+        String shareName = shareAsyncClient.getShareName();
         System.out.println("The name of the share is " + shareName);
         // END: com.azure.storage.file.share.ShareClient.getShareName
     }
@@ -734,143 +597,4 @@ public class ShareJavaDocCodeSamples {
         shareClient.generateSas(values); // Client must be authenticated via StorageSharedKeyCredential
         // END: com.azure.storage.file.share.ShareClient.generateSas#ShareServiceSasSignatureValues
     }
-
-    /**
-     * Code snippet for {@link ShareClient#generateSas(ShareServiceSasSignatureValues, Context)}
-     */
-    public void generateSasWithContext() {
-        ShareClient shareClient = createClientWithCredential();
-        // BEGIN: com.azure.storage.file.share.ShareClient.generateSas#ShareServiceSasSignatureValues-Context
-        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
-        ShareSasPermission permission = new ShareSasPermission().setReadPermission(true);
-
-        ShareServiceSasSignatureValues values = new ShareServiceSasSignatureValues(expiryTime, permission)
-            .setStartTime(OffsetDateTime.now());
-
-        // Client must be authenticated via StorageSharedKeyCredential
-        shareClient.generateSas(values, new Context("key", "value"));
-        // END: com.azure.storage.file.share.ShareClient.generateSas#ShareServiceSasSignatureValues-Context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#createIfNotExists()} and
-     * {@link ShareClient#createIfNotExistsWithResponse(ShareCreateOptions, Duration, Context)}
-     */
-    public void createIfNotExistsCodeSnippets() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.createIfNotExists
-        shareClient.createIfNotExists();
-        System.out.println("Completed creating the share.");
-        // END: com.azure.storage.file.share.ShareClient.createIfNotExists
-
-        // BEGIN: ShareClient.createIfNotExistsWithResponse#ShareCreateOptions-Duration-Context
-        Response<ShareInfo> response = shareClient.createIfNotExistsWithResponse(new ShareCreateOptions()
-            .setMetadata(Collections.singletonMap("share", "metadata")).setQuotaInGb(1)
-            .setAccessTier(ShareAccessTier.HOT), Duration.ofSeconds(1), new Context(key1, value1));
-
-        if (response.getStatusCode() == 409) {
-            System.out.println("Already existed.");
-        } else {
-            System.out.printf("Create completed with status %d%n", response.getStatusCode());
-        }
-        // END: ShareClient.createIfNotExistsWithResponse#ShareCreateOptions-Duration-Context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#deleteIfExists()} and
-     * {@link ShareClient#deleteIfExistsWithResponse(ShareDeleteOptions, Duration, Context)}
-     */
-    public void deleteIfExistsCodeSnippets() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteIfExists
-        boolean result = shareClient.deleteIfExists();
-        System.out.println("Share deleted: " + result);
-        // END: com.azure.storage.file.share.ShareClient.deleteIfExists
-
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteIfExistsWithResponse#ShareDeleteOptions-Duration-Context
-        Response<Boolean> response = shareClient.deleteIfExistsWithResponse(new ShareDeleteOptions()
-                .setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)),
-            Duration.ofSeconds(1), new Context(key1, value1));
-        if (response.getStatusCode() == 404) {
-            System.out.println("Does not exist.");
-        } else {
-            System.out.printf("Delete completed with status %d%n", response.getStatusCode());
-        }
-        // END: com.azure.storage.file.share.ShareClient.deleteIfExistsWithResponse#ShareDeleteOptions-Duration-Context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#createDirectoryIfNotExists(String)} and
-     * {@link ShareClient#createDirectoryIfNotExistsWithResponse(String, ShareDirectoryCreateOptions, Duration, Context)}
-     */
-    public void createDirectoryIfNotExistsCodeSnippets() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.createDirectoryIfNotExists#string
-        ShareDirectoryClient directoryClient = shareClient.createDirectoryIfNotExists("mydirectory");
-        System.out.println("Complete creating the directory.");
-        // END: com.azure.storage.file.share.ShareClient.createDirectoryIfNotExists#string
-
-        // BEGIN: com.azure.storage.file.share.ShareClient.createDirectoryIfNotExistsWithResponse#String-ShareDirectoryCreateOptions-Duration-Context
-        FileSmbProperties smbProperties = new FileSmbProperties();
-        String filePermission = "filePermission";
-        Map<String, String> metadata = Collections.singletonMap("directory", "metadata");
-        ShareDirectoryCreateOptions options = new ShareDirectoryCreateOptions().setSmbProperties(smbProperties).
-            setFilePermission(filePermission).setMetadata(metadata);
-        Response<ShareDirectoryClient> response = shareClient.createDirectoryIfNotExistsWithResponse("documents",
-            options, Duration.ofSeconds(1), new Context(key1, value1));
-
-        if (response.getStatusCode() == 409) {
-            System.out.println("Already existed.");
-        } else {
-            System.out.printf("Create completed with status %d%n", response.getStatusCode());
-        }
-        // END: com.azure.storage.file.share.ShareClient.createDirectoryIfNotExistsWithResponse#String-ShareDirectoryCreateOptions-Duration-Context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#deleteDirectoryIfExists(String)} and
-     * {@link ShareClient#deleteDirectoryIfExistsWithResponse(String, Duration, Context)}
-     */
-    public void deleteDirectoryIfExistsCodeSnippets() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteDirectoryIfExists#string
-        boolean result = shareClient.deleteDirectoryIfExists("mydirectory");
-        System.out.println("Directory deleted: " + result);
-        // END: com.azure.storage.file.share.ShareClient.deleteDirectoryIfExists#string
-
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteDirectoryIfExistsWithResponse#string-duration-context
-        Response<Boolean> response = shareClient.deleteDirectoryIfExistsWithResponse("mydirectory",
-            Duration.ofSeconds(1), new Context(key1, value1));
-        if (response.getStatusCode() == 404) {
-            System.out.println("Does not exist.");
-        } else {
-            System.out.printf("Delete completed with status %d%n", response.getStatusCode());
-        }
-        // END: com.azure.storage.file.share.ShareClient.deleteDirectoryIfExistsWithResponse#string-duration-context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareClient#deleteFileIfExists(String)} and
-     * {@link ShareClient#deleteFileIfExistsWithResponse(String, ShareRequestConditions, Duration, Context)}
-     */
-    public void deleteFileIfExistsCodeSnippets() {
-        ShareClient shareClient = createClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteFileIfExists#string
-        boolean result = shareClient.deleteFileIfExists("myfile");
-        System.out.println("File deleted: " + result);
-        // END: com.azure.storage.file.share.ShareClient.deleteFileIfExists#string
-
-        // BEGIN: com.azure.storage.file.share.ShareClient.deleteFileIfExistsWithResponse#string-ShareRequestConditions-duration-context
-        ShareRequestConditions requestConditions = new ShareRequestConditions().setLeaseId(leaseId);
-
-        Response<Boolean> response = shareClient.deleteFileIfExistsWithResponse("myfile", requestConditions,
-            Duration.ofSeconds(1), new Context(key1, value1));
-        if (response.getStatusCode() == 404) {
-            System.out.println("Does not exist.");
-        } else {
-            System.out.printf("Delete completed with status %d%n", response.getStatusCode());
-        }
-        // END: com.azure.storage.file.share.ShareClient.deleteFileIfExistsWithResponse#string-ShareRequestConditions-duration-context
-    }
-
 }

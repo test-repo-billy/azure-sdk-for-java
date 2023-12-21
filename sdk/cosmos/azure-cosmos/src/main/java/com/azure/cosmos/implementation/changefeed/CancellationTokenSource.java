@@ -8,9 +8,9 @@ import java.io.IOException;
 /**
  * Signals to a {@link CancellationToken} that it should be canceled..
  */
-public class CancellationTokenSource {
+public class CancellationTokenSource implements Closeable {
 
-    private final boolean tokenSourceClosed;
+    private volatile boolean tokenSourceClosed;
     private volatile boolean cancellationRequested;
 
     public CancellationTokenSource() {
@@ -32,5 +32,10 @@ public class CancellationTokenSource {
 
     public synchronized void cancel() {
         this.cancellationRequested = true;
+    }
+
+    @Override
+    public synchronized void close() throws IOException {
+        if (tokenSourceClosed) return;
     }
 }

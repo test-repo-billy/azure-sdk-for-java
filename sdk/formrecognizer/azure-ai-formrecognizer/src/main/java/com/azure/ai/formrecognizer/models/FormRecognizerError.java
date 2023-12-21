@@ -11,9 +11,9 @@ import com.azure.core.annotation.Immutable;
 @Immutable
 public final class FormRecognizerError {
     /*
-     * The error code property.
+     * The code property.
      */
-    private final String errorCode;
+    private final String code;
 
     /*
      * The message property.
@@ -23,28 +23,28 @@ public final class FormRecognizerError {
     /**
      * Constructs a FormRecognizerError object.
      *
-     * @param errorCode The error code property.
+     * @param code The code property.
      * @param message The message property.
      */
-    public FormRecognizerError(final String errorCode, final String message) {
-        this.errorCode = errorCode;
+    public FormRecognizerError(final String code, final String message) {
+        this.code = code;
         this.message = message;
     }
 
     /**
-     * Get the code property.
+     * Get the code property: The code property.
      *
-     * @return the error code value returned by the service.
+     * @return the code value.
      */
-    public String getErrorCode() {
-        return this.errorCode;
+    public String getCode() {
+        return this.code;
     }
 
 
     /**
-     * Get the message property.
+     * Get the message property: The message property.
      *
-     * @return the message value returned by the service.
+     * @return the message value.
      */
     public String getMessage() {
         return this.message;

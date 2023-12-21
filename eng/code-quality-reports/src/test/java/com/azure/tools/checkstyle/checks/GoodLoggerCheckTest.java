@@ -5,26 +5,30 @@ package com.azure.tools.checkstyle.checks;
 
 import com.puppycrawl.tools.checkstyle.AbstractModuleTestSupport;
 import com.puppycrawl.tools.checkstyle.Checker;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static com.azure.tools.checkstyle.checks.GoodLoggingCheck.LOGGER_NAME_ERROR;
-import static com.azure.tools.checkstyle.checks.GoodLoggingCheck.LOGGER_NAME_MISMATCH_ERROR;
-import static com.azure.tools.checkstyle.checks.GoodLoggingCheck.NOT_CLIENT_LOGGER_ERROR;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Tests for good logging practices, GoodLoggerCheck.
  */
 public class GoodLoggerCheckTest extends AbstractModuleTestSupport {
+    private static final String INCONSISTENCY_NAMING_MESSAGE = "ClientLogger instance naming: use 'logger'"
+        + " instead of 'wrongLoggerName' for consistency.";
+    private static final String EXTERNAL_LOGGER_USED_MESSAGE = "Do not use external logger class. "
+        + "Use 'com.azure.core.util.logging.ClientLogger' as a logging mechanism instead of '%s'.";
+    private static final String NOT_NEWING_MATCH_CLASS_NAME = "Not newing a ClientLogger with matching class name. "
+        + "Use 'WrongClassInLoggerConstructorTestData.class' instead of 'XXXXXX.class'.";
+    private static final String STATIC_LOGGER_MESSAGE = "ClientLogger should not be static. Remove static modifier.";
+
     private Checker checker;
 
-    @BeforeEach
+    @Before
     public void prepare() throws Exception {
         checker = createChecker(createModuleConfig(GoodLoggingCheck.class));
     }
 
-    @AfterEach
+    @After
     public void cleanup() {
         checker.destroy();
     }
@@ -37,12 +41,10 @@ public class GoodLoggerCheckTest extends AbstractModuleTestSupport {
     @Test
     public void externalLoggerLibraryTestData() throws Exception {
         String[] expected = {
-            expectedErrorMessage(3, 1, String.format(NOT_CLIENT_LOGGER_ERROR, "external logger",
-                "com.azure.core.util.logging.ClientLogger", "org.apache.logging.log4j")),
-            expectedErrorMessage(4, 1, String.format(NOT_CLIENT_LOGGER_ERROR, "external logger",
-                "com.azure.core.util.logging.ClientLogger", "org.slf4j")),
-            expectedErrorMessage(5,  1, String.format(NOT_CLIENT_LOGGER_ERROR, "external logger",
-                "com.azure.core.util.logging.ClientLogger", "java.util.logging"))
+            expectedErrorMessage(3,1, String.format(EXTERNAL_LOGGER_USED_MESSAGE,
+                "org.apache.logging.log4j")),
+            expectedErrorMessage(4,1, String.format(EXTERNAL_LOGGER_USED_MESSAGE, "org.slf4j")),
+            expectedErrorMessage(5,1, String.format(EXTERNAL_LOGGER_USED_MESSAGE, "java.util.logging"))
         };
         verify(checker, getPath("ExternalLoggerLibraryTestData.java"), expected);
     }
@@ -50,16 +52,23 @@ public class GoodLoggerCheckTest extends AbstractModuleTestSupport {
     @Test
     public void invalidLoggerNameTestData() throws Exception {
         String[] expected = {
-            expectedErrorMessage(5, 5, String.format(LOGGER_NAME_ERROR, "logger", "wrongLoggerName"))
+            expectedErrorMessage(5,5, INCONSISTENCY_NAMING_MESSAGE),
         };
         verify(checker, getPath("InvalidLoggerNameTestData.java"), expected);
     }
 
     @Test
+    public void nonStaticLoggerTestData() throws Exception {
+        String[] expected = {
+            expectedErrorMessage(5,5, STATIC_LOGGER_MESSAGE)
+        };
+        verify(checker, getPath("NonStaticLoggerTestData.java"), expected);
+    }
+
+    @Test
     public void wrongClassInLoggerConstructorTestData() throws Exception {
         String[] expected = {
-            expectedErrorMessage(5, 64, String.format(LOGGER_NAME_MISMATCH_ERROR,
-                "WrongClassInLoggerConstructorTestData", "XXXXXX.class"))
+            expectedErrorMessage(5,64, NOT_NEWING_MATCH_CLASS_NAME)
         };
         verify(checker, getPath("WrongClassInLoggerConstructorTestData.java"), expected);
     }

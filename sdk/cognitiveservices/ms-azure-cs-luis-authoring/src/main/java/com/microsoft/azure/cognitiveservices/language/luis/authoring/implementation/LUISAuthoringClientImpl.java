@@ -17,6 +17,7 @@ import com.microsoft.azure.cognitiveservices.language.luis.authoring.Features;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.LUISAuthoringClient;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.Models;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.Patterns;
+import com.microsoft.azure.cognitiveservices.language.luis.authoring.Permissions;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.Settings;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.Trains;
 import com.microsoft.azure.cognitiveservices.language.luis.authoring.Versions;
@@ -209,6 +210,19 @@ public class LUISAuthoringClientImpl extends AzureServiceClient implements LUISA
     }
 
     /**
+     * The Permissions object to access its operations.
+     */
+    private Permissions permissions;
+
+    /**
+     * Gets the Permissions object to access its operations.
+     * @return the Permissions object.
+     */
+    public Permissions permissions() {
+        return this.permissions;
+    }
+
+    /**
      * The Patterns object to access its operations.
      */
     private Patterns patterns;
@@ -287,6 +301,7 @@ public class LUISAuthoringClientImpl extends AzureServiceClient implements LUISA
         this.apps = new AppsImpl(restClient().retrofit(), this);
         this.versions = new VersionsImpl(restClient().retrofit(), this);
         this.trains = new TrainsImpl(restClient().retrofit(), this);
+        this.permissions = new PermissionsImpl(restClient().retrofit(), this);
         this.patterns = new PatternsImpl(restClient().retrofit(), this);
         this.settings = new SettingsImpl(restClient().retrofit(), this);
         this.azureAccounts = new AzureAccountsImpl(restClient().retrofit(), this);

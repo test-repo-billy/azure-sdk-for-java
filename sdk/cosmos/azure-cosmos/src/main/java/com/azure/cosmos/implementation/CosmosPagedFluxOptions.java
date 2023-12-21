@@ -5,7 +5,7 @@ package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.util.CosmosPagedFlux;
 
-import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
+import java.util.Map;
 
 /**
  * Specifies paging options for Cosmos Paged Flux implementation.
@@ -13,15 +13,15 @@ import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNo
  */
 public class CosmosPagedFluxOptions {
 
-    private FeedOperationState operationState;
     private String requestContinuation;
     private Integer maxItemCount;
+    private TracerProvider tracerProvider;
+    private String tracerSpanName;
+    private String databaseId;
+    private String serviceEndpoint;
+
 
     public CosmosPagedFluxOptions() {}
-
-    public FeedOperationState getFeedOperationState() {
-        return this.operationState;
-    }
 
     /**
      * Gets the request continuation token.
@@ -44,67 +44,63 @@ public class CosmosPagedFluxOptions {
     }
 
     /**
-     * Gets the targeted number of items to be returned in the enumeration
-     * operation per page.
-     * <p>
-     * For query operations this is a hard upper limit.
-     * For ChangeFeed operations the number of items returned in a single
-     * page can exceed the targeted number if the targeted number is smaller
-     * than the number of change feed events within an atomic transaction. In this case
-     * all items within that atomic transaction are returned even when this results in
-     * page size > targeted maxItemSize.
-     * </p>
+     * Gets the maximum number of items to be returned in the enumeration
+     * operation.
      *
-     * @return the targeted number of items.
+     * @return the max number of items.
      */
     public Integer getMaxItemCount() {
         return this.maxItemCount;
     }
 
     /**
-     * Sets the targeted number of items to be returned in the enumeration
-     * operation per page.
-     * <p>
-     * For query operations this is a hard upper limit.
-     * For ChangeFeed operations the number of items returned in a single
-     * page can exceed the targeted number if the targeted number is smaller
-     * than the number of change feed events within an atomic transaction. In this case
-     * all items within that atomic transaction are returned even when this results in
-     * page size > targeted maxItemSize.
-     * </p>
+     * Sets the maximum number of items to be returned in the enumeration
+     * operation.
      *
      * @param maxItemCount the max number of items.
      * @return the {@link CosmosPagedFluxOptions}.
      */
     public CosmosPagedFluxOptions setMaxItemCount(Integer maxItemCount) {
         this.maxItemCount = maxItemCount;
-        if (this.operationState != null) {
-            this.operationState.setMaxItemCount(maxItemCount);
-        }
         return this;
     }
 
-    public void setFeedOperationState(FeedOperationState state) {
-        this.operationState = checkNotNull(state, "Argument 'state' must not be NULL.");
+    /**
+     * Gets the tracer provider
+     * @return tracerProvider
+     */
+    public TracerProvider getTracerProvider() {
+        return this.tracerProvider;
     }
 
-    public double getSamplingRateSnapshot() {
-        FeedOperationState stateSnapshot = this.operationState;
-        if (stateSnapshot == null) {
-            return 0;
-        }
-
-        Double samplingRateSnapshot = stateSnapshot.getSamplingRateSnapshot();
-        if (samplingRateSnapshot == null) {
-            return 0;
-        }
-
-        return samplingRateSnapshot;
+    /**
+     * Gets the tracer span name
+     * @return tracerSpanName
+     */
+    public String getTracerSpanName() {
+        return tracerSpanName;
     }
 
-    public void setSamplingRateSnapshot(double samplingRateSnapshot) {
-        if (this.operationState != null) {
-            this.operationState.setSamplingRateSnapshot(samplingRateSnapshot);
-        }
+    /**
+     * Gets the databaseId
+     * @return databaseId
+     */
+    public String getDatabaseId() {
+        return databaseId;
+    }
+
+    /**
+     * Gets the service end point
+     * @return serviceEndpoint
+     */
+    public String getServiceEndpoint() {
+        return serviceEndpoint;
+    }
+
+    public void setTracerInformation(TracerProvider tracerProvider, String tracerSpanName, String serviceEndpoint, String databaseId) {
+        this.databaseId = databaseId;
+        this.serviceEndpoint = serviceEndpoint;
+        this.tracerSpanName = tracerSpanName;
+        this.tracerProvider = tracerProvider;
     }
 }

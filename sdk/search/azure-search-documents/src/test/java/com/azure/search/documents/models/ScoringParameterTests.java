@@ -3,25 +3,19 @@
 
 package com.azure.search.documents.models;
 
-import com.azure.core.models.GeoPoint;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@SuppressWarnings("unchecked")
-@Execution(ExecutionMode.CONCURRENT)
 public class ScoringParameterTests {
-    private static final Map<String, Object> FOOL_SPOTBUGS = new HashMap<>();
+    private static final String DASH = "-";
+    private static final String COMMA = ",";
 
     @Test
     public void testConstructorWithMap() {
@@ -53,29 +47,26 @@ public class ScoringParameterTests {
 
     @Test
     public void testConstructorWithMapNullName() {
-        assertThrows(NullPointerException.class, () -> new ScoringParameter((String) FOOL_SPOTBUGS.get("name"),
-            Arrays.asList("hello", "tests")));
+        assertThrows(NullPointerException.class, () -> new ScoringParameter(null, Arrays.asList("hello", "tests")));
     }
 
     @Test
     public void testConstructorWithMapNullValues() {
-        assertThrows(NullPointerException.class, () -> new ScoringParameter("null value",
-            (List<String>) FOOL_SPOTBUGS.get("values")));
+        assertThrows(NullPointerException.class, () -> new ScoringParameter("null value", (List<String>) null));
     }
 
     @Test
-    public void testConstructorWithGeoPoint() {
-        GeoPoint geoPoint = new GeoPoint(-114, 92);
+    public void testConstructorWithGeopoint() {
+        GeoPoint geoPoint = GeoPoint.create(92, -114);
         String name = "mytest";
-        String expectValue = "mytest--114,92";
+        String expectValue = name + DASH + geoPoint.getLongitude() + COMMA + geoPoint.getLatitude();
         String toFlattenString = new ScoringParameter(name, geoPoint).toString();
 
         assertEquals(expectValue, toFlattenString);
     }
 
     @Test
-    public void testConstructorWithNullGeoPoint() {
-        assertThrows(NullPointerException.class, () -> new ScoringParameter("null geopoint",
-            (GeoPoint) FOOL_SPOTBUGS.get("geoPoint")));
+    public void testConstructorWithNullGeopoint() {
+        assertThrows(NullPointerException.class, () -> new ScoringParameter("null geopoint", (GeoPoint) null));
     }
 }

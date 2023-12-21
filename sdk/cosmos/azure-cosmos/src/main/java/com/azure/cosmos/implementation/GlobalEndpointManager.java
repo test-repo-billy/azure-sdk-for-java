@@ -19,8 +19,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -30,37 +31,30 @@ import java.util.function.Function;
 public class GlobalEndpointManager implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(GlobalEndpointManager.class);
 
-    private static final CosmosDaemonThreadFactory theadFactory = new CosmosDaemonThreadFactory("cosmos-global-endpoint-mgr");
-
     private final int backgroundRefreshLocationTimeIntervalInMS;
     private final LocationCache locationCache;
     private final URI defaultEndpoint;
     private final ConnectionPolicy connectionPolicy;
-    private final Duration maxInitializationTime;
     private final DatabaseAccountManagerInternal owner;
     private final AtomicBoolean isRefreshing;
     private final AtomicBoolean refreshInBackground;
-    private final Scheduler scheduler = Schedulers.newSingle(theadFactory);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Scheduler scheduler = Schedulers.fromExecutor(executor);
     private volatile boolean isClosed;
     private AtomicBoolean firstTimeDatabaseAccountInitialization = new AtomicBoolean(true);
     private volatile DatabaseAccount latestDatabaseAccount;
 
-    private volatile Throwable latestDatabaseRefreshError;
-
-    public void setLatestDatabaseRefreshError(Throwable latestDatabaseRefreshError) {
-        this.latestDatabaseRefreshError = latestDatabaseRefreshError;
-    }
-    public Throwable getLatestDatabaseRefreshError() {
-        return latestDatabaseRefreshError;
-    }
-
     public GlobalEndpointManager(DatabaseAccountManagerInternal owner, ConnectionPolicy connectionPolicy, Configs configs)  {
         this.backgroundRefreshLocationTimeIntervalInMS = configs.getUnavailableLocationsExpirationTimeInSeconds() * 1000;
-        this.maxInitializationTime = Duration.ofSeconds(configs.getGlobalEndpointManagerMaxInitializationTimeInSeconds());
         try {
             this.locationCache = new LocationCache(
-                    connectionPolicy,
+                    new ArrayList<>(connectionPolicy.getPreferredRegions() != null ?
+                            connectionPolicy.getPreferredRegions():
+                            Collections.emptyList()
+                    ),
                     owner.getServiceEndpoint(),
+                    connectionPolicy.isEndpointDiscoveryEnabled(),
+                    connectionPolicy.isMultipleWriteRegionsEnabled(),
                     configs);
 
             this.owner = owner;
@@ -78,7 +72,7 @@ public class GlobalEndpointManager implements AutoCloseable {
     public void init() {
         // TODO: add support for openAsync
         // https://msdata.visualstudio.com/CosmosDB/_workitems/edit/332589
-        startRefreshLocationTimerAsync(true).block(maxInitializationTime);
+        startRefreshLocationTimerAsync(true).block();
     }
 
     public UnmodifiableList<URI> getReadEndpoints() {
@@ -89,34 +83,6 @@ public class GlobalEndpointManager implements AutoCloseable {
     public UnmodifiableList<URI> getWriteEndpoints() {
         //readonly
         return this.locationCache.getWriteEndpoints();
-    }
-
-    public UnmodifiableList<URI> getApplicableReadEndpoints(RxDocumentServiceRequest request) {
-        // readonly
-        return this.locationCache.getApplicableReadEndpoints(request);
-    }
-
-    public UnmodifiableList<URI> getApplicableWriteEndpoints(RxDocumentServiceRequest request) {
-        //readonly
-        return this.locationCache.getApplicableWriteEndpoints(request);
-    }
-
-    public UnmodifiableList<URI> getApplicableReadEndpoints(List<String> excludedRegions) {
-        // readonly
-        return this.locationCache.getApplicableReadEndpoints(excludedRegions);
-    }
-
-    public UnmodifiableList<URI> getApplicableWriteEndpoints(List<String> excludedRegions) {
-        //readonly
-        return this.locationCache.getApplicableWriteEndpoints(excludedRegions);
-    }
-
-    public List<URI> getAvailableReadEndpoints() {
-        return this.locationCache.getAvailableReadEndpoints();
-    }
-
-    public List<URI> getAvailableWriteEndpoints() {
-        return this.locationCache.getAvailableWriteEndpoints();
     }
 
     public static Mono<DatabaseAccount> getDatabaseAccountFromAnyLocationsAsync(
@@ -140,20 +106,7 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     public URI resolveServiceEndpoint(RxDocumentServiceRequest request) {
-        URI serviceEndpoint = this.locationCache.resolveServiceEndpoint(request);
-        if (request.faultInjectionRequestContext != null) {
-            request.faultInjectionRequestContext.setLocationEndpointToRoute(serviceEndpoint);
-        }
-
-        return serviceEndpoint;
-    }
-
-    public URI resolveFaultInjectionServiceEndpoint(String region, boolean writeOnly) {
-        return this.locationCache.resolveFaultInjectionEndpoint(region, writeOnly);
-    }
-
-    public URI getDefaultEndpoint() {
-        return this.locationCache.getDefaultEndpoint();
+        return this.locationCache.resolveServiceEndpoint(request);
     }
 
     public void markEndpointUnavailableForRead(URI endpoint) {
@@ -166,17 +119,13 @@ public class GlobalEndpointManager implements AutoCloseable {
         this.locationCache.markEndpointUnavailableForWrite(endpoint);
     }
 
-    public boolean canUseMultipleWriteLocations() {
-        return this.locationCache.canUseMultipleWriteLocations();
-    }
-
     public boolean canUseMultipleWriteLocations(RxDocumentServiceRequest request) {
         return this.locationCache.canUseMultipleWriteLocations(request);
     }
 
     public void close() {
         this.isClosed = true;
-        this.scheduler.dispose();
+        this.executor.shutdown();
         logger.debug("GlobalEndpointManager closed.");
     }
 
@@ -216,10 +165,6 @@ public class GlobalEndpointManager implements AutoCloseable {
      */
     public DatabaseAccount getLatestDatabaseAccount() {
         return this.latestDatabaseAccount;
-    }
-
-    public int getPreferredLocationCount() {
-        return this.connectionPolicy.getPreferredRegions() != null ? this.connectionPolicy.getPreferredRegions().size() : 0;
     }
 
     private Mono<Void> refreshLocationPrivateAsync(DatabaseAccount databaseAccount) {
@@ -289,7 +234,7 @@ public class GlobalEndpointManager implements AutoCloseable {
 
         this.refreshInBackground.set(true);
 
-        return Mono.delay(Duration.ofMillis(delayInMillis), CosmosSchedulers.COSMOS_PARALLEL)
+        return Mono.delay(Duration.ofMillis(delayInMillis))
                 .flatMap(
                         t -> {
                             if (this.isClosed) {
@@ -309,7 +254,6 @@ public class GlobalEndpointManager implements AutoCloseable {
                             });
                         }).onErrorResume(ex -> {
                     logger.error("startRefreshLocationTimerAsync() - Unable to refresh database account from any location. Exception: {}", ex.toString(), ex);
-                    this.setLatestDatabaseRefreshError(ex);
 
                     this.startRefreshLocationTimerAsync();
                     return Mono.empty();
@@ -321,7 +265,6 @@ public class GlobalEndpointManager implements AutoCloseable {
             .doOnNext(databaseAccount -> {
                 if(databaseAccount != null) {
                     this.latestDatabaseAccount = databaseAccount;
-                    this.setLatestDatabaseRefreshError(null);
                 }
 
                 logger.debug("account retrieved: {}", databaseAccount);
@@ -330,9 +273,5 @@ public class GlobalEndpointManager implements AutoCloseable {
 
     public boolean isClosed() {
         return this.isClosed;
-    }
-
-    public String getRegionName(URI locationEndpoint, OperationType operationType) {
-        return this.locationCache.getRegionName(locationEndpoint, operationType);
     }
 }

@@ -5,82 +5,40 @@ package com.azure.core.http.policy;
 
 import com.azure.core.http.ContentType;
 import com.azure.core.http.HttpHeader;
-import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
-import com.azure.core.http.HttpPipelineNextSyncPolicy;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
-import com.azure.core.implementation.AccessibleByteArrayOutputStream;
-import com.azure.core.implementation.ImplUtils;
-import com.azure.core.implementation.jackson.ObjectMapperShim;
-import com.azure.core.implementation.logging.LoggingKeys;
-import com.azure.core.implementation.util.BinaryDataContent;
-import com.azure.core.implementation.util.BinaryDataHelper;
-import com.azure.core.implementation.util.ByteArrayContent;
-import com.azure.core.implementation.util.ByteBufferContent;
-import com.azure.core.implementation.util.InputStreamContent;
-import com.azure.core.implementation.util.SerializableContent;
-import com.azure.core.implementation.util.StringContent;
-import com.azure.core.util.BinaryData;
-import com.azure.core.util.Context;
 import com.azure.core.util.CoreUtils;
-import com.azure.core.util.FluxUtil;
 import com.azure.core.util.UrlBuilder;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.core.util.logging.LogLevel;
-import com.azure.core.util.logging.LoggingEventBuilder;
-import reactor.core.publisher.Flux;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.ByteArrayOutputStream;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.util.Collections;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * The pipeline policy that handles logging of HTTP requests and responses.
  */
 public class HttpLoggingPolicy implements HttpPipelinePolicy {
-    private static final ObjectMapperShim PRETTY_PRINTER = ObjectMapperShim.createPrettyPrintMapper();
+    private static final ObjectMapper PRETTY_PRINTER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static final int MAX_BODY_LOG_SIZE = 1024 * 16;
     private static final String REDACTED_PLACEHOLDER = "REDACTED";
-
-    // Use a cache to retain the caller method ClientLogger.
-    //
-    // The same method may be called thousands or millions of times, so it is wasteful to create a new logger instance
-    // each time the method is called. Instead, retain the created ClientLogger until a certain number of unique method
-    // calls have been made and then clear the cache and rebuild it. Long term, this should be replaced with an LRU,
-    // or another type of cache, for better cache management.
-    private static final int LOGGER_CACHE_MAX_SIZE = 1000;
-    private static final Map<String, ClientLogger> CALLER_METHOD_LOGGER_CACHE = new ConcurrentHashMap<>();
-
-    private static final ClientLogger LOGGER = new ClientLogger(HttpLoggingPolicy.class);
 
     private final HttpLogDetailLevel httpLogDetailLevel;
     private final Set<String> allowedHeaderNames;
     private final Set<String> allowedQueryParameterNames;
     private final boolean prettyPrintBody;
-
-    private final HttpRequestLogger requestLogger;
-    private final HttpResponseLogger responseLogger;
-
-    /**
-     * Key for {@link Context} to pass request retry count metadata for logging.
-     */
-    public static final String RETRY_COUNT_CONTEXT = "requestRetryCount";
-
-    private static final String REQUEST_LOG_MESSAGE = "HTTP request";
-    private static final String RESPONSE_LOG_MESSAGE = "HTTP response";
 
     /**
      * Creates an HttpLoggingPolicy with the given log configurations.
@@ -89,19 +47,10 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      */
     public HttpLoggingPolicy(HttpLogOptions httpLogOptions) {
         if (httpLogOptions == null) {
-            this.httpLogDetailLevel = HttpLogDetailLevel.ENVIRONMENT_HTTP_LOG_DETAIL_LEVEL;
-            this.allowedHeaderNames = HttpLogOptions.DEFAULT_HEADERS_ALLOWLIST
-                .stream()
-                .map(headerName -> headerName.toLowerCase(Locale.ROOT))
-                .collect(Collectors.toSet());
-            this.allowedQueryParameterNames = HttpLogOptions.DEFAULT_QUERY_PARAMS_ALLOWLIST
-                .stream()
-                .map(queryParamName -> queryParamName.toLowerCase(Locale.ROOT))
-                .collect(Collectors.toSet());
+            this.httpLogDetailLevel = HttpLogDetailLevel.NONE;
+            this.allowedHeaderNames = Collections.emptySet();
+            this.allowedQueryParameterNames = Collections.emptySet();
             this.prettyPrintBody = false;
-
-            this.requestLogger = new DefaultHttpRequestLogger();
-            this.responseLogger = new DefaultHttpResponseLogger();
         } else {
             this.httpLogDetailLevel = httpLogOptions.getLogLevel();
             this.allowedHeaderNames = httpLogOptions.getAllowedHeaderNames()
@@ -113,13 +62,6 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
                 .map(queryParamName -> queryParamName.toLowerCase(Locale.ROOT))
                 .collect(Collectors.toSet());
             this.prettyPrintBody = httpLogOptions.isPrettyPrintBody();
-
-            this.requestLogger = (httpLogOptions.getRequestLogger() == null)
-                ? new DefaultHttpRequestLogger()
-                : httpLogOptions.getRequestLogger();
-            this.responseLogger = (httpLogOptions.getResponseLogger() == null)
-                ? new DefaultHttpResponseLogger()
-                : httpLogOptions.getResponseLogger();
         }
     }
 
@@ -130,226 +72,169 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
             return next.process();
         }
 
-        final ClientLogger logger = getOrCreateMethodLogger((String) context.getData("caller-method").orElse(""));
+        final ClientLogger logger = new ClientLogger((String) context.getData("caller-method").orElse(""));
         final long startNs = System.nanoTime();
 
-        return requestLogger.logRequest(logger, getRequestLoggingOptions(context))
+        return logRequest(logger, context.getHttpRequest())
             .then(next.process())
-            .flatMap(response -> responseLogger.logResponse(logger,
-                getResponseLoggingOptions(response, startNs, context)))
+            .flatMap(response -> logResponse(logger, response, startNs))
             .doOnError(throwable -> logger.warning("<-- HTTP FAILED: ", throwable));
     }
 
-    @Override
-    public HttpResponse processSync(HttpPipelineCallContext context, HttpPipelineNextSyncPolicy next) {
-        // No logging will be performed, trigger a no-op.
-        if (httpLogDetailLevel == HttpLogDetailLevel.NONE) {
-            return next.processSync();
-        }
+    /*
+     * Logs the HTTP request.
+     *
+     * @param logger Logger used to log the request.
+     * @param request HTTP request being sent to Azure.
+     * @return A Mono which will emit the string to log.
+     */
+    private Mono<Void> logRequest(final ClientLogger logger, final HttpRequest request) {
 
-        final ClientLogger logger = getOrCreateMethodLogger((String) context.getData("caller-method").orElse(""));
-        final long startNs = System.nanoTime();
-
-        requestLogger.logRequestSync(logger, getRequestLoggingOptions(context));
-        try {
-            HttpResponse response = next.processSync();
-            if (response != null) {
-                response = responseLogger.logResponseSync(
-                    logger, getResponseLoggingOptions(response, startNs, context));
-            }
-            return response;
-        } catch (RuntimeException e) {
-            logger.warning("<-- HTTP FAILED: ", e);
-            throw logger.logExceptionAsWarning(e);
-        }
-    }
-
-    private HttpRequestLoggingContext getRequestLoggingOptions(HttpPipelineCallContext callContext) {
-        return new HttpRequestLoggingContext(callContext.getHttpRequest(),
-            callContext.getContext(),
-            getRequestRetryCount(callContext.getContext()));
-    }
-
-    private HttpResponseLoggingContext getResponseLoggingOptions(HttpResponse httpResponse, long startNs,
-        HttpPipelineCallContext callContext) {
-        return new HttpResponseLoggingContext(httpResponse, Duration.ofNanos(System.nanoTime() - startNs),
-            callContext.getContext(),
-            getRequestRetryCount(callContext.getContext()));
-    }
-
-    private final class DefaultHttpRequestLogger implements HttpRequestLogger {
-        @Override
-        public Mono<Void> logRequest(ClientLogger logger, HttpRequestLoggingContext loggingOptions) {
-            final LogLevel logLevel = getLogLevel(loggingOptions);
-            if (logger.canLogAtLevel(logLevel)) {
-                log(logLevel, logger, loggingOptions);
-            }
-
+        if (!logger.canLogAtLevel(LogLevel.INFORMATIONAL)) {
             return Mono.empty();
         }
 
-        @Override
-        public void logRequestSync(ClientLogger logger, HttpRequestLoggingContext loggingOptions) {
-            final LogLevel logLevel = getLogLevel(loggingOptions);
-            if (logger.canLogAtLevel(logLevel)) {
-                log(logLevel, logger, loggingOptions);
-            }
+        StringBuilder requestLogMessage = new StringBuilder();
+        if (httpLogDetailLevel.shouldLogUrl()) {
+            requestLogMessage.append("--> ")
+                .append(request.getHttpMethod())
+                .append(" ")
+                .append(getRedactedUrl(request.getUrl()))
+                .append(System.lineSeparator());
         }
 
-        private void log(LogLevel logLevel, ClientLogger logger, HttpRequestLoggingContext loggingOptions) {
-            final HttpRequest request = loggingOptions.getHttpRequest();
-            LoggingEventBuilder logBuilder = getLogBuilder(logLevel, logger);
+        addHeadersToLogMessage(logger, request.getHeaders(), requestLogMessage);
 
-            if (httpLogDetailLevel.shouldLogUrl()) {
-                logBuilder
-                    .addKeyValue(LoggingKeys.HTTP_METHOD_KEY, request.getHttpMethod())
-                    .addKeyValue(LoggingKeys.URL_KEY, getRedactedUrl(request.getUrl(), allowedQueryParameterNames));
-
-                Integer retryCount = loggingOptions.getTryCount();
-                if (retryCount != null) {
-                    logBuilder.addKeyValue(LoggingKeys.TRY_COUNT_KEY, retryCount);
-                }
-            }
-
-            if (httpLogDetailLevel.shouldLogHeaders() && logger.canLogAtLevel(LogLevel.INFORMATIONAL)) {
-                addHeadersToLogMessage(allowedHeaderNames, request.getHeaders(), logBuilder);
-            }
-
-            if (request.getBody() == null) {
-                logBuilder.addKeyValue(LoggingKeys.CONTENT_LENGTH_KEY, 0)
-                    .log(REQUEST_LOG_MESSAGE);
-                return;
-            }
-
-            String contentType = request.getHeaders().getValue(HttpHeaderName.CONTENT_TYPE);
-            long contentLength = getContentLength(logger, request.getHeaders());
-
-            logBuilder.addKeyValue(LoggingKeys.CONTENT_LENGTH_KEY, contentLength);
-
-            if (httpLogDetailLevel.shouldLogBody() && shouldBodyBeLogged(contentType, contentLength)) {
-                logBody(request, (int) contentLength, logBuilder, logger, contentType);
-                return;
-            }
-
-            logBuilder.log(REQUEST_LOG_MESSAGE);
+        if (!httpLogDetailLevel.shouldLogBody()) {
+            return logAndReturn(logger, requestLogMessage, null);
         }
-    }
 
-    private void logBody(HttpRequest request, int contentLength, LoggingEventBuilder logBuilder, ClientLogger logger, String contentType) {
-        BinaryData data = request.getBodyAsBinaryData();
-        BinaryDataContent content = BinaryDataHelper.getContent(data);
-        if (content instanceof StringContent
-            || content instanceof ByteBufferContent
-            || content instanceof SerializableContent
-            || content instanceof ByteArrayContent) {
-            logBody(logBuilder, logger, contentType, content.toString());
-        } else if (content instanceof InputStreamContent) {
-            // TODO (limolkova) Implement sync version with logging stream wrapper
-            byte[] contentBytes = content.toBytes();
-            request.setBody(contentBytes);
-            logBody(logBuilder, logger, contentType, new String(contentBytes, StandardCharsets.UTF_8));
-        } else {
+        if (request.getBody() == null) {
+            requestLogMessage.append("(empty body)")
+                .append(System.lineSeparator())
+                .append("--> END ")
+                .append(request.getHttpMethod())
+                .append(System.lineSeparator());
+
+            return logAndReturn(logger, requestLogMessage, null);
+        }
+
+        String contentType = request.getHeaders().getValue("Content-Type");
+        long contentLength = getContentLength(logger, request.getHeaders());
+
+        if (shouldBodyBeLogged(contentType, contentLength)) {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream((int) contentLength);
+
             // Add non-mutating operators to the data stream.
-            AccessibleByteArrayOutputStream stream = new AccessibleByteArrayOutputStream(contentLength);
-            request.setBody(Flux.using(() -> stream, s -> content.toFluxByteBuffer()
-                .doOnNext(byteBuffer -> {
-                    try {
-                        ImplUtils.writeByteBufferToStream(byteBuffer.duplicate(), s);
-                    } catch (IOException ex) {
-                        throw LOGGER.logExceptionAsError(new UncheckedIOException(ex));
-                    }
-                }), s -> logBody(logBuilder, logger, contentType, s.toString(StandardCharsets.UTF_8))));
+            request.setBody(
+                request.getBody()
+                    .doOnNext(byteBuffer -> {
+                        for (int i = byteBuffer.position(); i < byteBuffer.limit(); i++) {
+                            outputStream.write(byteBuffer.get(i));
+                        }
+                    })
+                    .doFinally(ignored -> {
+                        requestLogMessage.append(contentLength)
+                            .append("-byte body:")
+                            .append(System.lineSeparator())
+                            .append(prettyPrintIfNeeded(logger, contentType,
+                                new String(outputStream.toByteArray(), StandardCharsets.UTF_8)))
+                            .append(System.lineSeparator())
+                            .append("--> END ")
+                            .append(request.getHttpMethod())
+                            .append(System.lineSeparator());
+
+                        logger.info(requestLogMessage.toString());
+                    }));
+
+            return Mono.empty();
+        } else {
+            requestLogMessage.append(contentLength)
+                .append("-byte body: (content not logged)")
+                .append(System.lineSeparator())
+                .append("--> END ")
+                .append(request.getHttpMethod())
+                .append(System.lineSeparator());
+
+            return logAndReturn(logger, requestLogMessage, null);
         }
     }
 
-    private void logBody(LoggingEventBuilder logBuilder, ClientLogger logger, String contentType, String data) {
-        logBuilder.addKeyValue(LoggingKeys.BODY_KEY, prettyPrintIfNeeded(logger, prettyPrintBody, contentType, data))
-            .log(REQUEST_LOG_MESSAGE);
-    }
-
-
-    private final class DefaultHttpResponseLogger implements HttpResponseLogger {
-        @Override
-        public Mono<HttpResponse> logResponse(ClientLogger logger, HttpResponseLoggingContext loggingOptions) {
-            final LogLevel logLevel = getLogLevel(loggingOptions);
-            final HttpResponse response = loggingOptions.getHttpResponse();
-
-            if (!logger.canLogAtLevel(logLevel)) {
-                return Mono.just(response);
-            }
-
-            LoggingEventBuilder logBuilder = getLogBuilder(logLevel, logger);
-
-            logContentLength(response, logBuilder);
-
-            logUrl(loggingOptions, response, logBuilder);
-
-            logHeaders(logger, response, logBuilder);
-
-            if (httpLogDetailLevel.shouldLogBody()) {
-                String contentTypeHeader = response.getHeaderValue(HttpHeaderName.CONTENT_TYPE);
-                long contentLength = getContentLength(logger, response.getHeaders());
-                if (shouldBodyBeLogged(contentTypeHeader, contentLength)) {
-                    return Mono.just(new LoggingHttpResponse(response, logBuilder, logger,
-                        (int) contentLength, contentTypeHeader, prettyPrintBody));
-                }
-            }
-
-            logBuilder.log(RESPONSE_LOG_MESSAGE);
+    /*
+     * Logs thr HTTP response.
+     *
+     * @param logger Logger used to log the response.
+     * @param response HTTP response returned from Azure.
+     * @param startNs Nanosecond representation of when the request was sent.
+     * @return A Mono containing the HTTP response.
+     */
+    private Mono<HttpResponse> logResponse(final ClientLogger logger, final HttpResponse response, long startNs) {
+        if (!logger.canLogAtLevel(LogLevel.INFORMATIONAL)) {
             return Mono.just(response);
         }
 
-        private void logHeaders(ClientLogger logger, HttpResponse response, LoggingEventBuilder logBuilder) {
-            if (httpLogDetailLevel.shouldLogHeaders() && logger.canLogAtLevel(LogLevel.INFORMATIONAL)) {
-                addHeadersToLogMessage(allowedHeaderNames, response.getHeaders(), logBuilder);
-            }
+        long tookMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+
+        String contentLengthString = response.getHeaderValue("Content-Length");
+        String bodySize = (CoreUtils.isNullOrEmpty(contentLengthString))
+            ? "unknown-length body"
+            : contentLengthString + "-byte body";
+
+        StringBuilder responseLogMessage = new StringBuilder();
+        if (httpLogDetailLevel.shouldLogUrl()) {
+            responseLogMessage.append("<-- ")
+                .append(response.getStatusCode())
+                .append(" ")
+                .append(getRedactedUrl(response.getRequest().getUrl()))
+                .append(" (")
+                .append(tookMs)
+                .append(" ms, ")
+                .append(bodySize)
+                .append(")")
+                .append(System.lineSeparator());
         }
 
-        private void logUrl(HttpResponseLoggingContext loggingOptions, HttpResponse response,
-                               LoggingEventBuilder logBuilder) {
-            if (httpLogDetailLevel.shouldLogUrl()) {
-                logBuilder
-                    .addKeyValue(LoggingKeys.STATUS_CODE_KEY, response.getStatusCode())
-                    .addKeyValue(LoggingKeys.URL_KEY, getRedactedUrl(response.getRequest().getUrl(), allowedQueryParameterNames))
-                    .addKeyValue(LoggingKeys.DURATION_MS_KEY, loggingOptions.getResponseDuration().toMillis());
-            }
+        addHeadersToLogMessage(logger, response.getHeaders(), responseLogMessage);
+
+        if (!httpLogDetailLevel.shouldLogBody()) {
+            responseLogMessage.append("<-- END HTTP");
+            return logAndReturn(logger, responseLogMessage, response);
         }
 
-        private void logContentLength(HttpResponse response, LoggingEventBuilder logBuilder) {
-            String contentLengthString = response.getHeaderValue(HttpHeaderName.CONTENT_LENGTH);
-            if (!CoreUtils.isNullOrEmpty(contentLengthString)) {
-                logBuilder.addKeyValue(LoggingKeys.CONTENT_LENGTH_KEY, contentLengthString);
-            }
+        String contentTypeHeader = response.getHeaderValue("Content-Type");
+        long contentLength = getContentLength(logger, response.getHeaders());
+
+        if (shouldBodyBeLogged(contentTypeHeader, contentLength)) {
+            HttpResponse bufferedResponse = response.buffer();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream((int) contentLength);
+            return bufferedResponse.getBody()
+                .doOnNext(byteBuffer -> {
+                    for (int i = byteBuffer.position(); i < byteBuffer.limit(); i++) {
+                        outputStream.write(byteBuffer.get(i));
+                    }
+                })
+                .doFinally(ignored -> {
+                    responseLogMessage.append("Response body:")
+                        .append(System.lineSeparator())
+                        .append(prettyPrintIfNeeded(logger, contentTypeHeader,
+                            new String(outputStream.toByteArray(), StandardCharsets.UTF_8)))
+                        .append(System.lineSeparator())
+                        .append("<-- END HTTP");
+
+                    logger.info(responseLogMessage.toString());
+                }).then(Mono.just(bufferedResponse));
+        } else {
+            responseLogMessage.append("(body content not logged)")
+                .append(System.lineSeparator())
+                .append("<-- END HTTP");
+
+            return logAndReturn(logger, responseLogMessage, response);
         }
+    }
 
-        @Override
-        public HttpResponse logResponseSync(ClientLogger logger, HttpResponseLoggingContext loggingOptions) {
-            final LogLevel logLevel = getLogLevel(loggingOptions);
-            final HttpResponse response = loggingOptions.getHttpResponse();
-
-            if (!logger.canLogAtLevel(logLevel)) {
-                return response;
-            }
-            LoggingEventBuilder logBuilder = getLogBuilder(logLevel, logger);
-
-            logContentLength(response, logBuilder);
-
-            logUrl(loggingOptions, response, logBuilder);
-
-            logHeaders(logger, response, logBuilder);
-
-            if (httpLogDetailLevel.shouldLogBody()) {
-                String contentTypeHeader = response.getHeaderValue(HttpHeaderName.CONTENT_TYPE);
-                long contentLength = getContentLength(logger, response.getHeaders());
-                if (shouldBodyBeLogged(contentTypeHeader, contentLength)) {
-                    return new LoggingHttpResponse(response, logBuilder, logger,
-                        (int) contentLength, contentTypeHeader, prettyPrintBody);
-                }
-            }
-
-            logBuilder.log(RESPONSE_LOG_MESSAGE);
-            return response;
-        }
+    private <T> Mono<T> logAndReturn(ClientLogger logger, StringBuilder logMessageBuilder, T data) {
+        logger.info(logMessageBuilder.toString());
+        return Mono.justOrEmpty(data);
     }
 
     /*
@@ -358,26 +243,44 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      * @param url URL where the request is being sent.
      * @return A URL with query parameters redacted based on configurations in this policy.
      */
-    private static String getRedactedUrl(URL url, Set<String> allowedQueryParameterNames) {
-        String query = url.getQuery();
-        if (CoreUtils.isNullOrEmpty(query)) {
-            // URL doesn't have a query string, just return the URL as-is.
-            return url.toString();
+    private String getRedactedUrl(URL url) {
+        return UrlBuilder.parse(url)
+            .setQuery(getAllowedQueryString(url.getQuery()))
+            .toString();
+    }
+
+    /*
+     * Generates the logging safe query parameters string.
+     *
+     * @param queryString Query parameter string from the request URL.
+     * @return A query parameter string redacted based on the configurations in this policy.
+     */
+    private String getAllowedQueryString(String queryString) {
+        if (CoreUtils.isNullOrEmpty(queryString)) {
+            return "";
         }
 
-        // URL does have a query string that may need redactions.
-        // Use UrlBuilder to break apart the URL, clear the query string, and add the redacted query string.
-        UrlBuilder urlBuilder = ImplUtils.parseUrl(url, false);
-
-        CoreUtils.parseQueryParameters(query).forEachRemaining(queryParam -> {
-            if (allowedQueryParameterNames.contains(queryParam.getKey().toLowerCase(Locale.ROOT))) {
-                urlBuilder.addQueryParameter(queryParam.getKey(), queryParam.getValue());
-            } else {
-                urlBuilder.addQueryParameter(queryParam.getKey(), REDACTED_PLACEHOLDER);
+        StringBuilder queryStringBuilder = new StringBuilder();
+        String[] queryParams = queryString.split("&");
+        for (String queryParam : queryParams) {
+            if (queryStringBuilder.length() > 0) {
+                queryStringBuilder.append("&");
             }
-        });
 
-        return urlBuilder.toString();
+            String[] queryPair = queryParam.split("=", 2);
+            if (queryPair.length == 2) {
+                String queryName = queryPair[0];
+                if (allowedQueryParameterNames.contains(queryName.toLowerCase(Locale.ROOT))) {
+                    queryStringBuilder.append(queryParam);
+                } else {
+                    queryStringBuilder.append(queryPair[0]).append("=").append(REDACTED_PLACEHOLDER);
+                }
+            } else {
+                queryStringBuilder.append(queryParam);
+            }
+        }
+
+        return queryStringBuilder.toString();
     }
 
     /*
@@ -387,12 +290,21 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      * @param sb StringBuilder that is generating the log message.
      * @param logLevel Log level the environment is configured to use.
      */
-    private static void addHeadersToLogMessage(Set<String> allowedHeaderNames, HttpHeaders headers,
-        LoggingEventBuilder logBuilder) {
+    private void addHeadersToLogMessage(ClientLogger logger, HttpHeaders headers, StringBuilder sb) {
+        // Either headers shouldn't be logged or the logging level isn't set to VERBOSE, don't add headers.
+        if (!httpLogDetailLevel.shouldLogHeaders() || logger.canLogAtLevel(LogLevel.VERBOSE)) {
+            return;
+        }
+
         for (HttpHeader header : headers) {
             String headerName = header.getName();
-            logBuilder.addKeyValue(headerName, allowedHeaderNames.contains(headerName.toLowerCase(Locale.ROOT))
-                ? header.getValue() : REDACTED_PLACEHOLDER);
+            sb.append(headerName).append(":");
+            if (allowedHeaderNames.contains(headerName.toLowerCase(Locale.ROOT))) {
+                sb.append(header.getValue());
+            } else {
+                sb.append(REDACTED_PLACEHOLDER);
+            }
+            sb.append(System.lineSeparator());
         }
     }
 
@@ -406,8 +318,7 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      * @param body Body of the request or response.
      * @return The body pretty printed if it is JSON, otherwise the unmodified body.
      */
-    private static String prettyPrintIfNeeded(ClientLogger logger, boolean prettyPrintBody, String contentType,
-        String body) {
+    private String prettyPrintIfNeeded(ClientLogger logger, String contentType, String body) {
         String result = body;
         if (prettyPrintBody && contentType != null
             && (contentType.startsWith(ContentType.APPLICATION_JSON) || contentType.startsWith("text/json"))) {
@@ -415,7 +326,7 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
                 final Object deserialized = PRETTY_PRINTER.readTree(body);
                 result = PRETTY_PRINTER.writeValueAsString(deserialized);
             } catch (Exception e) {
-                logger.warning("Failed to pretty print JSON", e);
+                logger.warning("Failed to pretty print JSON: {}", e.getMessage());
             }
         }
         return result;
@@ -428,10 +339,10 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      * @param headers HTTP headers that are checked for containing Content-Length.
      * @return
      */
-    private static long getContentLength(ClientLogger logger, HttpHeaders headers) {
+    private long getContentLength(ClientLogger logger, HttpHeaders headers) {
         long contentLength = 0;
 
-        String contentLengthString = headers.getValue(HttpHeaderName.CONTENT_LENGTH);
+        String contentLengthString = headers.getValue("Content-Length");
         if (CoreUtils.isNullOrEmpty(contentLengthString)) {
             return contentLength;
         }
@@ -439,7 +350,8 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
         try {
             contentLength = Long.parseLong(contentLengthString);
         } catch (NumberFormatException | NullPointerException e) {
-            logger.warning("Could not parse the HTTP header content-length: '{}'.", contentLengthString, e);
+            logger.warning("Could not parse the HTTP header content-length: '{}'.",
+                headers.getValue("content-length"), e);
         }
 
         return contentLength;
@@ -455,143 +367,9 @@ public class HttpLoggingPolicy implements HttpPipelinePolicy {
      * @param contentLength Content-Length header represented as a numeric.
      * @return A flag indicating if the request or response body should be logged.
      */
-    private static boolean shouldBodyBeLogged(String contentTypeHeader, long contentLength) {
+    private boolean shouldBodyBeLogged(String contentTypeHeader, long contentLength) {
         return !ContentType.APPLICATION_OCTET_STREAM.equalsIgnoreCase(contentTypeHeader)
             && contentLength != 0
             && contentLength < MAX_BODY_LOG_SIZE;
-    }
-
-    /*
-     * Gets the request retry count to include in logging.
-     *
-     * If there is no value set, or it isn't a valid number null will be returned indicating that retry count won't be
-     * logged.
-     */
-    private static Integer getRequestRetryCount(Context context) {
-        Object rawRetryCount = context.getData(RETRY_COUNT_CONTEXT).orElse(null);
-        if (rawRetryCount == null) {
-            return null;
-        }
-
-        try {
-            return Integer.valueOf(rawRetryCount.toString());
-        } catch (NumberFormatException ex) {
-            LOGGER.warning("Could not parse the request retry count: '{}'.", rawRetryCount);
-            return null;
-        }
-    }
-
-    /*
-     * Get or create the ClientLogger for the method having its request and response logged.
-     */
-    private static ClientLogger getOrCreateMethodLogger(String methodName) {
-        if (CALLER_METHOD_LOGGER_CACHE.size() > LOGGER_CACHE_MAX_SIZE) {
-            CALLER_METHOD_LOGGER_CACHE.clear();
-        }
-
-        return CALLER_METHOD_LOGGER_CACHE.computeIfAbsent(methodName, ClientLogger::new);
-    }
-
-    private static LoggingEventBuilder getLogBuilder(LogLevel logLevel, ClientLogger logger) {
-        switch (logLevel) {
-            case ERROR:
-                return logger.atError();
-            case WARNING:
-                return logger.atWarning();
-            case INFORMATIONAL:
-                return logger.atInfo();
-            case VERBOSE:
-            default:
-                return logger.atVerbose();
-        }
-    }
-
-    private static final class LoggingHttpResponse extends HttpResponse {
-        private final HttpResponse actualResponse;
-        private final LoggingEventBuilder logBuilder;
-        private final int contentLength;
-        private final ClientLogger logger;
-        private final boolean prettyPrintBody;
-        private final String contentTypeHeader;
-
-        private LoggingHttpResponse(HttpResponse actualResponse, LoggingEventBuilder logBuilder,
-            ClientLogger logger, int contentLength, String contentTypeHeader,
-            boolean prettyPrintBody) {
-            super(actualResponse.getRequest());
-            this.actualResponse = actualResponse;
-            this.logBuilder = logBuilder;
-            this.logger = logger;
-            this.contentLength = contentLength;
-            this.contentTypeHeader = contentTypeHeader;
-            this.prettyPrintBody = prettyPrintBody;
-        }
-
-        @Override
-        public int getStatusCode() {
-            return actualResponse.getStatusCode();
-        }
-
-        @Override
-        @Deprecated
-        public String getHeaderValue(String name) {
-            return actualResponse.getHeaderValue(name);
-        }
-
-        @Override
-        public String getHeaderValue(HttpHeaderName headerName) {
-            return actualResponse.getHeaderValue(headerName);
-        }
-
-        @Override
-        public HttpHeaders getHeaders() {
-            return actualResponse.getHeaders();
-        }
-
-        @Override
-        public Flux<ByteBuffer> getBody() {
-            AccessibleByteArrayOutputStream stream = new AccessibleByteArrayOutputStream(contentLength);
-
-            return Flux.using(() -> stream, s -> actualResponse.getBody()
-                .doOnNext(byteBuffer -> {
-                    try {
-                        ImplUtils.writeByteBufferToStream(byteBuffer.duplicate(), s);
-                    } catch (IOException ex) {
-                        throw LOGGER.logExceptionAsError(new UncheckedIOException(ex));
-                    }
-                }), s -> doLog(s.toString(StandardCharsets.UTF_8)));
-        }
-
-        @Override
-        public Mono<byte[]> getBodyAsByteArray() {
-            return FluxUtil.collectBytesFromNetworkResponse(getBody(), actualResponse.getHeaders());
-        }
-
-        @Override
-        public Mono<String> getBodyAsString() {
-            return getBodyAsByteArray().map(String::new);
-        }
-
-        @Override
-        public Mono<String> getBodyAsString(Charset charset) {
-            return getBodyAsByteArray().map(bytes -> new String(bytes, charset));
-        }
-
-        @Override
-        public BinaryData getBodyAsBinaryData() {
-            BinaryData content = actualResponse.getBodyAsBinaryData();
-            doLog(content.toString());
-            return content;
-        }
-
-        @Override
-        public void close() {
-            actualResponse.close();
-        }
-
-        private void doLog(String body) {
-            logBuilder.addKeyValue(LoggingKeys.BODY_KEY,
-                    prettyPrintIfNeeded(logger, prettyPrintBody, contentTypeHeader, body))
-                .log(RESPONSE_LOG_MESSAGE);
-        }
     }
 }

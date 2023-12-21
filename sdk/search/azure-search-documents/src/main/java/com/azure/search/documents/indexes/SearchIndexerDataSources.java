@@ -12,8 +12,7 @@ import com.azure.search.documents.indexes.models.SearchIndexerDataSourceConnecti
 import com.azure.search.documents.indexes.models.SearchIndexerDataSourceType;
 
 /**
- * Utility class that aids in the creation of {@link SearchIndexerDataSourceConnection
- * SearchIndexerDataSourceConnections}.
+ * Utility class that aids in the creation of {@link SearchIndexerDataSourceConnection SearchIndexerDataSources}.
  */
 public final class SearchIndexerDataSources {
 
@@ -207,7 +206,8 @@ public final class SearchIndexerDataSources {
         }
 
         DataChangeDetectionPolicy changeDetectionPolicy = useChangeDetection
-            ? new HighWaterMarkChangeDetectionPolicy("_ts") : null;
+            ? new HighWaterMarkChangeDetectionPolicy().setHighWaterMarkColumnName("_ts")
+            : null;
 
         return createSearchIndexerDataSource(dataSourceName, SearchIndexerDataSourceType.COSMOS_DB,
             cosmosConnectionString, collectionName, query,
@@ -261,8 +261,11 @@ public final class SearchIndexerDataSources {
         SearchIndexerDataSourceType type, String connectionString, String dataSourceName, String dataSourceQuery,
         String description, DataChangeDetectionPolicy dataChangeDetectionPolicy,
         DataDeletionDetectionPolicy dataDeletionDetectionPolicy) {
-        return new SearchIndexerDataSourceConnection(name, type, connectionString,
-            new SearchIndexerDataContainer(dataSourceName).setQuery(dataSourceQuery))
+        return new SearchIndexerDataSourceConnection()
+            .setName(name)
+            .setType(type)
+            .setConnectionString(connectionString)
+            .setContainer(new SearchIndexerDataContainer().setName(dataSourceName).setQuery(dataSourceQuery))
             .setDescription(description)
             .setDataChangeDetectionPolicy(dataChangeDetectionPolicy)
             .setDataDeletionDetectionPolicy(dataDeletionDetectionPolicy);

@@ -2,26 +2,15 @@
 // Licensed under the MIT License.
 package com.azure.storage.file.share;
 
-import com.azure.core.util.Context;
 import com.azure.core.util.polling.PollerFlux;
 import com.azure.storage.common.StorageSharedKeyCredential;
-import com.azure.storage.file.share.models.CopyableFileSmbPropertiesList;
-import com.azure.storage.file.share.models.DownloadRetryOptions;
-import com.azure.storage.file.share.models.FileRange;
 import com.azure.storage.file.share.models.PermissionCopyModeType;
 import com.azure.storage.file.share.models.ShareFileCopyInfo;
 import com.azure.storage.file.share.models.ShareFileHttpHeaders;
 import com.azure.storage.file.share.models.ShareFileProperties;
 import com.azure.storage.file.share.models.ShareFileRange;
 import com.azure.storage.file.share.models.NtfsFileAttributes;
-import com.azure.storage.file.share.models.ShareFileUploadOptions;
-import com.azure.storage.file.share.models.ShareFileUploadRangeOptions;
 import com.azure.storage.file.share.models.ShareRequestConditions;
-import com.azure.storage.file.share.options.ShareFileCopyOptions;
-import com.azure.storage.file.share.options.ShareFileDownloadOptions;
-import com.azure.storage.file.share.options.ShareFileListRangesDiffOptions;
-import com.azure.storage.file.share.options.ShareFileRenameOptions;
-import com.azure.storage.file.share.options.ShareFileUploadRangeFromUrlOptions;
 import com.azure.storage.file.share.sas.ShareFileSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Flux;
@@ -44,7 +33,6 @@ import java.util.Map;
 public class ShareFileAsyncJavaDocCodeSamples {
     String leaseId = "leaseId";
     ShareFileAsyncClient client = createAsyncClientWithSASToken();
-    private String destinationPath = "destinationPath";
 
     /**
      * Generates code sample for {@link ShareFileAsyncClient} instantiation.
@@ -240,45 +228,6 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#beginCopy(String, ShareFileCopyOptions, Duration)}
-     */
-    public void beginCopy3() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.beginCopy#String-Duration-ShareFileCopyOptions
-        FileSmbProperties smbProperties = new FileSmbProperties()
-            .setNtfsFileAttributes(EnumSet.of(NtfsFileAttributes.READ_ONLY))
-            .setFileCreationTime(OffsetDateTime.now())
-            .setFileLastWriteTime(OffsetDateTime.now())
-            .setFilePermissionKey("filePermissionKey");
-        String filePermission = "filePermission";
-        // NOTE: filePermission and filePermissionKey should never be both set
-        boolean ignoreReadOnly = false; // Default value
-        boolean setArchiveAttribute = true; // Default value
-        ShareRequestConditions requestConditions = new ShareRequestConditions().setLeaseId(leaseId);
-        CopyableFileSmbPropertiesList list = new CopyableFileSmbPropertiesList().setCreatedOn(true).setLastWrittenOn(true);
-        // NOTE: FileSmbProperties and CopyableFileSmbPropertiesList should never be both set
-
-        ShareFileCopyOptions options = new ShareFileCopyOptions()
-            .setSmbProperties(smbProperties)
-            .setFilePermission(filePermission)
-            .setIgnoreReadOnly(ignoreReadOnly)
-            .setArchiveAttribute(setArchiveAttribute)
-            .setDestinationRequestConditions(requestConditions)
-            .setSmbPropertiesToCopy(list)
-            .setPermissionCopyModeType(PermissionCopyModeType.SOURCE)
-            .setMetadata(Collections.singletonMap("file", "metadata"));
-
-        PollerFlux<ShareFileCopyInfo, Void> poller = shareFileAsyncClient.beginCopy(
-            "https://{accountName}.file.core.windows.net?{SASToken}", options, Duration.ofSeconds(2));
-
-        poller.subscribe(response -> {
-            final ShareFileCopyInfo value = response.getValue();
-            System.out.printf("Copy source: %s. Status: %s.%n", value.getCopySourceUrl(), value.getCopyStatus());
-        }, error -> System.err.println("Error: " + error), () -> System.out.println("Complete copying the file."));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.beginCopy#String-Duration-ShareFileCopyOptions
-    }
-
-    /**
      * Generates a code sample for using {@link ShareFileAsyncClient#abortCopy(String)}
      */
     public void abortCopyFileAsync() {
@@ -345,71 +294,7 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#uploadRange(Flux, long)}
-     */
-    public void uploadRange() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.uploadRange#Flux-long
-        ByteBuffer defaultData = ByteBuffer.wrap("default".getBytes(StandardCharsets.UTF_8));
-        shareFileAsyncClient.uploadRange(Flux.just(defaultData), defaultData.remaining()).subscribe(
-                response -> { },
-                error -> System.err.print(error.toString()),
-                () -> System.out.println("Complete deleting the file!")
-        );
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.uploadRange#Flux-long
-    }
-
-    /**
-     * Generates a code sample for using
-     * {@link ShareFileAsyncClient#uploadRangeWithResponse(ShareFileUploadRangeOptions)}
-     */
-    public void uploadRangeWithResponse() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.uploadRangeWithResponse#ShareFileUploadRangeOptions
-        ByteBuffer defaultData = ByteBuffer.wrap("default".getBytes(StandardCharsets.UTF_8));
-        shareFileAsyncClient.uploadRangeWithResponse(new ShareFileUploadRangeOptions(
-            Flux.just(defaultData), defaultData.remaining())).subscribe(
-                response -> { },
-                error -> System.err.print(error.toString()),
-                () -> System.out.println("Complete deleting the file!"));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.uploadRangeWithResponse#ShareFileUploadRangeOptions
-    }
-
-    /**
-     * Generates a code sample for using
-     * {@link ShareFileAsyncClient#upload(Flux, com.azure.storage.common.ParallelTransferOptions)}
-     */
-    public void upload() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.upload#Flux-ParallelTransferOptions
-        ByteBuffer defaultData = ByteBuffer.wrap("default".getBytes(StandardCharsets.UTF_8));
-        shareFileAsyncClient.upload(Flux.just(defaultData), null).subscribe(
-                response -> { },
-                error -> System.err.print(error.toString()),
-                () -> System.out.println("Complete deleting the file!"));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.upload#Flux-ParallelTransferOptions
-    }
-
-    /**
-     * Generates a code sample for using
-     * {@link ShareFileAsyncClient#uploadWithResponse(ShareFileUploadOptions)}
-     */
-    public void uploadBufferedRangeWithResponse() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.uploadWithResponse#ShareFileUploadOptions
-        ByteBuffer defaultData = ByteBuffer.wrap("default".getBytes(StandardCharsets.UTF_8));
-        shareFileAsyncClient.uploadWithResponse(new ShareFileUploadOptions(
-            Flux.just(defaultData))).subscribe(
-                response -> { },
-                error -> System.err.print(error.toString()),
-                () -> System.out.println("Complete deleting the file!")
-        );
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.uploadWithResponse#ShareFileUploadOptions
-    }
-
-    /**
-     * Generates a code sample for using
-     * {@link ShareFileAsyncClient#uploadWithResponse(Flux, long, Long, ShareRequestConditions)}
+     * Generates a code sample for using {@link ShareFileAsyncClient#uploadWithResponse(Flux, long, Long, ShareRequestConditions)}
      */
     public void uploadDataWithLease() {
         ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
@@ -526,21 +411,6 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#uploadRangeFromUrlWithResponse(long, long, long, String)}
-     */
-    public void uploadFileFromURLOptionsBagWithResponseAsync() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.uploadRangeFromUrlWithResponse#ShareFileUploadRangeFromUrlOptions
-        shareFileAsyncClient.uploadRangeFromUrlWithResponse(
-            new ShareFileUploadRangeFromUrlOptions(6, "sourceUrl").setDestinationOffset(8))
-            .subscribe(
-                response -> { },
-                error -> System.err.print(error.toString()),
-                () -> System.out.println("Completed upload range from url!"));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.uploadRangeFromUrlWithResponse#ShareFileUploadRangeFromUrlOptions
-    }
-
-    /**
      * Generates a code sample for using {@link ShareFileAsyncClient#uploadRangeFromUrlWithResponse(long, long, long, String, ShareRequestConditions)}
      */
     public void uploadFileFromURLWithLease() {
@@ -596,27 +466,6 @@ public class ShareFileAsyncJavaDocCodeSamples {
                 error -> System.err.println(error.getMessage())
             );
         // END: com.azure.storage.file.share.ShareFileAsyncClient.downloadWithResponse#ShareFileRange-Boolean-ShareRequestConditions
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#downloadWithResponse(ShareFileDownloadOptions)}
-     */
-    public void downloadWithOptions() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.downloadWithResponse#ShareFileDownloadOptions
-        ShareRequestConditions requestConditions = new ShareRequestConditions().setLeaseId(leaseId);
-        ShareFileRange range = new ShareFileRange(1024, 2047L);
-        DownloadRetryOptions retryOptions = new DownloadRetryOptions().setMaxRetryRequests(3);
-        ShareFileDownloadOptions options = new ShareFileDownloadOptions().setRange(range)
-            .setRequestConditions(requestConditions)
-            .setRangeContentMd5Requested(false)
-            .setRetryOptions(retryOptions);
-        shareFileAsyncClient.downloadWithResponse(options)
-            .subscribe(response ->
-                    System.out.printf("Complete downloading the data with status code %d%n", response.getStatusCode()),
-                error -> System.err.println(error.getMessage())
-            );
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.downloadWithResponse#ShareFileDownloadOptions
     }
 
 
@@ -975,38 +824,6 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#listRangesDiff(String)}
-     */
-    public void listRangesDiffAsync() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiff#String
-        final String prevSnapshot = "previoussnapshot";
-        shareFileAsyncClient.listRangesDiff(prevSnapshot).subscribe(response -> {
-            System.out.println("Valid Share File Ranges are:");
-            for (FileRange range : response.getRanges()) {
-                System.out.printf("Start: %s, End: %s%n", range.getStart(), range.getEnd());
-            }
-        });
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiff#String
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#listRangesDiffWithResponse(ShareFileListRangesDiffOptions)}
-     */
-    public void listRangesDiffAsyncOptionalOverload() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiffWithResponse#ShareFileListRangesDiffOptions
-        shareFileAsyncClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions("previoussnapshot")
-            .setRange(new ShareFileRange(1024, 2048L))).subscribe(response -> {
-                System.out.println("Valid Share File Ranges are:");
-                for (FileRange range : response.getValue().getRanges()) {
-                    System.out.printf("Start: %s, End: %s%n", range.getStart(), range.getEnd());
-                }
-            });
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiffWithResponse#ShareFileListRangesDiffOptions
-    }
-
-    /**
      * Generates a code sample for using {@link ShareFileAsyncClient#listRanges(ShareFileRange, ShareRequestConditions)}
      */
     public void listRangesAsyncWithLease() {
@@ -1080,35 +897,6 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Code snippets for {@link ShareFileAsyncClient#rename(String)} and
-     * {@link ShareFileAsyncClient#renameWithResponse(com.azure.storage.file.share.options.ShareFileRenameOptions)}
-     */
-    public void renameCodeSnippets() {
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.rename#String
-        ShareFileAsyncClient renamedClient = client.rename(destinationPath).block();
-        System.out.println("File Client has been renamed");
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.rename#String
-
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.renameWithResponse#ShareFileRenameOptions
-        FileSmbProperties smbProperties = new FileSmbProperties()
-            .setNtfsFileAttributes(EnumSet.of(NtfsFileAttributes.READ_ONLY))
-            .setFileCreationTime(OffsetDateTime.now())
-            .setFileLastWriteTime(OffsetDateTime.now())
-            .setFilePermissionKey("filePermissionKey");
-        ShareFileRenameOptions options = new ShareFileRenameOptions(destinationPath)
-            .setDestinationRequestConditions(new ShareRequestConditions().setLeaseId(leaseId))
-            .setSourceRequestConditions(new ShareRequestConditions().setLeaseId(leaseId))
-            .setIgnoreReadOnly(false)
-            .setReplaceIfExists(false)
-            .setFilePermission("filePermission")
-            .setSmbProperties(smbProperties);
-
-        ShareFileAsyncClient newRenamedClient = client.renameWithResponse(options).block().getValue();
-        System.out.println("File Client has been renamed");
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.renameWithResponse#ShareFileRenameOptions
-    }
-
-    /**
      * Generates a code sample for using {@link ShareFileAsyncClient#getShareSnapshotId()}
      */
     public void getShareSnapshotIdAsync() {
@@ -1162,51 +950,5 @@ public class ShareFileAsyncJavaDocCodeSamples {
 
         shareFileAsyncClient.generateSas(values); // Client must be authenticated via StorageSharedKeyCredential
         // END: com.azure.storage.file.share.ShareFileAsyncClient.generateSas#ShareServiceSasSignatureValues
-    }
-
-    /**
-     * Code snippet for {@link ShareFileAsyncClient#generateSas(ShareServiceSasSignatureValues, Context)}
-     */
-    public void generateSasWithContext() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithCredential();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.generateSas#ShareServiceSasSignatureValues-Context
-        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
-        ShareFileSasPermission permission = new ShareFileSasPermission().setReadPermission(true);
-
-        ShareServiceSasSignatureValues values = new ShareServiceSasSignatureValues(expiryTime, permission)
-            .setStartTime(OffsetDateTime.now());
-
-        // Client must be authenticated via StorageSharedKeyCredential
-        shareFileAsyncClient.generateSas(values, new Context("key", "value"));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.generateSas#ShareServiceSasSignatureValues-Context
-    }
-
-    /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#deleteIfExists()},
-     * {@link ShareFileAsyncClient#deleteIfExistsWithResponse()} and
-     * {@link ShareFileAsyncClient#deleteIfExistsWithResponse(ShareRequestConditions)}
-     */
-    public void deleteFileIfExistsCodeSnippets() {
-        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.deleteIfExists
-        shareFileAsyncClient.deleteIfExists().subscribe(deleted -> {
-            if (deleted) {
-                System.out.println("Successfully deleted.");
-            } else {
-                System.out.println("Does not exist.");
-            }
-        });
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.deleteIfExists
-
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.deleteIfExistsWithResponse#ShareRequestConditions
-        ShareRequestConditions requestConditions = new ShareRequestConditions().setLeaseId(leaseId);
-        shareFileAsyncClient.deleteIfExistsWithResponse(requestConditions).subscribe(response -> {
-            if (response.getStatusCode() == 404) {
-                System.out.println("Does not exist.");
-            } else {
-                System.out.println("successfully deleted.");
-            }
-        });
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.deleteIfExistsWithResponse#ShareRequestConditions
     }
 }

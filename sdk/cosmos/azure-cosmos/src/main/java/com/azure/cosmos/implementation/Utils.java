@@ -7,38 +7,28 @@ import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.uuid.EthernetAddress;
 import com.azure.cosmos.implementation.uuid.Generators;
 import com.azure.cosmos.implementation.uuid.impl.TimeBasedGenerator;
-import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
-import com.azure.cosmos.models.DedicatedGatewayRequestOptions;
 import com.azure.cosmos.models.ModelBridgeInternal;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.DurationDeserializer;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.netty.buffer.ByteBuf;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,34 +37,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
-
-import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 
 /**
  * While this class is public, but it is not part of our published public APIs.
  * This is meant to be internally used only by our sdk.
  */
 public class Utils {
-    private final static Logger logger = LoggerFactory.getLogger(Utils.class);
-
-    private static final int JAVA_VERSION = getJavaVersion();
     private static final int ONE_KB = 1024;
     private static final ZoneId GMT_ZONE_ID = ZoneId.of("GMT");
     public static final Base64.Encoder Base64Encoder = Base64.getEncoder();
     public static final Base64.Decoder Base64Decoder = Base64.getDecoder();
-    public static final Base64.Encoder Base64UrlEncoder = Base64.getUrlEncoder();
 
-    private static final ObjectMapper simpleObjectMapperAllowingDuplicatedProperties =
-        createAndInitializeObjectMapper(true);
-    private static final ObjectMapper simpleObjectMapperDisallowingDuplicatedProperties =
-        createAndInitializeObjectMapper(false);
-
-    private static final ObjectMapper durationEnabledObjectMapper = createAndInitializeDurationObjectMapper();
-    private static ObjectMapper simpleObjectMapper = simpleObjectMapperDisallowingDuplicatedProperties;
+    private static final ObjectMapper simpleObjectMapper = new ObjectMapper();
     private static final TimeBasedGenerator TIME_BASED_GENERATOR =
             Generators.timeBasedGenerator(EthernetAddress.constructMulticastAddress());
-    private static final Pattern SPACE_PATTERN = Pattern.compile("\\s");
 
     // NOTE DateTimeFormatter.RFC_1123_DATE_TIME cannot be used.
     // because cosmos db rfc1123 validation requires two digits for day.
@@ -83,56 +59,14 @@ public class Utils {
     // Therefore, we need a custom date time formatter.
     private static final DateTimeFormatter RFC_1123_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
 
-    private static ObjectMapper createAndInitializeObjectMapper(boolean allowDuplicateProperties) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-        objectMapper.configure(JsonParser.Feature.ALLOW_TRAILING_COMMA, true);
-        if (!allowDuplicateProperties) {
-            objectMapper.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, true);
-        }
-        objectMapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, false);
+    static {
+        Utils.simpleObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        Utils.simpleObjectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+        Utils.simpleObjectMapper.configure(JsonParser.Feature.ALLOW_TRAILING_COMMA, true);
+        Utils.simpleObjectMapper.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, true);
+        Utils.simpleObjectMapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, false);
 
-
-        // We will not register after burner for java 16+, due to its breaking changes
-        // https://github.com/Azure/azure-sdk-for-java/issues/23005
-        if (JAVA_VERSION != -1 && JAVA_VERSION < 16) {
-            objectMapper.registerModule(new AfterburnerModule());
-        }
-
-        objectMapper.registerModule(new JavaTimeModule());
-
-        return objectMapper;
-    }
-
-    private static ObjectMapper createAndInitializeDurationObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new SimpleModule()
-                .addSerializer(Duration.class, ToStringSerializer.instance)
-                .addSerializer(Instant.class, ToStringSerializer.instance));
-        return objectMapper;
-    }
-
-    private static int getJavaVersion() {
-        int version = -1;
-        try {
-            String completeJavaVersion = System.getProperty("java.version");
-            String[] versionElements = completeJavaVersion.split("\\.");
-            int versionFirstPart = Integer.parseInt(versionElements[0]);
-            // Java 8 or lower format is 1.6.0, 1.7.0, 1.7.0, 1.8.0
-            // Java 9 or higher format is 9.0, 10.0, 11.0
-            if (versionFirstPart == 1) {
-                version = Integer.parseInt(versionElements[1]);
-            } else {
-                version = versionFirstPart;
-            }
-            return version;
-        } catch (Exception ex) {
-            // Consumed the exception we got during parsing
-            // For unknown version we wil mark it as -1
-            logger.warn("Error while fetching java version", ex);
-            return version;
-        }
+        Utils.simpleObjectMapper.registerModule(new AfterburnerModule());
     }
 
     public static byte[] getUTF8BytesOrNull(String str) {
@@ -157,38 +91,90 @@ public class Utils {
         return encodedString;
     }
 
-    public static String decodeBase64String(String encodedString) {
-        byte[] decodeString = Base64Decoder.decode(encodedString);
-        return new String(decodeString, StandardCharsets.UTF_8);
+    /**
+     * Checks whether the specified link is Name based or not
+     *
+     * @param link the link to analyze.
+     * @return true or false
+     */
+    public static boolean isNameBased(String link) {
+        if (StringUtils.isEmpty(link)) {
+            return false;
+        }
+
+        // trimming the leading "/"
+        if (link.startsWith("/") && link.length() > 1) {
+            link = link.substring(1);
+        }
+
+        // Splitting the link(separated by "/") into parts
+        String[] parts = StringUtils.split(link, "/");
+
+        // First part should be "dbs"
+        if (parts.length == 0 || StringUtils.isEmpty(parts[0])
+                || !parts[0].equalsIgnoreCase(Paths.DATABASES_PATH_SEGMENT)) {
+            return false;
+        }
+
+        // The second part is the database id(ResourceID or Name) and cannot be
+        // empty
+        if (parts.length < 2 || StringUtils.isEmpty(parts[1])) {
+            return false;
+        }
+
+        // Either ResourceID or database name
+        String databaseID = parts[1];
+
+        // Length of databaseID(in case of ResourceID) is always 8
+        if (databaseID.length() != 8) {
+            return true;
+        }
+
+        // Decoding the databaseID
+        byte[] buffer = ResourceId.fromBase64String(databaseID);
+
+        // Length of decoded buffer(in case of ResourceID) is always 4
+        if (buffer.length != 4) {
+            return true;
+        }
+
+        return false;
     }
 
-    public static String decodeAsUTF8String(String inputString) {
-        if (inputString == null || inputString.isEmpty()) {
-            return inputString;
+    /**
+     * Checks whether the specified link is a Database Self Link or a Database
+     * ID based link
+     *
+     * @param link the link to analyze.
+     * @return true or false
+     */
+    public static boolean isDatabaseLink(String link) {
+        if (StringUtils.isEmpty(link)) {
+            return false;
         }
-        try {
-            return URLDecoder.decode(inputString, StandardCharsets.UTF_8.toString());
-        } catch (UnsupportedEncodingException e) {
-            logger.warn("Error while decoding input string", e);
-            return inputString;
-        }
-    }
 
-    public static String encodeUrlBase64String(byte[] binaryData) {
-        String encodedString = Base64UrlEncoder.withoutPadding().encodeToString(binaryData);
+        // trimming the leading and trailing "/" from the input string
+        link = trimBeginningAndEndingSlashes(link);
 
-        if (encodedString.endsWith("\r\n")) {
-            encodedString = encodedString.substring(0, encodedString.length() - 2);
-        }
-        return encodedString;
-    }
+        // Splitting the link(separated by "/") into parts
+        String[] parts = StringUtils.split(link, "/");
 
-    public static void configureSimpleObjectMapper(boolean allowDuplicateProperties) {
-        if (allowDuplicateProperties) {
-            Utils.simpleObjectMapper = Utils.simpleObjectMapperAllowingDuplicatedProperties;
-        } else {
-            Utils.simpleObjectMapper = Utils.simpleObjectMapperDisallowingDuplicatedProperties;
+        if (parts.length != 2) {
+            return false;
         }
+
+        // First part should be "dbs"
+        if (StringUtils.isEmpty(parts[0]) || !parts[0].equalsIgnoreCase(Paths.DATABASES_PATH_SEGMENT)) {
+            return false;
+        }
+
+        // The second part is the database id(ResourceID or Name) and cannot be
+        // empty
+        if (StringUtils.isEmpty(parts[1])) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -230,6 +216,19 @@ public class Utils {
         }
 
         return path;
+    }
+
+    public static Map<String, String> paramEncode(Map<String, String> queryParams) {
+        // TODO: this is not performant revisit
+        HashMap<String, String> map = new HashMap<>();
+        for(Map.Entry<String, String> paramEntry: queryParams.entrySet()) {
+            try {
+                map.put(paramEntry.getKey(), URLEncoder.encode(paramEntry.getValue(), "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return map;
     }
 
     public static String createQuery(Map<String, String> queryParameters) {
@@ -299,6 +298,16 @@ public class Utils {
         return collection.size();
     }
 
+    public static Boolean isCollectionPartitioned(DocumentCollection collection) {
+        if (collection == null) {
+            throw new IllegalArgumentException("collection");
+        }
+
+        return collection.getPartitionKey() != null
+                && collection.getPartitionKey().getPaths() != null
+                && collection.getPartitionKey().getPaths().size() > 0;
+    }
+
     public static boolean isCollectionChild(ResourceType type) {
         return type == ResourceType.Document || type == ResourceType.Attachment || type == ResourceType.Conflict
                 || type == ResourceType.StoredProcedure || type == ResourceType.Trigger || type == ResourceType.UserDefinedFunction;
@@ -306,7 +315,16 @@ public class Utils {
 
     public static boolean isWriteOperation(OperationType operationType) {
         return operationType == OperationType.Create || operationType == OperationType.Upsert || operationType == OperationType.Delete || operationType == OperationType.Replace
-                || operationType == OperationType.ExecuteJavaScript || operationType == OperationType.Batch;
+                || operationType == OperationType.ExecuteJavaScript;
+    }
+
+    public static boolean isFeedRequest(OperationType requestOperationType) {
+        return requestOperationType == OperationType.Create ||
+                requestOperationType == OperationType.Upsert ||
+                requestOperationType == OperationType.ReadFeed ||
+                requestOperationType == OperationType.Query ||
+                requestOperationType == OperationType.SqlQuery ||
+                requestOperationType == OperationType.HeadFeed;
     }
 
     private static String addTrailingSlash(String path) {
@@ -357,7 +375,7 @@ public class Utils {
     }
 
     public static String getUserAgent() {
-        return getUserAgent(HttpConstants.Versions.SDK_NAME, HttpConstants.Versions.getSdkVersion());
+        return getUserAgent(HttpConstants.Versions.SDK_NAME, HttpConstants.Versions.SDK_VERSION);
     }
 
     public static String getUserAgent(String sdkName, String sdkVersion) {
@@ -365,23 +383,18 @@ public class Utils {
         if (osName == null) {
             osName = "Unknown";
         }
-        osName = SPACE_PATTERN.matcher(osName).replaceAll("");
-        return String.format("%s%s/%s %s/%s JRE/%s",
-                UserAgentContainer.AZSDK_USERAGENT_PREFIX,
-                sdkName,
-                sdkVersion,
+        osName = osName.replaceAll("\\s", "");
+        String userAgent = String.format("%s/%s JRE/%s %s/%s",
                 osName,
                 System.getProperty("os.version"),
-                System.getProperty("java.version")
-                );
+                System.getProperty("java.version"),
+                sdkName,
+                sdkVersion);
+        return userAgent;
     }
 
     public static ObjectMapper getSimpleObjectMapper() {
         return Utils.simpleObjectMapper;
-    }
-
-    public static ObjectMapper getDurationEnabledObjectMapper() {
-        return durationEnabledObjectMapper;
     }
 
     /**
@@ -399,12 +412,12 @@ public class Utils {
         return TIME_BASED_GENERATOR.generate();
     }
 
-    public static String instantAsUTCRFC1123(Instant instant){
-        return Utils.RFC_1123_DATE_TIME.format(instant.atZone(GMT_ZONE_ID));
+    public static String zonedDateTimeAsUTCRFC1123(OffsetDateTime offsetDateTime){
+        return Utils.RFC_1123_DATE_TIME.format(offsetDateTime.atZoneSameInstant(GMT_ZONE_ID));
     }
 
     public static int getValueOrDefault(Integer val, int defaultValue) {
-        return val != null ? val : defaultValue;
+        return val != null ? val.intValue() : defaultValue;
     }
 
     public static void checkStateOrThrow(boolean value, String argumentName, String message) throws IllegalArgumentException {
@@ -455,6 +468,15 @@ public class Utils {
         return new NullPointerException(String.format("argumentName: %s, message: %s", argumentName, String.format(messageTemplate, messageTemplateParams)));
     }
 
+    public static BadRequestException checkRequestOrReturnException(boolean value, String argumentName, String message) {
+
+        if (value) {
+            return null;
+        }
+
+        return new BadRequestException(String.format("argumentName: %s, message: %s", argumentName, message));
+    }
+
     public static BadRequestException checkRequestOrReturnException(boolean value, String argumentName, String messageTemplate, Object... messageTemplateParams) {
         if (value) {
             return null;
@@ -481,8 +503,18 @@ public class Utils {
         return Collections.EMPTY_LIST;
     }
 
+    public static <V> List<V> immutableListOf(V v1) {
+        List<V> list = new ArrayList<>();
+        list.add(v1);
+        return Collections.unmodifiableList(list);
+    }
+
+    public static <K, V> Map<K, V>immutableMapOf() {
+        return Collections.emptyMap();
+    }
+
     public static <K, V> Map<K, V>immutableMapOf(K k1, V v1) {
-        Map<K, V> map = new HashMap<>();
+        Map<K, V> map = new HashMap<K ,V>();
         map.put(k1,  v1);
         map = Collections.unmodifiableMap(map);
         return map;
@@ -503,7 +535,7 @@ public class Utils {
         public V v;
 
         public static <T> ValueHolder<T> initialize(T v) {
-            return new ValueHolder<>(v);
+            return new ValueHolder<T>(v);
         }
     }
 
@@ -526,8 +558,7 @@ public class Utils {
         try {
             return getSimpleObjectMapper().readValue(itemResponseBodyAsString, itemClassType);
         } catch (IOException e) {
-            throw new IllegalStateException(
-                String.format("Failed to parse string [%s] to POJO.", itemResponseBodyAsString), e);
+            throw new IllegalStateException("Failed to get POJO.", e);
         }
     }
 
@@ -535,25 +566,11 @@ public class Utils {
         if (Utils.isEmpty(item)) {
             return null;
         }
-
         try {
             return getSimpleObjectMapper().readValue(item, itemClassType);
         } catch (IOException e) {
-            throw new IllegalStateException(
-                String.format("Failed to parse byte-array %s to POJO.", Arrays.toString(item)), e);
+            throw new IllegalStateException("Failed to get POJO.", e);
         }
-    }
-
-    public static <T> T parse(byte[] item, Class<T> itemClassType, ItemDeserializer itemDeserializer) {
-        if (Utils.isEmpty(item)) {
-            return null;
-        }
-
-        if (itemDeserializer == null) {
-            return Utils.parse(item, itemClassType);
-        }
-
-        return itemDeserializer.parseFrom(itemClassType, item);
     }
 
     public static ByteBuffer serializeJsonToByteBuffer(ObjectMapper objectMapper, Object object) {
@@ -562,7 +579,6 @@ public class Utils {
             objectMapper.writeValue(byteBufferOutputStream, object);
             return byteBufferOutputStream.asByteBuffer();
         } catch (IOException e) {
-            // TODO moderakh: on serialization/deserialization failure we should throw CosmosException here and elsewhere
             throw new IllegalArgumentException("Failed to serialize the object into json", e);
         }
     }
@@ -579,17 +595,16 @@ public class Utils {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    public static CosmosChangeFeedRequestOptions getEffectiveCosmosChangeFeedRequestOptions(
-        CosmosPagedFluxOptions pagedFluxOptions,
-        CosmosChangeFeedRequestOptions cosmosChangeFeedRequestRequestOptions) {
-
-        checkNotNull(
-            cosmosChangeFeedRequestRequestOptions,
-            "Argument 'cosmosChangeFeedRequestRequestOptions' must not be null");
-
-        return ModelBridgeInternal
-            .getEffectiveChangeFeedRequestOptions(
-                cosmosChangeFeedRequestRequestOptions, pagedFluxOptions);
+    public static void setContinuationTokenAndMaxItemCount(CosmosPagedFluxOptions pagedFluxOptions, CosmosQueryRequestOptions cosmosQueryRequestOptions) {
+        if (pagedFluxOptions == null) {
+            return;
+        }
+        if (pagedFluxOptions.getRequestContinuation() != null) {
+            ModelBridgeInternal.setQueryRequestOptionsContinuationToken(cosmosQueryRequestOptions, pagedFluxOptions.getRequestContinuation());
+        }
+        if (pagedFluxOptions.getMaxItemCount() != null) {
+            ModelBridgeInternal.setQueryRequestOptionsMaxItemCount(cosmosQueryRequestOptions, pagedFluxOptions.getMaxItemCount());
+        }
     }
 
     static String escapeNonAscii(String partitionKeyJson) {
@@ -618,7 +633,7 @@ public class Utils {
         }
     }
 
-    public static byte[] toByteArray(ByteBuf buf) {
+    static byte[] toByteArray(ByteBuf buf) {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
         return bytes;
@@ -630,16 +645,5 @@ public class Utils {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Unable to convert JSON to STRING", e);
         }
-    }
-
-    public static long getMaxIntegratedCacheStalenessInMillis(DedicatedGatewayRequestOptions dedicatedGatewayRequestOptions) {
-        Duration maxIntegratedCacheStaleness = dedicatedGatewayRequestOptions.getMaxIntegratedCacheStaleness();
-        if (maxIntegratedCacheStaleness.toNanos() > 0 && maxIntegratedCacheStaleness.toMillis() <= 0) {
-            throw new IllegalArgumentException("MaxIntegratedCacheStaleness granularity is milliseconds");
-        }
-        if (maxIntegratedCacheStaleness.toMillis() < 0) {
-            throw new IllegalArgumentException("MaxIntegratedCacheStaleness duration cannot be negative");
-        }
-        return maxIntegratedCacheStaleness.toMillis();
     }
 }

@@ -1,19 +1,18 @@
+import com.azure.core.tracing.opentelemetry.OpenTelemetryHttpPolicy;
 import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
-import com.azure.core.tracing.opentelemetry.OpenTelemetryTracerProvider;
 
 module com.azure.core.tracing.opentelemetry {
     requires transitive com.azure.core;
 
     requires io.opentelemetry.api;
-    requires io.opentelemetry.context;
+    requires io.opentelemetry.context.propagation;
 
-    opens com.azure.core.tracing.opentelemetry to com.fasterxml.jackson.databind, com.azure.core;
+    opens com.azure.core.tracing.opentelemetry to com.fasterxml.jackson.databind;
 
     exports com.azure.core.tracing.opentelemetry;
 
     provides com.azure.core.util.tracing.Tracer
         with OpenTelemetryTracer;
-
-    provides com.azure.core.util.tracing.TracerProvider
-        with OpenTelemetryTracerProvider;
+    provides com.azure.core.http.policy.AfterRetryPolicyProvider
+        with OpenTelemetryHttpPolicy;
 }

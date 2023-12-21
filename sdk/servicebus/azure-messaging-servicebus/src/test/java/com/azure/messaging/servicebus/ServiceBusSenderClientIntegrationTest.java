@@ -5,8 +5,8 @@ package com.azure.messaging.servicebus;
 
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.implementation.MessagingEntityType;
-import com.azure.messaging.servicebus.models.CreateMessageBatchOptions;
-import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
+import com.azure.messaging.servicebus.models.CreateBatchOptions;
+import com.azure.messaging.servicebus.models.ReceiveMode;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,16 +38,11 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     protected void afterTest() {
         dispose(sender);
 
-        final int numberOfMessages = messagesPending.get();
-        if (numberOfMessages < 1) {
-            dispose(receiver);
-            return;
-        }
         try {
-            receiver.receiveMessages()
+            receiver.receive()
                 .take(messagesPending.get())
                 .map(message -> {
-                    logger.info("Message received: {}", message.getSequenceNumber());
+                    logger.info("Message received: {}", message.getMessage().getSequenceNumber());
                     return message;
                 })
                 .timeout(Duration.ofSeconds(5), Mono.empty())
@@ -73,13 +68,13 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void nonSessionQueueSendMessage(MessagingEntityType entityType) {
         // Arrange
-        setSenderAndReceiver(entityType, TestUtils.USE_CASE_DEFAULT);
+        setSenderAndReceiver(entityType, 0);
 
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = TestUtils.getServiceBusMessage(CONTENTS_BYTES, messageId);
 
         // Assert & Act
-        sender.sendMessage(message);
+        sender.send(message);
 
         messagesPending.incrementAndGet();
     }
@@ -91,19 +86,19 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void nonSessionMessageBatch(MessagingEntityType entityType) {
         // Arrange
-        setSenderAndReceiver(entityType, TestUtils.USE_CASE_DEFAULT);
+        setSenderAndReceiver(entityType, 0);
 
         final String messageId = UUID.randomUUID().toString();
-        final CreateMessageBatchOptions options = new CreateMessageBatchOptions().setMaximumSizeInBytes(1024);
+        final CreateBatchOptions options = new CreateBatchOptions().setMaximumSizeInBytes(1024);
         final List<ServiceBusMessage> messages = TestUtils.getServiceBusMessages(3, messageId, CONTENTS_BYTES);
 
         // Assert & Act
-        ServiceBusMessageBatch batch = sender.createMessageBatch(options);
+        ServiceBusMessageBatch batch = sender.createBatch(options);
         for (ServiceBusMessage message : messages) {
-            Assertions.assertTrue(batch.tryAddMessage(message));
+            Assertions.assertTrue(batch.tryAdd(message));
         }
 
-        sender.sendMessages(batch);
+        sender.send(batch);
 
         for (int i = 0; i < messages.size(); i++) {
             messagesPending.incrementAndGet();
@@ -117,12 +112,12 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void nonSessionEntitySendMessageList(MessagingEntityType entityType) {
         // Arrange
-        setSenderAndReceiver(entityType, TestUtils.USE_CASE_DEFAULT);
+        setSenderAndReceiver(entityType, 0);
         int count = 3;
         final List<ServiceBusMessage> messages = TestUtils.getServiceBusMessages(count, UUID.randomUUID().toString(), CONTENTS_BYTES);
 
         // Assert & Act
-        sender.sendMessages(messages);
+        sender.send(messages);
 
         messages.forEach(serviceBusMessage -> messagesPending.incrementAndGet());
     }
@@ -134,9 +129,9 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void nonSessionScheduleMessage(MessagingEntityType entityType) {
         // Arrange
-        setSenderAndReceiver(entityType, TestUtils.USE_CASE_DEFAULT);
+        setSenderAndReceiver(entityType, 0);
 
-        final OffsetDateTime scheduledEnqueueTime = OffsetDateTime.now().plusSeconds(10);
+        final Instant scheduledEnqueueTime = Instant.now().plusSeconds(10);
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = TestUtils.getServiceBusMessage(CONTENTS_BYTES, messageId);
 
@@ -156,9 +151,9 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
     @ParameterizedTest
     void nonSessionCancelScheduleMessage(MessagingEntityType entityType) {
         // Arrange
-        setSenderAndReceiver(entityType, TestUtils.USE_CASE_DEFAULT);
+        setSenderAndReceiver(entityType, 0);
 
-        final OffsetDateTime scheduledEnqueueTime = OffsetDateTime.now().plusSeconds(20);
+        final Instant scheduledEnqueueTime = Instant.now().plusSeconds(20);
         final String messageId = UUID.randomUUID().toString();
         final ServiceBusMessage message = TestUtils.getServiceBusMessage(CONTENTS_BYTES, messageId);
 
@@ -178,29 +173,29 @@ class ServiceBusSenderClientIntegrationTest extends IntegrationTestBase {
 
                 Assertions.assertNotNull(queueName, "'queueName' cannot be null.");
 
-                sender = toClose(getBuilder().sender()
+                sender = getBuilder().sender()
                     .queueName(queueName)
-                    .buildClient());
-                receiver = toClose(getBuilder().receiver()
+                    .buildClient();
+                receiver = getBuilder().receiver()
                     .queueName(queueName)
-                    .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
-                    .buildAsyncClient());
+                    .receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+                    .buildAsyncClient();
                 break;
             case SUBSCRIPTION:
-                final String topicName = getTopicName(entityIndex);
-                final String subscriptionName = TestUtils.getSubscriptionBaseName();
+                final String topicName = getTopicName();
+                final String subscriptionName = getSubscriptionName(entityIndex);
 
                 Assertions.assertNotNull(topicName, "'topicName' cannot be null.");
                 Assertions.assertNotNull(subscriptionName, "'subscriptionName' cannot be null.");
 
-                sender = toClose(getBuilder().sender()
+                sender = getBuilder().sender()
                     .topicName(topicName)
-                    .buildClient());
-                receiver = toClose(getBuilder().receiver()
+                    .buildClient();
+                receiver = getBuilder().receiver()
                     .topicName(topicName)
                     .subscriptionName(subscriptionName)
-                    .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
-                    .buildAsyncClient());
+                    .receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+                    .buildAsyncClient();
                 break;
             default:
                 throw logger.logExceptionAsError(new IllegalArgumentException("Unknown entity type: " + entityType));

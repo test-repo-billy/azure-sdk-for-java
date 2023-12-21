@@ -3,13 +3,10 @@
 
 package com.azure.storage.queue.implementation.util;
 
-import com.azure.core.util.Configuration;
-import com.azure.core.util.Context;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.implementation.Constants;
 import com.azure.storage.common.implementation.StorageImplUtils;
-import com.azure.storage.common.implementation.TimeAndFormat;
 import com.azure.storage.common.sas.SasIpRange;
 import com.azure.storage.common.sas.SasProtocol;
 import com.azure.storage.queue.QueueServiceVersion;
@@ -29,10 +26,9 @@ import static com.azure.storage.common.implementation.SasImplUtils.tryAppendQuer
  */
 public class QueueSasImplUtil {
 
-    private static final ClientLogger LOGGER = new ClientLogger(QueueSasImplUtil.class);
+    private final ClientLogger logger = new ClientLogger(QueueSasImplUtil.class);
 
-    private static final String VERSION = Configuration.getGlobalConfiguration()
-        .get(Constants.PROPERTY_AZURE_STORAGE_SAS_SERVICE_VERSION, QueueServiceVersion.getLatest().getVersion());
+    private String version;
 
     private SasProtocol protocol;
 
@@ -56,6 +52,7 @@ public class QueueSasImplUtil {
      */
     public QueueSasImplUtil(QueueServiceSasSignatureValues sasValues, String queueName) {
         Objects.requireNonNull(sasValues);
+        this.version = sasValues.getVersion();
         this.protocol = sasValues.getProtocol();
         this.startTime = sasValues.getStartTime();
         this.expiryTime = sasValues.getExpiryTime();
@@ -69,10 +66,9 @@ public class QueueSasImplUtil {
      * Generates a Sas signed with a {@link StorageSharedKeyCredential}
      *
      * @param storageSharedKeyCredentials {@link StorageSharedKeyCredential}
-     * @param context Additional context that is passed through the code when generating a SAS.
      * @return A String representing the Sas
      */
-    public String generateSas(StorageSharedKeyCredential storageSharedKeyCredentials, Context context) {
+    public String generateSas(StorageSharedKeyCredential storageSharedKeyCredentials) {
         StorageImplUtils.assertNotNull("storageSharedKeyCredentials", storageSharedKeyCredentials);
 
         ensureState();
@@ -80,7 +76,6 @@ public class QueueSasImplUtil {
         // Signature is generated on the un-url-encoded values.
         String canonicalName = getCanonicalName(storageSharedKeyCredentials.getAccountName());
         String stringToSign = stringToSign(canonicalName);
-        StorageImplUtils.logStringToSign(LOGGER, stringToSign, context);
         String signature = storageSharedKeyCredentials.computeHmac256(stringToSign);
 
         return encode(signature);
@@ -93,12 +88,10 @@ public class QueueSasImplUtil {
          */
         StringBuilder sb = new StringBuilder();
 
-        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_SERVICE_VERSION, VERSION);
+        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_SERVICE_VERSION, this.version);
         tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_PROTOCOL, this.protocol);
-        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_START_TIME, formatQueryParameterDate(
-            new TimeAndFormat(this.startTime, null)));
-        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_EXPIRY_TIME, formatQueryParameterDate(
-            new TimeAndFormat(this.expiryTime, null)));
+        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_START_TIME, formatQueryParameterDate(this.startTime));
+        tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_EXPIRY_TIME, formatQueryParameterDate(this.expiryTime));
         tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_IP_RANGE, this.sasIpRange);
         tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_SIGNED_IDENTIFIER, this.identifier);
         tryAppendQueryParameter(sb, Constants.UrlConstants.SAS_SIGNED_PERMISSIONS, this.permissions);
@@ -115,9 +108,13 @@ public class QueueSasImplUtil {
      * 4. Reparse permissions depending on what the resource is. If it is an unrecognised resource, do nothing.
      */
     private void ensureState() {
+        if (version == null) {
+            version = QueueServiceVersion.getLatest().getVersion();
+        }
+
         if (identifier == null) {
             if (expiryTime == null || permissions == null) {
-                throw LOGGER.logExceptionAsError(new IllegalStateException("If identifier is not set, expiry time "
+                throw logger.logExceptionAsError(new IllegalStateException("If identifier is not set, expiry time "
                     + "and permissions must be set"));
             }
         }
@@ -127,7 +124,7 @@ public class QueueSasImplUtil {
                 permissions = QueueSasPermission.parse(permissions).toString();
             } else {
                 // We won't reparse the permissions if we don't know the type.
-                LOGGER.info("Not re-parsing permissions. Resource type is not queue.");
+                logger.info("Not re-parsing permissions. Resource type is not queue.");
             }
         }
     }
@@ -151,7 +148,7 @@ public class QueueSasImplUtil {
             this.identifier == null ? "" : this.identifier,
             this.sasIpRange == null ? "" : this.sasIpRange.toString(),
             this.protocol == null ? "" : protocol.toString(),
-            VERSION == null ? "" : VERSION
+            this.version == null ? "" : this.version
         );
     }
 

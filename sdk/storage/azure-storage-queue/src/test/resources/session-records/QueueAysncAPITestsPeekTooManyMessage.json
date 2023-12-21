@@ -1,0 +1,45 @@
+{
+  "networkCallRecords" : [ {
+    "Method" : "PUT",
+    "Uri" : "https://gapradev.queue.core.windows.net/queueaysncapitestspeektoomanymessage344375ab87cd49",
+    "Headers" : {
+      "x-ms-version" : "2019-07-07",
+      "User-Agent" : "azsdk-java-azure-storage-queue/12.3.0-beta.1 (11.0.4; Windows 10 10.0)",
+      "x-ms-client-request-id" : "693a9671-bdc9-4116-b703-429dbf1ada69"
+    },
+    "Response" : {
+      "x-ms-version" : "2019-07-07",
+      "Server" : "Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0",
+      "retry-after" : "0",
+      "Content-Length" : "0",
+      "StatusCode" : "201",
+      "x-ms-request-id" : "d25b8363-f003-0012-6f71-e0e9eb000000",
+      "Date" : "Tue, 11 Feb 2020 00:24:59 GMT",
+      "x-ms-client-request-id" : "693a9671-bdc9-4116-b703-429dbf1ada69"
+    },
+    "Exception" : null
+  }, {
+    "Method" : "GET",
+    "Uri" : "https://gapradev.queue.core.windows.net/queueaysncapitestspeektoomanymessage344375ab87cd49/messages?numofmessages=33&peekonly=true",
+    "Headers" : {
+      "x-ms-version" : "2019-07-07",
+      "User-Agent" : "azsdk-java-azure-storage-queue/12.3.0-beta.1 (11.0.4; Windows 10 10.0)",
+      "x-ms-client-request-id" : "e9adc81c-77ea-4e19-b7c8-0953fb1697d7"
+    },
+    "Response" : {
+      "x-ms-version" : "2019-07-07",
+      "Server" : "Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0",
+      "x-ms-error-code" : "OutOfRangeQueryParameterValue",
+      "retry-after" : "0",
+      "Content-Length" : "456",
+      "StatusCode" : "400",
+      "x-ms-request-id" : "d25b8366-f003-0012-7171-e0e9eb000000",
+      "Body" : "﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><Error><Code>OutOfRangeQueryParameterValue</Code><Message>One of the query parameters specified in the request URI is outside the permissible range.\nRequestId:d25b8366-f003-0012-7171-e0e9eb000000\nTime:2020-02-11T00:24:59.8594695Z</Message><QueryParameterName>numofmessages</QueryParameterName><QueryParameterValue>33</QueryParameterValue><MinimumAllowed>1</MinimumAllowed><MaximumAllowed>32</MaximumAllowed></Error>",
+      "Date" : "Tue, 11 Feb 2020 00:24:59 GMT",
+      "x-ms-client-request-id" : "e9adc81c-77ea-4e19-b7c8-0953fb1697d7",
+      "Content-Type" : "application/xml"
+    },
+    "Exception" : null
+  } ],
+  "variables" : [ "queueaysncapitestspeektoomanymessage344375ab87cd49" ]
+}

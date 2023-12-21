@@ -31,7 +31,6 @@ public class ResourceId {
     private long permission;
     private int attachment;
     private long offer;
-    private int clientEncryptionKey;
 
     private ResourceId() {
         this.offer = 0;
@@ -46,7 +45,6 @@ public class ResourceId {
         this.conflict = 0;
         this.permission = 0;
         this.attachment = 0;
-        this.clientEncryptionKey = 0;
     }
 
     public static ResourceId parse(String id) throws IllegalArgumentException {
@@ -172,7 +170,7 @@ public class ResourceId {
                 byte[] temp = new byte[4];
                 ResourceId.blockCopy(buffer, 4, temp, 0, 4);
 
-                boolean isCollection = (temp[0] & (128)) != 0;
+                boolean isCollection = (temp[0] & (128)) > 0;
 
                 if (isCollection) {
                     rid.documentCollection = ByteBuffer.wrap(temp).getInt();
@@ -280,7 +278,7 @@ public class ResourceId {
     }
 
     public boolean isDatabaseId() {
-        return this.getDatabase() != 0 && (this.getDocumentCollection() == 0 && this.getUser() == 0 && this.clientEncryptionKey == 0);
+        return this.getDatabase() != 0 && (this.getDocumentCollection() == 0 && this.getUser() == 0);
     }
 
     public int getDatabase() {
@@ -347,17 +345,6 @@ public class ResourceId {
         rid.database = this.database;
         rid.documentCollection = this.documentCollection;
         rid.userDefinedFunction = this.userDefinedFunction;
-        return rid;
-    }
-
-    public int getClientEncryptionKey() {
-        return this.clientEncryptionKey;
-    }
-
-    public ResourceId getClientEncryptionKeyId() {
-        ResourceId rid = new ResourceId();
-        rid.database = this.database;
-        rid.clientEncryptionKey = this.clientEncryptionKey;
         return rid;
     }
 
@@ -453,12 +440,12 @@ public class ResourceId {
             len += ResourceId.OFFER_ID_LENGTH;
         else if (this.database != 0)
             len += 4;
-        if (this.documentCollection != 0 || this.user != 0 || this.clientEncryptionKey != 0 )
+        if (this.documentCollection != 0 || this.user != 0)
             len += 4;
         if (this.document != 0 || this.permission != 0
                 || this.storedProcedure != 0 || this.trigger != 0
                 || this.userDefinedFunction != 0 || this.conflict != 0
-                || this.partitionKeyRange != 0 || this.clientEncryptionKey != 0)
+                || this.partitionKeyRange != 0)
             len += 8;
         if (this.attachment != 0)
             len += 4;
@@ -503,12 +490,8 @@ public class ResourceId {
                     0, val, 8, 8);
         else if (this.partitionKeyRange != 0)
             ResourceId.blockCopy(
-                convertToBytesUsingByteBuffer(this.partitionKeyRange),
-                0, val, 8, 8);
-        else if (this.clientEncryptionKey != 0)
-            ResourceId.blockCopy(
-                convertToBytesUsingByteBuffer(this.clientEncryptionKey),
-                0, val, 8, 4);
+                    convertToBytesUsingByteBuffer(this.partitionKeyRange),
+                    0, val, 8, 8);
 
         if (this.attachment != 0)
             ResourceId.blockCopy(

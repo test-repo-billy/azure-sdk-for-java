@@ -5,11 +5,11 @@ package com.azure.cosmos.implementation.changefeed;
 /**
  * Factory class used to create instance(s) of {@link ChangeFeedObserver}.
  */
-public interface ChangeFeedObserverFactory<T> {
+public interface ChangeFeedObserverFactory {
     /**
      * Creates an instance of a {@link ChangeFeedObserver}.
      *
      * @return an instance of a {@link ChangeFeedObserver}.
      */
-    ChangeFeedObserver<T> createObserver();
+    ChangeFeedObserver createObserver();
 }

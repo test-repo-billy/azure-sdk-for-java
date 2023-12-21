@@ -221,7 +221,7 @@ public final class CosmosPermissionProperties {
         if (databaseName == null || databaseName.isEmpty()) {
             throw new IllegalArgumentException("databaseName");
         }
-        resourcePrefixPath.append(Paths.DATABASES_PATH_SEGMENT)
+        resourcePrefixPath.append("/").append(Paths.DATABASES_PATH_SEGMENT)
             .append("/").append(databaseName);
 
         if (this.containerName == null || this.containerName.isEmpty()) {
@@ -263,10 +263,6 @@ public final class CosmosPermissionProperties {
         permission.setId(this.permissionName);
         permission.setPermissionMode(this.permissionMode);
         permission.setResourceLink(getResourcePath(databaseName));
-
-        if (this.resourcePartitionKey != null) {
-            permission.setResourcePartitionKey(this.resourcePartitionKey);
-        }
 
         return permission;
     }
@@ -322,10 +318,6 @@ public final class CosmosPermissionProperties {
 
     Permission getPermission(String databaseName) {
         return getResource(databaseName);
-    }
-
-    Permission getPermission() {
-        return this.permission;
     }
 
     static List<CosmosPermissionProperties> getPermissions(List<Permission> results) {

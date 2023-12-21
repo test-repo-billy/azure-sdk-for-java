@@ -51,11 +51,11 @@ class PartitionManager extends Closable {
                         // Stage 0B: set up a way to close the EventHubClient when we're done
                         .thenApplyAsync((ehClient) -> {
                             final EventHubClient saveForCleanupClient = ehClient;
-                            cleanupFuture.thenCompose((empty) -> saveForCleanupClient.close());
+                            cleanupFuture.thenComposeAsync((empty) -> saveForCleanupClient.close(), this.hostContext.getExecutor());
                             return ehClient;
                         }, this.hostContext.getExecutor())
                         // Stage 1: use the client to get runtime info for the event hub
-                        .thenCompose((ehClient) -> ehClient.getRuntimeInformation())
+                        .thenComposeAsync((ehClient) -> ehClient.getRuntimeInformation(), this.hostContext.getExecutor())
                         // Stage 2: extract the partition ids from the runtime info or throw on null (timeout)
                         .thenAcceptAsync((EventHubRuntimeInformation ehInfo) -> {
                             if (ehInfo != null) {
@@ -147,7 +147,7 @@ class PartitionManager extends Closable {
         // Stage 0: get partition ids and cache
         return cachePartitionIds()
                 // Stage 1: initialize stores, if stage 0 succeeded
-                .thenCompose((unused) -> initializeStores())
+                .thenComposeAsync((unused) -> initializeStores(), this.hostContext.getExecutor())
                 // Stage 2: RUN REGARDLESS OF EXCEPTIONS -- trace errors
                 .whenCompleteAsync((empty, e) -> {
                     if (e != null) {
@@ -215,7 +215,7 @@ class PartitionManager extends Closable {
     private CompletableFuture<?> buildRetries(CompletableFuture<?> buildOnto, Callable<CompletableFuture<?>> lambda, String retryMessage,
                                               String finalFailureMessage, String action, int maxRetries) {
         // Stage 0: first attempt
-        CompletableFuture<?> retryChain = buildOnto.thenCompose((unused) -> {
+        CompletableFuture<?> retryChain = buildOnto.thenComposeAsync((unused) -> {
             CompletableFuture<?> newresult = CompletableFuture.completedFuture(null);
             try {
                 newresult = lambda.call();
@@ -223,7 +223,7 @@ class PartitionManager extends Closable {
                 throw new CompletionException(e1);
             }
             return newresult;
-        });
+        }, this.hostContext.getExecutor());
 
         for (int i = 1; i < maxRetries; i++) {
             retryChain = retryChain
@@ -249,7 +249,7 @@ class PartitionManager extends Closable {
                     }, this.hostContext.getExecutor())
                     // Stages 2, 4, 6, etc: if we already have a valid result, pass it along. Otherwise, make another attempt.
                     // Once we have a valid result there will be no more attempts or exceptions.
-                    .thenCompose((oldresult) -> {
+                    .thenComposeAsync((oldresult) -> {
                         CompletableFuture<?> newresult = CompletableFuture.completedFuture(oldresult);
                         if (oldresult == null) {
                             try {
@@ -259,7 +259,7 @@ class PartitionManager extends Closable {
                             }
                         }
                         return newresult;
-                    });
+                    }, this.hostContext.getExecutor());
         }
         // Stage final: trace the exception with the final message, or pass along the valid result.
         retryChain = retryChain.handleAsync((r, e) -> {

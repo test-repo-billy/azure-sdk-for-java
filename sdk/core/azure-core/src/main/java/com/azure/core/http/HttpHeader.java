@@ -3,35 +3,71 @@
 
 package com.azure.core.http;
 
-import com.azure.core.util.Header;
-
-import java.util.List;
-
 /**
- * A single header within an HTTP request or response.
- * <p>
- * If multiple header values are added to an HTTP request or response with the same name (case-insensitive), then the
- * values will be appended to the end of the same Header with commas separating them.
+ * A single header within a HTTP request or response.
+ *
+ * If multiple header values are added to a HTTP request or response with
+ * the same name (case-insensitive), then the values will be appended
+ * to the end of the same Header with commas separating them.
  */
-public class HttpHeader extends Header {
+public class HttpHeader {
+    private final String name;
+    private String value;
+
     /**
-     * Create an HttpHeader instance using the provided name and value.
+     * Create a HttpHeader instance using the provided name and value.
      *
      * @param name the name
      * @param value the value
      */
     public HttpHeader(String name, String value) {
-        super(name, value);
+        this.name = name;
+        this.value = value;
     }
 
     /**
-     * Create an HttpHeader instance using the provided name and values, resulting in a single HttpHeader instance with
-     * a single name and multiple values set within it.
+     * Get the header name.
      *
-     * @param name the name
-     * @param values the values
+     * @return the name of this Header
      */
-    public HttpHeader(String name, List<String> values) {
-        super(name, values);
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Get the header value.
+     *
+     * @return the value of this Header
+     */
+    public String getValue() {
+        return value;
+    }
+
+    /**
+     * Get the comma separated value as an array.
+     *
+     * @return the values of this Header that are separated by a comma
+     */
+    public String[] getValues() {
+        return value == null ? null : value.split(",");
+    }
+
+    /**
+     * Add a new value to the end of the Header.
+     *
+     * @param value the value to add
+     */
+    public void addValue(String value) {
+        this.value += "," + value;
+    }
+
+    /**
+     * Get the String representation of the header.
+     *
+     * @return the String representation of this HttpHeader
+     */
+    @Override
+    public String toString() {
+        return name + ":" + value;
     }
 }

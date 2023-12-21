@@ -7,39 +7,38 @@ package com.azure.storage.blob.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/** Defines values for ListBlobsIncludeItem. */
+/**
+ * Defines values for ListBlobsIncludeItem.
+ */
 public enum ListBlobsIncludeItem {
-    /** Enum value copy. */
+    /**
+     * Enum value copy.
+     */
     COPY("copy"),
 
-    /** Enum value deleted. */
+    /**
+     * Enum value deleted.
+     */
     DELETED("deleted"),
 
-    /** Enum value metadata. */
+    /**
+     * Enum value metadata.
+     */
     METADATA("metadata"),
 
-    /** Enum value snapshots. */
+    /**
+     * Enum value snapshots.
+     */
     SNAPSHOTS("snapshots"),
 
-    /** Enum value uncommittedblobs. */
-    UNCOMMITTEDBLOBS("uncommittedblobs"),
+    /**
+     * Enum value uncommittedblobs.
+     */
+    UNCOMMITTEDBLOBS("uncommittedblobs");
 
-    /** Enum value versions. */
-    VERSIONS("versions"),
-
-    /** Enum value tags. */
-    TAGS("tags"),
-
-    /** Enum value immutabilitypolicy. */
-    IMMUTABILITY_POLICY("immutabilitypolicy"),
-
-    /** Enum value legalhold. */
-    LEGAL_HOLD("legalhold"),
-
-    /** Enum value deletedwithversions. */
-    DELETED_WITH_VERSIONS("deletedwithversions");
-
-    /** The actual serialized value for a ListBlobsIncludeItem instance. */
+    /**
+     * The actual serialized value for a ListBlobsIncludeItem instance.
+     */
     private final String value;
 
     ListBlobsIncludeItem(String value) {
@@ -54,9 +53,6 @@ public enum ListBlobsIncludeItem {
      */
     @JsonCreator
     public static ListBlobsIncludeItem fromString(String value) {
-        if (value == null) {
-            return null;
-        }
         ListBlobsIncludeItem[] items = ListBlobsIncludeItem.values();
         for (ListBlobsIncludeItem item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -66,7 +62,6 @@ public enum ListBlobsIncludeItem {
         return null;
     }
 
-    /** {@inheritDoc} */
     @JsonValue
     @Override
     public String toString() {

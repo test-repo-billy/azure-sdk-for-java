@@ -13,36 +13,38 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** An enumeration of containers. */
+/**
+ * An enumeration of containers.
+ */
 @JacksonXmlRootElement(localName = "EnumerationResults")
 @Fluent
 public final class BlobContainersSegment {
     /*
-     * The ServiceEndpoint property.
+     * The serviceEndpoint property.
      */
     @JacksonXmlProperty(localName = "ServiceEndpoint", isAttribute = true)
     private String serviceEndpoint;
 
     /*
-     * The Prefix property.
+     * The prefix property.
      */
     @JsonProperty(value = "Prefix")
     private String prefix;
 
     /*
-     * The Marker property.
+     * The marker property.
      */
     @JsonProperty(value = "Marker")
     private String marker;
 
     /*
-     * The MaxResults property.
+     * The maxResults property.
      */
     @JsonProperty(value = "MaxResults")
     private Integer maxResults;
 
     /*
-     * The NextMarker property.
+     * The nextMarker property.
      */
     @JsonProperty(value = "NextMarker", required = true)
     private String nextMarker;
@@ -58,16 +60,13 @@ public final class BlobContainersSegment {
     }
 
     /*
-     * The BlobContainerItems property.
+     * The blobContainerItems property.
      */
     @JsonProperty(value = "Containers")
     private ContainersWrapper blobContainerItems;
 
-    /** Creates an instance of BlobContainersSegment class. */
-    public BlobContainersSegment() {}
-
     /**
-     * Get the serviceEndpoint property: The ServiceEndpoint property.
+     * Get the serviceEndpoint property: The serviceEndpoint property.
      *
      * @return the serviceEndpoint value.
      */
@@ -76,7 +75,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the serviceEndpoint property: The ServiceEndpoint property.
+     * Set the serviceEndpoint property: The serviceEndpoint property.
      *
      * @param serviceEndpoint the serviceEndpoint value to set.
      * @return the BlobContainersSegment object itself.
@@ -87,7 +86,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Get the prefix property: The Prefix property.
+     * Get the prefix property: The prefix property.
      *
      * @return the prefix value.
      */
@@ -96,7 +95,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the prefix property: The Prefix property.
+     * Set the prefix property: The prefix property.
      *
      * @param prefix the prefix value to set.
      * @return the BlobContainersSegment object itself.
@@ -107,7 +106,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Get the marker property: The Marker property.
+     * Get the marker property: The marker property.
      *
      * @return the marker value.
      */
@@ -116,7 +115,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the marker property: The Marker property.
+     * Set the marker property: The marker property.
      *
      * @param marker the marker value to set.
      * @return the BlobContainersSegment object itself.
@@ -127,7 +126,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Get the maxResults property: The MaxResults property.
+     * Get the maxResults property: The maxResults property.
      *
      * @return the maxResults value.
      */
@@ -136,7 +135,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the maxResults property: The MaxResults property.
+     * Set the maxResults property: The maxResults property.
      *
      * @param maxResults the maxResults value to set.
      * @return the BlobContainersSegment object itself.
@@ -147,7 +146,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Get the nextMarker property: The NextMarker property.
+     * Get the nextMarker property: The nextMarker property.
      *
      * @return the nextMarker value.
      */
@@ -156,7 +155,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the nextMarker property: The NextMarker property.
+     * Set the nextMarker property: The nextMarker property.
      *
      * @param nextMarker the nextMarker value to set.
      * @return the BlobContainersSegment object itself.
@@ -167,7 +166,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Get the blobContainerItems property: The BlobContainerItems property.
+     * Get the blobContainerItems property: The blobContainerItems property.
      *
      * @return the blobContainerItems value.
      */
@@ -179,7 +178,7 @@ public final class BlobContainersSegment {
     }
 
     /**
-     * Set the blobContainerItems property: The BlobContainerItems property.
+     * Set the blobContainerItems property: The blobContainerItems property.
      *
      * @param blobContainerItems the blobContainerItems value to set.
      * @return the BlobContainersSegment object itself.

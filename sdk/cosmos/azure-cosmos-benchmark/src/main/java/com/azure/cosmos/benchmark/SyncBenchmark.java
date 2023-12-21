@@ -7,15 +7,12 @@ import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.ConnectionMode;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
-import com.azure.cosmos.CosmosDiagnosticsHandler;
-import com.azure.cosmos.CosmosDiagnosticsThresholds;
-import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.DirectConnectionConfig;
 import com.azure.cosmos.GatewayConnectionConfig;
 import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.ThroughputProperties;
 import com.codahale.metrics.ConsoleReporter;
@@ -31,13 +28,14 @@ import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramResetOnSnapshotReservoir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -52,8 +50,6 @@ import java.util.stream.Collectors;
 abstract class SyncBenchmark<T> {
     private final MetricRegistry metricsRegistry = new MetricRegistry();
     private final ScheduledReporter reporter;
-
-    private final ScheduledReporter resultReporter;
     private final ExecutorService executorService;
 
     private Meter successMeter;
@@ -111,13 +107,9 @@ abstract class SyncBenchmark<T> {
 
         CosmosClientBuilder cosmosClientBuilder = new CosmosClientBuilder()
             .endpoint(cfg.getServiceEndpoint())
-            .preferredRegions(cfg.getPreferredRegionsList())
             .key(cfg.getMasterKey())
-            .userAgentSuffix(configuration.getApplicationName())
             .consistencyLevel(cfg.getConsistencyLevel())
-            .contentResponseOnWriteEnabled(cfg.isContentResponseOnWriteEnabled())
-            .clientTelemetryEnabled(cfg.isClientTelemetryEnabled());
-
+            .contentResponseOnWriteEnabled(Boolean.parseBoolean(cfg.isContentResponseOnWriteEnabled()));
         if (cfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
             cosmosClientBuilder = cosmosClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());
         } else {
@@ -125,19 +117,6 @@ abstract class SyncBenchmark<T> {
             gatewayConnectionConfig.setMaxConnectionPoolSize(cfg.getMaxConnectionPoolSize());
             cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
         }
-
-        CosmosClientTelemetryConfig telemetryConfig = new CosmosClientTelemetryConfig()
-            .sendClientTelemetryToService(cfg.isClientTelemetryEnabled())
-            .diagnosticsThresholds(
-                new CosmosDiagnosticsThresholds()
-                    .setPointOperationLatencyThreshold(cfg.getPointOperationThreshold())
-                    .setNonPointOperationLatencyThreshold(cfg.getNonPointOperationThreshold())
-            );
-
-        if (configuration.isDefaultLog4jLoggerEnabled()) {
-            telemetryConfig.diagnosticsHandler(CosmosDiagnosticsHandler.DEFAULT_LOGGING_HANDLER);
-        }
-
         cosmosClient = cosmosClientBuilder.buildClient();
         try {
             cosmosDatabase = cosmosClient.getDatabase(this.configuration.getDatabaseId());
@@ -182,10 +161,7 @@ abstract class SyncBenchmark<T> {
             String dataFieldValue = RandomStringUtils.randomAlphabetic(cfg.getDocumentDataFieldSize());
             for (int i = 0; i < cfg.getNumberOfPreCreatedDocuments(); i++) {
                 String uuid = UUID.randomUUID().toString();
-                PojoizedJson newDoc = BenchmarkHelper.generateDocument(uuid,
-                    dataFieldValue,
-                    partitionKey,
-                    configuration.getDocumentDataFieldCount());
+                PojoizedJson newDoc = generateDocument(uuid, dataFieldValue);
                 CompletableFuture<PojoizedJson> futureResult = CompletableFuture.supplyAsync(() -> {
 
                     try {
@@ -222,18 +198,6 @@ abstract class SyncBenchmark<T> {
         } else {
             reporter = ConsoleReporter.forRegistry(metricsRegistry).convertRatesTo(TimeUnit.SECONDS)
                                       .convertDurationsTo(TimeUnit.MILLISECONDS).build();
-        }
-
-        if (configuration.getResultUploadDatabase() != null && configuration.getResultUploadContainer() != null) {
-            resultReporter = CosmosTotalResultReporter
-                .forRegistry(
-                    metricsRegistry,
-                    cosmosClient.getDatabase(configuration.getResultUploadDatabase()).getContainer(configuration.getResultUploadContainer()),
-                    configuration)
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS).build();
-        } else {
-            resultReporter = null;
         }
 
         MeterRegistry registry = configuration.getAzureMonitorMeterRegistry();
@@ -273,15 +237,35 @@ abstract class SyncBenchmark<T> {
 
     protected abstract T performWorkload(long i) throws Exception;
 
+    private boolean shouldContinue(long startTimeMillis, long iterationCount) {
+
+        Duration maxDurationTime = configuration.getMaxRunningTimeDuration();
+        int maxNumberOfOperations = configuration.getNumberOfOperations();
+
+        if (maxDurationTime == null) {
+            return iterationCount < maxNumberOfOperations;
+        }
+
+        if (startTimeMillis + maxDurationTime.toMillis() < System.currentTimeMillis()) {
+            return false;
+        }
+
+        if (maxNumberOfOperations < 0) {
+            return true;
+        }
+
+        return iterationCount < maxNumberOfOperations;
+    }
+
     void run() throws Exception {
 
-        successMeter = metricsRegistry.meter(Configuration.SUCCESS_COUNTER_METER_NAME);
-        failureMeter = metricsRegistry.meter(Configuration.FAILURE_COUNTER_METER_NAME);
+        successMeter = metricsRegistry.meter("#Successful Operations");
+        failureMeter = metricsRegistry.meter("#Unsuccessful Operations");
 
         switch (configuration.getOperationType()) {
             case ReadLatency:
-            case WriteLatency:
                 // TODO: support for other operationTypes will be added later
+//            case WriteLatency:
 //            case QueryInClauseParallel:
 //            case QueryCross:
 //            case QuerySingle:
@@ -292,22 +276,19 @@ abstract class SyncBenchmark<T> {
 //            case QueryAggregateTopOrderby:
 //            case QueryTopOrderby:
             case Mixed:
-                latency = metricsRegistry.register(Configuration.LATENCY_METER_NAME, new Timer(new HdrHistogramResetOnSnapshotReservoir()));
+                latency = metricsRegistry.timer("Latency");
                 break;
             default:
                 break;
         }
 
         reporter.start(configuration.getPrintingInterval(), TimeUnit.SECONDS);
-        if (resultReporter != null) {
-            resultReporter.start(configuration.getPrintingInterval(), TimeUnit.SECONDS);
-        }
         long startTime = System.currentTimeMillis();
 
         AtomicLong count = new AtomicLong(0);
         long i;
 
-        for ( i = 0; BenchmarkHelper.shouldContinue(startTime, i, configuration); i++) {
+        for ( i = 0; shouldContinue(startTime, i); i++) {
 
             ResultHandler<T, Throwable> resultHandler = new ResultHandler<T, Throwable>() {
                 @Override
@@ -345,8 +326,8 @@ abstract class SyncBenchmark<T> {
 
             switch (configuration.getOperationType()) {
                 case ReadLatency:
-                case WriteLatency:
                     // TODO: support for other operation types will be added later
+//                case WriteLatency:
 //                case QueryInClauseParallel:
 //                case QueryCross:
 //                case QuerySingle:
@@ -392,11 +373,19 @@ abstract class SyncBenchmark<T> {
 
         reporter.report();
         reporter.close();
+    }
 
-        if (resultReporter != null) {
-            resultReporter.report();
-            resultReporter.close();
+    public PojoizedJson generateDocument(String idString, String dataFieldValue) {
+        PojoizedJson instance = new PojoizedJson();
+        Map<String, String> properties = instance.getInstance();
+        properties.put("id", idString);
+        properties.put(partitionKey, idString);
+
+        for (int i = 0; i < configuration.getDocumentDataFieldCount(); i++) {
+            properties.put("dataField" + i, dataFieldValue);
         }
+
+        return instance;
     }
 
     RuntimeException propagate(Exception e) {

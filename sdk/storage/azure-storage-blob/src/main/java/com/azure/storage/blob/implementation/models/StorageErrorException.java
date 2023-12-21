@@ -7,7 +7,9 @@ package com.azure.storage.blob.implementation.models;
 import com.azure.core.exception.HttpResponseException;
 import com.azure.core.http.HttpResponse;
 
-/** Exception thrown for an invalid response with StorageError information. */
+/**
+ * Exception thrown for an invalid response with StorageError information.
+ */
 public final class StorageErrorException extends HttpResponseException {
     /**
      * Initializes a new instance of the StorageErrorException class.
@@ -30,7 +32,6 @@ public final class StorageErrorException extends HttpResponseException {
         super(message, response, value);
     }
 
-    /** {@inheritDoc} */
     @Override
     public StorageError getValue() {
         return (StorageError) super.getValue();

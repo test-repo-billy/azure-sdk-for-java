@@ -10,16 +10,14 @@ public class SumAggregator implements Aggregator {
 
     @Override
     public void aggregate(Object item) {
-        if (Undefined.value().equals(item) || item == null) {
+        if (Undefined.value().equals(item)) {
             return;
         }
 
         if (this.sum == null) {
             this.sum = 0.0;
         }
-        if (MaxAggregator.getValue(item) != null) {
-            this.sum += ((Number) MaxAggregator.getValue(item)).doubleValue();
-        }
+        this.sum += ((Number) item).doubleValue();
     }
 
     @Override

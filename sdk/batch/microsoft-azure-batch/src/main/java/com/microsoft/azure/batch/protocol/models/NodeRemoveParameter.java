@@ -19,7 +19,6 @@ public class NodeRemoveParameter {
     /**
      * A list containing the IDs of the Compute Nodes to be removed from the
      * specified Pool.
-     * A maximum of 100 nodes may be removed per request.
      */
     @JsonProperty(value = "nodeList", required = true)
     private List<String> nodeList;
@@ -44,7 +43,7 @@ public class NodeRemoveParameter {
     private ComputeNodeDeallocationOption nodeDeallocationOption;
 
     /**
-     * Get a maximum of 100 nodes may be removed per request.
+     * Get the nodeList value.
      *
      * @return the nodeList value
      */
@@ -53,7 +52,7 @@ public class NodeRemoveParameter {
     }
 
     /**
-     * Set a maximum of 100 nodes may be removed per request.
+     * Set the nodeList value.
      *
      * @param nodeList the nodeList value to set
      * @return the NodeRemoveParameter object itself.

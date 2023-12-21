@@ -13,21 +13,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * <p>Authentication Record represents the account information of the authenticated account.
- * This is helpful in scenarios where applications require brokered authentication via {@link DeviceCodeCredential}
- * or {@link InteractiveBrowserCredential}.</p>
- *
- * <p>Authentication record is returned when
- * {@link DeviceCodeCredential#authenticate()} or {@link InteractiveBrowserCredential#authenticate()} api is invoked.
- * The returned auth record can be stored/persisted in the user application. Further, this record can be configured on
- * the {@link DeviceCodeCredentialBuilder#authenticationRecord(AuthenticationRecord)} or
- * {@link InteractiveBrowserCredentialBuilder#authenticationRecord(AuthenticationRecord)} to proactively indicate
- * that a previously authenticated account should be used from the persisted cache instead of authenticating again.</p>
- *
- * @see DeviceCodeCredential
- * @see InteractiveBrowserCredential
+ * Represents the account information relating to an authentication request
  */
-public final class AuthenticationRecord {
+public class AuthenticationRecord {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @JsonProperty("authority")
@@ -42,18 +30,14 @@ public final class AuthenticationRecord {
     @JsonProperty("username")
     private String username;
 
-    @JsonProperty("clientId")
-    private String clientId;
-
 
     AuthenticationRecord() { }
 
-    AuthenticationRecord(IAuthenticationResult authenticationResult, String tenantId, String clientId) {
+    AuthenticationRecord(IAuthenticationResult authenticationResult, String tenantId) {
         authority = authenticationResult.account().environment();
         homeAccountId = authenticationResult.account().homeAccountId();
         username = authenticationResult.account().username();
         this.tenantId = tenantId;
-        this.clientId = clientId;
     }
 
     /**
@@ -84,15 +68,6 @@ public final class AuthenticationRecord {
     }
 
     /**
-     * Get the client id of the application used for authentication.
-     *
-     * @return the client id.
-     */
-    public String getClientId() {
-        return clientId;
-    }
-
-    /**
      * Get the user principal name of the account.
      *
      * @return the username.
@@ -107,24 +82,15 @@ public final class AuthenticationRecord {
      * @param outputStream The {@link OutputStream} to which the serialized record will be written to.
      * @return A {@link Mono} containing {@link Void}
      */
-    public Mono<OutputStream> serializeAsync(OutputStream outputStream) {
+    public Mono<Void> serialize(OutputStream outputStream) {
         return Mono.defer(() -> {
             try {
                 OBJECT_MAPPER.writeValue(outputStream, this);
             } catch (IOException e) {
                 return Mono.error(e);
             }
-            return Mono.just(outputStream);
+            return Mono.empty();
         });
-    }
-
-    /**
-     * Serializes the {@link AuthenticationRecord} to the specified {@link OutputStream}
-     *
-     * @param outputStream The {@link OutputStream} to which the serialized record will be written to.
-     */
-    public void serialize(OutputStream outputStream) {
-        serializeAsync(outputStream).block();
     }
 
     /**
@@ -133,7 +99,7 @@ public final class AuthenticationRecord {
      * @param inputStream The {@link InputStream} from which the serialized record will be read.
      * @return A {@link Mono} containing the {@link AuthenticationRecord} object.
      */
-    public static Mono<AuthenticationRecord> deserializeAsync(InputStream inputStream) {
+    public static Mono<AuthenticationRecord> deserialize(InputStream inputStream) {
         return Mono.defer(() -> {
             AuthenticationRecord authenticationRecord;
             try {
@@ -144,15 +110,5 @@ public final class AuthenticationRecord {
             }
             return Mono.just(authenticationRecord);
         });
-    }
-
-    /**
-     * Deserializes the {@link AuthenticationRecord} from the specified {@link InputStream}
-     *
-     * @param inputStream The {@link InputStream} from which the serialized record will be read.
-     * @return the {@link AuthenticationRecord} object.
-     */
-    public static AuthenticationRecord deserialize(InputStream inputStream) {
-        return deserializeAsync(inputStream).block();
     }
 }

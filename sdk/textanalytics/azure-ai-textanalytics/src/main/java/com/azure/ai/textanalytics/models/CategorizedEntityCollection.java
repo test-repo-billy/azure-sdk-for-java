@@ -7,14 +7,14 @@ import com.azure.core.annotation.Immutable;
 import com.azure.core.util.IterableStream;
 
 /**
- * The {@code CategorizedEntityCollection} model.
+ * The {@link CategorizedEntityCollection} model.
  */
 @Immutable
 public final class CategorizedEntityCollection extends IterableStream<CategorizedEntity> {
     private final IterableStream<TextAnalyticsWarning> warnings;
 
     /**
-     * Creates a {@code CategorizedEntityCollection} model that describes a entities collection including warnings.
+     * Creates a {@link CategorizedEntityCollection} model that describes a entities collection including warnings.
      *
      * @param entities An {@link IterableStream} of {@link CategorizedEntity categorized entities}.
      * @param warnings An {@link IterableStream} of {@link TextAnalyticsWarning warnings}.
@@ -26,7 +26,7 @@ public final class CategorizedEntityCollection extends IterableStream<Categorize
     }
 
     /**
-     * Gets the {@link IterableStream} of {@link TextAnalyticsWarning Text Analytics warnings}.
+     * Get the {@link IterableStream} of {@link TextAnalyticsWarning Text Analytics warnings}.
      *
      * @return {@link IterableStream} of {@link TextAnalyticsWarning}.
      */

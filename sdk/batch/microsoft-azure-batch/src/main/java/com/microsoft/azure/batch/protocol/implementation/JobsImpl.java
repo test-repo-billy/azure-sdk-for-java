@@ -26,6 +26,8 @@ import com.microsoft.azure.batch.protocol.models.JobDisableOptions;
 import com.microsoft.azure.batch.protocol.models.JobDisableParameter;
 import com.microsoft.azure.batch.protocol.models.JobEnableHeaders;
 import com.microsoft.azure.batch.protocol.models.JobEnableOptions;
+import com.microsoft.azure.batch.protocol.models.JobGetAllLifetimeStatisticsHeaders;
+import com.microsoft.azure.batch.protocol.models.JobGetAllLifetimeStatisticsOptions;
 import com.microsoft.azure.batch.protocol.models.JobGetHeaders;
 import com.microsoft.azure.batch.protocol.models.JobGetOptions;
 import com.microsoft.azure.batch.protocol.models.JobGetTaskCountsHeaders;
@@ -43,6 +45,7 @@ import com.microsoft.azure.batch.protocol.models.JobPatchHeaders;
 import com.microsoft.azure.batch.protocol.models.JobPatchOptions;
 import com.microsoft.azure.batch.protocol.models.JobPatchParameter;
 import com.microsoft.azure.batch.protocol.models.JobPreparationAndReleaseTaskExecutionInformation;
+import com.microsoft.azure.batch.protocol.models.JobStatistics;
 import com.microsoft.azure.batch.protocol.models.JobTerminateHeaders;
 import com.microsoft.azure.batch.protocol.models.JobTerminateOptions;
 import com.microsoft.azure.batch.protocol.models.JobTerminateParameter;
@@ -50,7 +53,7 @@ import com.microsoft.azure.batch.protocol.models.JobUpdateHeaders;
 import com.microsoft.azure.batch.protocol.models.JobUpdateOptions;
 import com.microsoft.azure.batch.protocol.models.JobUpdateParameter;
 import com.microsoft.azure.batch.protocol.models.PageImpl;
-import com.microsoft.azure.batch.protocol.models.TaskCountsResult;
+import com.microsoft.azure.batch.protocol.models.TaskCounts;
 import com.microsoft.azure.ListOperationCallback;
 import com.microsoft.azure.Page;
 import com.microsoft.azure.PagedList;
@@ -105,6 +108,10 @@ public class JobsImpl implements Jobs {
      * used by Retrofit to perform actually REST calls.
      */
     interface JobsService {
+        @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.batch.protocol.Jobs getAllLifetimeStatistics" })
+        @GET("lifetimejobstats")
+        Observable<Response<ResponseBody>> getAllLifetimeStatistics(@Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Query("timeout") Integer timeout, @Header("client-request-id") UUID clientRequestId, @Header("return-client-request-id") Boolean returnClientRequestId, @Header("ocp-date") DateTimeRfc1123 ocpDate, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
+
         @Headers({ "Content-Type: application/json; charset=utf-8", "x-ms-logging-context: com.microsoft.azure.batch.protocol.Jobs delete" })
         @HTTP(path = "jobs/{jobId}", method = "DELETE", hasBody = true)
         Observable<Response<ResponseBody>> delete(@Path("jobId") String jobId, @Query("api-version") String apiVersion, @Header("accept-language") String acceptLanguage, @Query("timeout") Integer timeout, @Header("client-request-id") UUID clientRequestId, @Header("return-client-request-id") Boolean returnClientRequestId, @Header("ocp-date") DateTimeRfc1123 ocpDate, @Header("If-Match") String ifMatch, @Header("If-None-Match") String ifNoneMatch, @Header("If-Modified-Since") DateTimeRfc1123 ifModifiedSince, @Header("If-Unmodified-Since") DateTimeRfc1123 ifUnmodifiedSince, @Header("x-ms-parameterized-host") String parameterizedHost, @Header("User-Agent") String userAgent);
@@ -165,6 +172,187 @@ public class JobsImpl implements Jobs {
         @GET
         Observable<Response<ResponseBody>> listPreparationAndReleaseTaskStatusNext(@Url String nextUrl, @Header("accept-language") String acceptLanguage, @Header("client-request-id") UUID clientRequestId, @Header("return-client-request-id") Boolean returnClientRequestId, @Header("ocp-date") DateTimeRfc1123 ocpDate, @Header("User-Agent") String userAgent);
 
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws BatchErrorException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the JobStatistics object if successful.
+     */
+    public JobStatistics getAllLifetimeStatistics() {
+        return getAllLifetimeStatisticsWithServiceResponseAsync().toBlocking().single().body();
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<JobStatistics> getAllLifetimeStatisticsAsync(final ServiceCallback<JobStatistics> serviceCallback) {
+        return ServiceFuture.fromHeaderResponse(getAllLifetimeStatisticsWithServiceResponseAsync(), serviceCallback);
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the JobStatistics object
+     */
+    public Observable<JobStatistics> getAllLifetimeStatisticsAsync() {
+        return getAllLifetimeStatisticsWithServiceResponseAsync().map(new Func1<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>, JobStatistics>() {
+            @Override
+            public JobStatistics call(ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders> response) {
+                return response.body();
+            }
+        });
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the JobStatistics object
+     */
+    public Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>> getAllLifetimeStatisticsWithServiceResponseAsync() {
+        if (this.client.batchUrl() == null) {
+            throw new IllegalArgumentException("Parameter this.client.batchUrl() is required and cannot be null.");
+        }
+        if (this.client.apiVersion() == null) {
+            throw new IllegalArgumentException("Parameter this.client.apiVersion() is required and cannot be null.");
+        }
+        final JobGetAllLifetimeStatisticsOptions jobGetAllLifetimeStatisticsOptions = null;
+        Integer timeout = null;
+        UUID clientRequestId = null;
+        Boolean returnClientRequestId = null;
+        DateTime ocpDate = null;
+        String parameterizedHost = Joiner.on(", ").join("{batchUrl}", this.client.batchUrl());
+        DateTimeRfc1123 ocpDateConverted = null;
+        if (ocpDate != null) {
+            ocpDateConverted = new DateTimeRfc1123(ocpDate);
+        }
+        return service.getAllLifetimeStatistics(this.client.apiVersion(), this.client.acceptLanguage(), timeout, clientRequestId, returnClientRequestId, ocpDateConverted, parameterizedHost, this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>>>() {
+                @Override
+                public Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders> clientResponse = getAllLifetimeStatisticsDelegate(response);
+                        return Observable.just(clientResponse);
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @param jobGetAllLifetimeStatisticsOptions Additional parameters for the operation
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @throws BatchErrorException thrown if the request is rejected by server
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
+     * @return the JobStatistics object if successful.
+     */
+    public JobStatistics getAllLifetimeStatistics(JobGetAllLifetimeStatisticsOptions jobGetAllLifetimeStatisticsOptions) {
+        return getAllLifetimeStatisticsWithServiceResponseAsync(jobGetAllLifetimeStatisticsOptions).toBlocking().single().body();
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @param jobGetAllLifetimeStatisticsOptions Additional parameters for the operation
+     * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the {@link ServiceFuture} object
+     */
+    public ServiceFuture<JobStatistics> getAllLifetimeStatisticsAsync(JobGetAllLifetimeStatisticsOptions jobGetAllLifetimeStatisticsOptions, final ServiceCallback<JobStatistics> serviceCallback) {
+        return ServiceFuture.fromHeaderResponse(getAllLifetimeStatisticsWithServiceResponseAsync(jobGetAllLifetimeStatisticsOptions), serviceCallback);
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @param jobGetAllLifetimeStatisticsOptions Additional parameters for the operation
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the JobStatistics object
+     */
+    public Observable<JobStatistics> getAllLifetimeStatisticsAsync(JobGetAllLifetimeStatisticsOptions jobGetAllLifetimeStatisticsOptions) {
+        return getAllLifetimeStatisticsWithServiceResponseAsync(jobGetAllLifetimeStatisticsOptions).map(new Func1<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>, JobStatistics>() {
+            @Override
+            public JobStatistics call(ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders> response) {
+                return response.body();
+            }
+        });
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the Jobs in the specified Account.
+     * Statistics are aggregated across all Jobs that have ever existed in the Account, from Account creation to the last update time of the statistics. The statistics may not be immediately available. The Batch service performs periodic roll-up of statistics. The typical delay is about 30 minutes.
+     *
+     * @param jobGetAllLifetimeStatisticsOptions Additional parameters for the operation
+     * @throws IllegalArgumentException thrown if parameters fail the validation
+     * @return the observable to the JobStatistics object
+     */
+    public Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>> getAllLifetimeStatisticsWithServiceResponseAsync(JobGetAllLifetimeStatisticsOptions jobGetAllLifetimeStatisticsOptions) {
+        if (this.client.batchUrl() == null) {
+            throw new IllegalArgumentException("Parameter this.client.batchUrl() is required and cannot be null.");
+        }
+        if (this.client.apiVersion() == null) {
+            throw new IllegalArgumentException("Parameter this.client.apiVersion() is required and cannot be null.");
+        }
+        Validator.validate(jobGetAllLifetimeStatisticsOptions);
+        Integer timeout = null;
+        if (jobGetAllLifetimeStatisticsOptions != null) {
+            timeout = jobGetAllLifetimeStatisticsOptions.timeout();
+        }
+        UUID clientRequestId = null;
+        if (jobGetAllLifetimeStatisticsOptions != null) {
+            clientRequestId = jobGetAllLifetimeStatisticsOptions.clientRequestId();
+        }
+        Boolean returnClientRequestId = null;
+        if (jobGetAllLifetimeStatisticsOptions != null) {
+            returnClientRequestId = jobGetAllLifetimeStatisticsOptions.returnClientRequestId();
+        }
+        DateTime ocpDate = null;
+        if (jobGetAllLifetimeStatisticsOptions != null) {
+            ocpDate = jobGetAllLifetimeStatisticsOptions.ocpDate();
+        }
+        String parameterizedHost = Joiner.on(", ").join("{batchUrl}", this.client.batchUrl());
+        DateTimeRfc1123 ocpDateConverted = null;
+        if (ocpDate != null) {
+            ocpDateConverted = new DateTimeRfc1123(ocpDate);
+        }
+        return service.getAllLifetimeStatistics(this.client.apiVersion(), this.client.acceptLanguage(), timeout, clientRequestId, returnClientRequestId, ocpDateConverted, parameterizedHost, this.client.userAgent())
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>>>() {
+                @Override
+                public Observable<ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders>> call(Response<ResponseBody> response) {
+                    try {
+                        ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders> clientResponse = getAllLifetimeStatisticsDelegate(response);
+                        return Observable.just(clientResponse);
+                    } catch (Throwable t) {
+                        return Observable.error(t);
+                    }
+                }
+            });
+    }
+
+    private ServiceResponseWithHeaders<JobStatistics, JobGetAllLifetimeStatisticsHeaders> getAllLifetimeStatisticsDelegate(Response<ResponseBody> response) throws BatchErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<JobStatistics, BatchErrorException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<JobStatistics>() { }.getType())
+                .registerError(BatchErrorException.class)
+                .buildWithHeaders(response, JobGetAllLifetimeStatisticsHeaders.class);
     }
 
     /**
@@ -2925,43 +3113,43 @@ public class JobsImpl implements Jobs {
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @throws BatchErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
-     * @return the TaskCountsResult object if successful.
+     * @return the TaskCounts object if successful.
      */
-    public TaskCountsResult getTaskCounts(String jobId) {
+    public TaskCounts getTaskCounts(String jobId) {
         return getTaskCountsWithServiceResponseAsync(jobId).toBlocking().single().body();
     }
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @param serviceCallback the async ServiceCallback to handle successful and failed responses.
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<TaskCountsResult> getTaskCountsAsync(String jobId, final ServiceCallback<TaskCountsResult> serviceCallback) {
+    public ServiceFuture<TaskCounts> getTaskCountsAsync(String jobId, final ServiceCallback<TaskCounts> serviceCallback) {
         return ServiceFuture.fromHeaderResponse(getTaskCountsWithServiceResponseAsync(jobId), serviceCallback);
     }
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the TaskCountsResult object
+     * @return the observable to the TaskCounts object
      */
-    public Observable<TaskCountsResult> getTaskCountsAsync(String jobId) {
-        return getTaskCountsWithServiceResponseAsync(jobId).map(new Func1<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>, TaskCountsResult>() {
+    public Observable<TaskCounts> getTaskCountsAsync(String jobId) {
+        return getTaskCountsWithServiceResponseAsync(jobId).map(new Func1<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>, TaskCounts>() {
             @Override
-            public TaskCountsResult call(ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders> response) {
+            public TaskCounts call(ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders> response) {
                 return response.body();
             }
         });
@@ -2969,13 +3157,13 @@ public class JobsImpl implements Jobs {
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the TaskCountsResult object
+     * @return the observable to the TaskCounts object
      */
-    public Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>> getTaskCountsWithServiceResponseAsync(String jobId) {
+    public Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>> getTaskCountsWithServiceResponseAsync(String jobId) {
         if (this.client.batchUrl() == null) {
             throw new IllegalArgumentException("Parameter this.client.batchUrl() is required and cannot be null.");
         }
@@ -2996,11 +3184,11 @@ public class JobsImpl implements Jobs {
             ocpDateConverted = new DateTimeRfc1123(ocpDate);
         }
         return service.getTaskCounts(jobId, this.client.apiVersion(), this.client.acceptLanguage(), timeout, clientRequestId, returnClientRequestId, ocpDateConverted, parameterizedHost, this.client.userAgent())
-            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>>>() {
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>>>() {
                 @Override
-                public Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>> call(Response<ResponseBody> response) {
+                public Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders> clientResponse = getTaskCountsDelegate(response);
+                        ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders> clientResponse = getTaskCountsDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -3011,22 +3199,22 @@ public class JobsImpl implements Jobs {
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @param jobGetTaskCountsOptions Additional parameters for the operation
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @throws BatchErrorException thrown if the request is rejected by server
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent
-     * @return the TaskCountsResult object if successful.
+     * @return the TaskCounts object if successful.
      */
-    public TaskCountsResult getTaskCounts(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
+    public TaskCounts getTaskCounts(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
         return getTaskCountsWithServiceResponseAsync(jobId, jobGetTaskCountsOptions).toBlocking().single().body();
     }
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @param jobGetTaskCountsOptions Additional parameters for the operation
@@ -3034,23 +3222,23 @@ public class JobsImpl implements Jobs {
      * @throws IllegalArgumentException thrown if parameters fail the validation
      * @return the {@link ServiceFuture} object
      */
-    public ServiceFuture<TaskCountsResult> getTaskCountsAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions, final ServiceCallback<TaskCountsResult> serviceCallback) {
+    public ServiceFuture<TaskCounts> getTaskCountsAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions, final ServiceCallback<TaskCounts> serviceCallback) {
         return ServiceFuture.fromHeaderResponse(getTaskCountsWithServiceResponseAsync(jobId, jobGetTaskCountsOptions), serviceCallback);
     }
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @param jobGetTaskCountsOptions Additional parameters for the operation
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the TaskCountsResult object
+     * @return the observable to the TaskCounts object
      */
-    public Observable<TaskCountsResult> getTaskCountsAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
-        return getTaskCountsWithServiceResponseAsync(jobId, jobGetTaskCountsOptions).map(new Func1<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>, TaskCountsResult>() {
+    public Observable<TaskCounts> getTaskCountsAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
+        return getTaskCountsWithServiceResponseAsync(jobId, jobGetTaskCountsOptions).map(new Func1<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>, TaskCounts>() {
             @Override
-            public TaskCountsResult call(ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders> response) {
+            public TaskCounts call(ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders> response) {
                 return response.body();
             }
         });
@@ -3058,14 +3246,14 @@ public class JobsImpl implements Jobs {
 
     /**
      * Gets the Task counts for the specified Job.
-     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running. Note that the numbers returned may not always be up to date. If you need exact task counts, use a list query.
+     * Task counts provide a count of the Tasks by active, running or completed Task state, and a count of Tasks which succeeded or failed. Tasks in the preparing state are counted as running.
      *
      * @param jobId The ID of the Job.
      * @param jobGetTaskCountsOptions Additional parameters for the operation
      * @throws IllegalArgumentException thrown if parameters fail the validation
-     * @return the observable to the TaskCountsResult object
+     * @return the observable to the TaskCounts object
      */
-    public Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>> getTaskCountsWithServiceResponseAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
+    public Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>> getTaskCountsWithServiceResponseAsync(String jobId, JobGetTaskCountsOptions jobGetTaskCountsOptions) {
         if (this.client.batchUrl() == null) {
             throw new IllegalArgumentException("Parameter this.client.batchUrl() is required and cannot be null.");
         }
@@ -3098,11 +3286,11 @@ public class JobsImpl implements Jobs {
             ocpDateConverted = new DateTimeRfc1123(ocpDate);
         }
         return service.getTaskCounts(jobId, this.client.apiVersion(), this.client.acceptLanguage(), timeout, clientRequestId, returnClientRequestId, ocpDateConverted, parameterizedHost, this.client.userAgent())
-            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>>>() {
+            .flatMap(new Func1<Response<ResponseBody>, Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>>>() {
                 @Override
-                public Observable<ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders>> call(Response<ResponseBody> response) {
+                public Observable<ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders>> call(Response<ResponseBody> response) {
                     try {
-                        ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders> clientResponse = getTaskCountsDelegate(response);
+                        ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders> clientResponse = getTaskCountsDelegate(response);
                         return Observable.just(clientResponse);
                     } catch (Throwable t) {
                         return Observable.error(t);
@@ -3111,9 +3299,9 @@ public class JobsImpl implements Jobs {
             });
     }
 
-    private ServiceResponseWithHeaders<TaskCountsResult, JobGetTaskCountsHeaders> getTaskCountsDelegate(Response<ResponseBody> response) throws BatchErrorException, IOException, IllegalArgumentException {
-        return this.client.restClient().responseBuilderFactory().<TaskCountsResult, BatchErrorException>newInstance(this.client.serializerAdapter())
-                .register(200, new TypeToken<TaskCountsResult>() { }.getType())
+    private ServiceResponseWithHeaders<TaskCounts, JobGetTaskCountsHeaders> getTaskCountsDelegate(Response<ResponseBody> response) throws BatchErrorException, IOException, IllegalArgumentException {
+        return this.client.restClient().responseBuilderFactory().<TaskCounts, BatchErrorException>newInstance(this.client.serializerAdapter())
+                .register(200, new TypeToken<TaskCounts>() { }.getType())
                 .registerError(BatchErrorException.class)
                 .buildWithHeaders(response, JobGetTaskCountsHeaders.class);
     }

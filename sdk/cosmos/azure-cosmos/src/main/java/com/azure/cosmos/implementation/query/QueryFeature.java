@@ -12,7 +12,5 @@ public enum QueryFeature {
     MultipleOrderBy,
     OffsetAndLimit,
     OrderBy,
-    Top,
-    NonValueAggregate,
-    DCount
+    Top
 }

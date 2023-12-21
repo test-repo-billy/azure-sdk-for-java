@@ -3,21 +3,14 @@
 
 package com.azure.core.http;
 
-import com.azure.core.util.BinaryData;
-import com.azure.core.util.FluxUtil;
 import com.azure.core.util.serializer.SerializerAdapter;
 import com.azure.core.util.serializer.SerializerEncoding;
 import com.azure.core.util.serializer.JacksonAdapter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -54,15 +47,14 @@ public class MockHttpResponse extends HttpResponse {
     }
 
     private static byte[] serialize(Object serializable) {
+        byte[] result = null;
         try {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            SERIALIZER.serialize(serializable, SerializerEncoding.JSON, stream);
-
-            return stream.toByteArray();
+            final String serializedString = SERIALIZER.serialize(serializable, SerializerEncoding.JSON);
+            result = serializedString == null ? null : serializedString.getBytes();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return result;
     }
 
     @Override
@@ -71,19 +63,13 @@ public class MockHttpResponse extends HttpResponse {
     }
 
     @Override
-    @Deprecated
     public String getHeaderValue(String name) {
         return headers.getValue(name);
     }
 
     @Override
-    public String getHeaderValue(HttpHeaderName headerName) {
-        return headers.getValue(headerName);
-    }
-
-    @Override
     public HttpHeaders getHeaders() {
-        return this.headers;
+        return new HttpHeaders(headers);
     }
 
     @Override
@@ -116,30 +102,5 @@ public class MockHttpResponse extends HttpResponse {
         } else {
             return Mono.just(new String(bodyBytes, charset));
         }
-    }
-
-    @Override
-    public BinaryData getBodyAsBinaryData() {
-        return BinaryData.fromBytes(bodyBytes);
-    }
-
-    @Override
-    public Mono<InputStream> getBodyAsInputStream() {
-        return getBodyAsByteArray().map(ByteArrayInputStream::new);
-    }
-
-    @Override
-    public HttpResponse buffer() {
-        return this;
-    }
-
-    @Override
-    public Mono<Void> writeBodyToAsync(AsynchronousByteChannel channel) {
-        return FluxUtil.writeToAsynchronousByteChannel(getBody(), channel);
-    }
-
-    @Override
-    public void writeBodyTo(WritableByteChannel channel) throws IOException {
-        FluxUtil.writeToWritableByteChannel(getBody(), channel).block();
     }
 }

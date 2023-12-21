@@ -3,20 +3,16 @@
 
 package com.azure.core.amqp.implementation.handler;
 
-import com.azure.core.amqp.implementation.AmqpMetricsProvider;
-import com.azure.core.amqp.implementation.ConnectionOptions;
+import com.azure.core.util.logging.ClientLogger;
 import com.microsoft.azure.proton.transport.ws.impl.WebSocketImpl;
 import org.apache.qpid.proton.engine.Event;
-import org.apache.qpid.proton.engine.SslPeerDetails;
 import org.apache.qpid.proton.engine.impl.TransportInternal;
-
-import static com.azure.core.amqp.implementation.ClientConstants.HOSTNAME_KEY;
 
 /**
  * Creates an AMQP connection using web sockets (port 443).
  */
 public class WebSocketsConnectionHandler extends ConnectionHandler {
-    public static final int HTTPS_PORT = 443;
+    static final int HTTPS_PORT = 443;
 
     // This is the current limitation of https://github.com/Azure/qpid-proton-j-extensions.
     // Once this library enables larger frames - this property can be removed.
@@ -24,40 +20,28 @@ public class WebSocketsConnectionHandler extends ConnectionHandler {
 
     private static final String SOCKET_PATH = "/$servicebus/websocket";
     private static final String PROTOCOL = "AMQPWSB10";
-    /**
-     * Once there is an HTTP Connection to the host addressable by https://hostname
-     * (connection the client 'directly' established or established by tunneling through
-     * Proxy etc..), the WebSocket layer has to send an Upgrade request (GET https://hostname)
-     * with upgrade-specific headers to switch from HTTP to WebSocket protocol.
-     * The hostname is the FQDN of the Event Hubs or Service Bus or host part of
-     * CustomEndpointAddress when a custom endpoint frontends the Event Hubs or Service Bus.
-     * The upgrade request will have an HTTP 'Host' header with value as hostname.
-     */
-    private final String hostname;
+    private final ClientLogger logger = new ClientLogger(WebSocketsConnectionHandler.class);
 
     /**
      * Creates a handler that handles proton-j's connection events using web sockets.
      *
      * @param connectionId Identifier for this connection.
-     * @param connectionOptions Options used when creating the connection.
+     * @param hostname Hostname to use for socket creation.
+     * @param product The name of the product this connection handler is created for.
+     * @param clientVersion The version of the client library creating the connection handler.
      */
-    public WebSocketsConnectionHandler(String connectionId, ConnectionOptions connectionOptions, SslPeerDetails peerDetails, AmqpMetricsProvider metricsProvider) {
-        super(connectionId, connectionOptions, peerDetails, metricsProvider);
-        this.hostname = connectionOptions.getHostname();
+    public WebSocketsConnectionHandler(final String connectionId, final String hostname, final String product,
+        final String clientVersion) {
+        super(connectionId, hostname, product, clientVersion);
     }
 
-    /**
-     * Adds a web sockets layer before adding additional connection layers (ie. SSL).
-     *
-     * @param event The proton-j event.
-     * @param transport Transport to add layers to.
-     */
     @Override
     protected void addTransportLayers(final Event event, final TransportInternal transport) {
-        logger.info("Adding web socket layer");
+        final String hostName = event.getConnection().getHostname();
+
         final WebSocketImpl webSocket = new WebSocketImpl();
         webSocket.configure(
-            hostname,
+            hostName,
             SOCKET_PATH,
             "",
             0,
@@ -67,11 +51,15 @@ public class WebSocketsConnectionHandler extends ConnectionHandler {
 
         transport.addTransportLayer(webSocket);
 
-        logger.atVerbose()
-            .addKeyValue(HOSTNAME_KEY, hostname)
-            .log("Adding web sockets transport layer.");
+        logger.verbose("connectionId[{}] Adding web sockets transport layer for hostname[{}]",
+            getConnectionId(), hostName);
 
         super.addTransportLayers(event, transport);
+    }
+
+    @Override
+    public int getProtocolPort() {
+        return HTTPS_PORT;
     }
 
     @Override

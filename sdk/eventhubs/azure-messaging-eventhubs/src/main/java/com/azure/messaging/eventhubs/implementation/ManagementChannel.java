@@ -58,7 +58,7 @@ public class ManagementChannel implements EventHubManagementNode {
     private static final String MANAGEMENT_EVENTHUB_ENTITY_TYPE = AmqpConstants.VENDOR + ":eventhub";
     private static final String MANAGEMENT_PARTITION_ENTITY_TYPE = AmqpConstants.VENDOR + ":partition";
 
-    private static final ClientLogger LOGGER = new ClientLogger(ManagementChannel.class);
+    private final ClientLogger logger = new ClientLogger(ManagementChannel.class);
     private final TokenCredential tokenProvider;
     private final Mono<RequestResponseChannel> channelMono;
     private final Scheduler scheduler;
@@ -95,16 +95,16 @@ public class ManagementChannel implements EventHubManagementNode {
 
         //@formatter:off
         this.subscription = responseChannelMono
-            .flatMapMany(e -> e.getEndpointStates().distinctUntilChanged())
+            .flatMapMany(e -> e.getEndpointStates().distinct())
             .subscribe(e -> {
-                LOGGER.info("Management endpoint state: {}", e);
+                logger.info("Management endpoint state: {}", e);
                 endpointStateSink.next(e);
             }, error -> {
-                    LOGGER.error("Exception occurred:", error);
+                    logger.error("Exception occurred:", error);
                     endpointStateSink.error(error);
                     close();
                 }, () -> {
-                    LOGGER.info("Complete.");
+                    logger.info("Complete.");
                     endpointStateSink.complete();
                     close();
                 });
@@ -159,17 +159,17 @@ public class ManagementChannel implements EventHubManagementNode {
             request.setApplicationProperties(applicationProperties);
 
             return channelMono.flatMap(channel -> channel.sendWithAck(request)
-                .handle((message, sink) -> {
+                .map(message -> {
                     if (RequestResponseUtils.isSuccessful(message)) {
-                        sink.next(messageSerializer.deserialize(message, responseType));
-                    } else {
-                        final AmqpResponseCode statusCode = RequestResponseUtils.getStatusCode(message);
-                        final String statusDescription = RequestResponseUtils.getStatusDescription(message);
-                        final Throwable error = ExceptionUtil.amqpResponseCodeToException(statusCode.getValue(),
-                            statusDescription, channel.getErrorContext());
-
-                        sink.error(LOGGER.logExceptionAsWarning(Exceptions.propagate(error)));
+                        return messageSerializer.deserialize(message, responseType);
                     }
+
+                    final AmqpResponseCode statusCode = RequestResponseUtils.getStatusCode(message);
+                    final String statusDescription = RequestResponseUtils.getStatusDescription(message);
+                    final Throwable error = ExceptionUtil.amqpResponseCodeToException(statusCode.getValue(),
+                        statusDescription, channel.getErrorContext());
+
+                    throw logger.logExceptionAsWarning(Exceptions.propagate(error));
                 }));
         });
     }

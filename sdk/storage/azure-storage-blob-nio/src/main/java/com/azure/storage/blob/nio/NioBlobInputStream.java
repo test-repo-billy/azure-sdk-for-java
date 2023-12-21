@@ -8,20 +8,17 @@ import com.azure.storage.blob.specialized.BlobInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 
 /**
  * Provides an InputStream to read a file stored as an Azure Blob.
  */
-public final class NioBlobInputStream extends InputStream {
-    private static final ClientLogger LOGGER = new ClientLogger(NioBlobInputStream.class);
+public class NioBlobInputStream extends InputStream {
+    private final ClientLogger logger = new ClientLogger(NioBlobInputStream.class);
 
     private final BlobInputStream blobInputStream;
-    private final Path path;
 
-    NioBlobInputStream(BlobInputStream blobInputStream, Path path) {
+    NioBlobInputStream(BlobInputStream blobInputStream) {
         this.blobInputStream = blobInputStream;
-        this.path = path;
     }
 
     /**
@@ -33,8 +30,7 @@ public final class NioBlobInputStream extends InputStream {
      * over) from this input stream without blocking, or 0 when it reaches the end of the input stream.
      */
     @Override
-    public synchronized int available() throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
+    public synchronized int available() {
         return this.blobInputStream.available();
     }
 
@@ -42,8 +38,7 @@ public final class NioBlobInputStream extends InputStream {
      * Closes this input stream and releases any system resources associated with the stream.
      */
     @Override
-    public synchronized void close() throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
+    public synchronized void close() {
         this.blobInputStream.close();
     }
 
@@ -80,7 +75,6 @@ public final class NioBlobInputStream extends InputStream {
      */
     @Override
     public int read() throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
         try {
             return this.blobInputStream.read();
             /*
@@ -88,7 +82,7 @@ public final class NioBlobInputStream extends InputStream {
             so we can't do any better than re-wrapping it in an IOException.
              */
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(LOGGER, new IOException(e));
+            throw LoggingUtility.logError(logger, new IOException(e));
         }
     }
 
@@ -117,11 +111,10 @@ public final class NioBlobInputStream extends InputStream {
      */
     @Override
     public int read(final byte[] b) throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
         try {
             return this.blobInputStream.read(b);
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(LOGGER, new IOException(e));
+            throw LoggingUtility.logError(logger, new IOException(e));
         }
     }
 
@@ -159,14 +152,13 @@ public final class NioBlobInputStream extends InputStream {
      */
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
         if (off < 0 || len < 0 || len > b.length - off) {
-            throw LOGGER.logExceptionAsError(new IndexOutOfBoundsException());
+            throw logger.logExceptionAsError(new IndexOutOfBoundsException());
         }
         try {
             return this.blobInputStream.read(b, off, len);
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(LOGGER, new IOException(e));
+            throw LoggingUtility.logError(logger, new IOException(e));
         }
     }
 
@@ -178,14 +170,13 @@ public final class NioBlobInputStream extends InputStream {
      */
     @Override
     public synchronized void reset() throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobInputStream.reset();
         } catch (RuntimeException e) {
             if (e.getMessage().equals("Stream mark expired.")) {
-                throw LoggingUtility.logError(LOGGER, new IOException(e));
+                throw LoggingUtility.logError(logger, new IOException(e));
             }
-            throw LoggingUtility.logError(LOGGER, e);
+            throw LoggingUtility.logError(logger, e);
         }
     }
 
@@ -200,12 +191,7 @@ public final class NioBlobInputStream extends InputStream {
      * @param n A <code>long</code> which represents the number of bytes to skip.
      */
     @Override
-    public synchronized long skip(final long n) throws IOException {
-        AzurePath.ensureFileSystemOpen(path);
+    public synchronized long skip(final long n) {
         return this.blobInputStream.skip(n);
-    }
-
-    BlobInputStream getBlobInputStream() {
-        return blobInputStream;
     }
 }

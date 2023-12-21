@@ -99,10 +99,9 @@ public class InteropEventBodyTest extends ApiTestBase {
         partitionSender.sendSync(receivedEvent);
         reSentAndReceivedEvent = receiver.receiveSync(10).iterator().next();
         Assert.assertEquals(payload, reSentAndReceivedEvent.getObject());
-        Assert.assertNull(reSentAndReceivedEvent.getBytes());
+        Assert.assertEquals(reSentAndReceivedEvent.getBytes(), null);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void interopWithProtonAmqpMessageBodyAsAmqpSequence() throws EventHubException, InterruptedException, ExecutionException {
         Message originalMessage = Proton.message();

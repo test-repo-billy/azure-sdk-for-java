@@ -1,7 +1,6 @@
 # Azure Event Grid
-> Please note, a newer package [com.azure:azure-messaging-eventgrid](https://central.sonatype.com/artifact/com.azure/azure-messaging-eventgrid) for [Azure EventGrid](https://docs.microsoft.com/azure/event-grid/) is available as of March 2021. While this package will continue to receive critical bug fixes, we strongly encourage you to upgrade. Read the [migration guide](https://aka.ms/azsdk/java/migrate/eg) for more details.
-> 
-This project provides client tools or utilities in Java that make it east to interact with [Azure Event Grid](https://azure.com/eventgrid). For documentation please see the Microsoft Azure [Java Developer Center](https://azure.microsoft.com/develop/java/) or the [JavaDocs](https://azure.github.io/azure-sdk-for-java/).
+
+This project provides client tools or utilities in Java that make it east to interact with [Azure Event Grid](https://azure.com/eventgrid). For documentation please see the Microsoft Azure [Java Developer Center](https://azure.microsoft.com/develop/java/) or the [JavaDocs](https://azure.github.io/azure-SDK-for-java/).
 
 Azure Event Grid is a fully-managed intelligent event routing service that allows for uniform event consumption using a publish-subscribe model.
 
@@ -22,7 +21,7 @@ To get the binaries of the official Microsoft Azure Event Grid Java SDK as distr
 <dependency>
     <groupId>com.microsoft.azure</groupId>
     <artifactId>azure-eventgrid</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.0-beta.1</version>
 </dependency>
 ```
 [//]: # ({x-version-update-end})
@@ -34,11 +33,11 @@ To get the binaries of the official Microsoft Azure Event Grid Java SDK as distr
 
 ## Help and Issues
 
-If you encounter any bugs with these SDKs, please file issues via [Issues](https://github.com/Azure/azure-sdk-for-java/issues) or checkout [StackOverflow for Azure Java SDK](https://stackoverflow.com/questions/tagged/azure-java-sdk).
+If you encounter any bugs with these SDKs, please file issues via [Issues](https://github.com/Azure/azure-sdk-for-java/issues) or checkout [StackOverflow for Azure Java SDK](http://stackoverflow.com/questions/tagged/azure-java-sdk).
 
 ## Contribute Code
 
-For details on contributing to this repository, see the [contributing guide](https://github.com/Azure/azure-sdk-for-java/blob/main/CONTRIBUTING.md).
+If you would like to become an active contributor to this project please follow the instructions provided in [Microsoft Azure Projects Contribution Guidelines](http://azure.github.io/guidelines.html).
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
@@ -48,9 +47,9 @@ For details on contributing to this repository, see the [contributing guide](htt
 
 ## More information
 
-- [Javadoc](https://azure.github.io/azure-sdk-for-java/)
+- [Javadoc](https://azure.github.io/azure-SDK-for-java/)
 - [Azure Java SDKs](https://docs.microsoft.com/java/azure/)
-- If you don't have a Microsoft Azure subscription you can get a FREE trial account [here](https://go.microsoft.com/fwlink/?LinkId=330212)
+- If you don't have a Microsoft Azure subscription you can get a FREE trial account [here](http://go.microsoft.com/fwlink/?LinkId=330212)
 
 ---
 

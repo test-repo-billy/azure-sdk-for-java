@@ -3,38 +3,22 @@
 
 package com.azure.core.implementation.http;
 
-import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpResponse;
-import com.azure.core.implementation.util.IterableOfByteBuffersInputStream;
-import com.azure.core.util.BinaryData;
 import com.azure.core.util.CoreUtils;
 import com.azure.core.util.FluxUtil;
-import com.azure.core.util.logging.ClientLogger;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static com.azure.core.util.FluxUtil.monoError;
 
 /**
  * HTTP response which will buffer the response's body when/if it is read.
  */
 public final class BufferedHttpResponse extends HttpResponse {
-    // BufferedHttpResponse is a commonly used class, use a static logger.
-    private static final ClientLogger LOGGER = new ClientLogger(BufferedHttpResponse.class);
-
     private final HttpResponse innerHttpResponse;
-    private final Mono<List<ByteBuffer>> cachedBody;
-    private final AtomicLong cachedBodySize = new AtomicLong();
+    private final Flux<ByteBuffer> cachedBody;
 
     /**
      * Creates a buffered HTTP response.
@@ -44,12 +28,9 @@ public final class BufferedHttpResponse extends HttpResponse {
     public BufferedHttpResponse(HttpResponse innerHttpResponse) {
         super(innerHttpResponse.getRequest());
         this.innerHttpResponse = innerHttpResponse;
-        this.cachedBody = innerHttpResponse.getBody()
-            .map(buffer -> {
-                cachedBodySize.addAndGet(buffer.remaining());
-                return ByteBuffer.wrap(FluxUtil.byteBufferToArray(buffer));
-            })
-            .collectList()
+        this.cachedBody = FluxUtil.collectBytesInByteBufferStream(innerHttpResponse.getBody())
+            .map(ByteBuffer::wrap)
+            .flux()
             .cache();
     }
 
@@ -59,14 +40,8 @@ public final class BufferedHttpResponse extends HttpResponse {
     }
 
     @Override
-    @Deprecated
     public String getHeaderValue(String name) {
         return innerHttpResponse.getHeaderValue(name);
-    }
-
-    @Override
-    public String getHeaderValue(HttpHeaderName headerName) {
-        return innerHttpResponse.getHeaderValue(headerName);
     }
 
     @Override
@@ -76,55 +51,24 @@ public final class BufferedHttpResponse extends HttpResponse {
 
     @Override
     public Flux<ByteBuffer> getBody() {
-        return cachedBody.flatMapMany(Flux::fromIterable).map(ByteBuffer::duplicate);
+        return cachedBody;
     }
 
     @Override
     public Mono<byte[]> getBodyAsByteArray() {
-        // Check that the body would fit into a byte array before spending time to create the merged byte array.
-        return (cachedBodySize.get() > Integer.MAX_VALUE)
-            ? monoError(LOGGER, new IllegalStateException(
-                "Response with body size " + cachedBodySize.get() + " doesn't fit into a byte array."))
-            : FluxUtil.collectBytesInByteBufferStream(getBody(), (int) cachedBodySize.get());
+        return cachedBody.next().map(ByteBuffer::array);
     }
 
     @Override
     public Mono<String> getBodyAsString() {
-        // Check that the body would fit into a String before spending the time to create the String.
-        return (cachedBodySize.get() > Integer.MAX_VALUE)
-            ? monoError(LOGGER, new IllegalStateException(
-                "Response with body size " + cachedBodySize.get() + " doesn't fit into a String."))
-            : getBodyAsByteArray().map(bytes ->
-                CoreUtils.bomAwareToString(bytes, innerHttpResponse.getHeaderValue(HttpHeaderName.CONTENT_TYPE)));
+        return getBodyAsByteArray().map(bytes ->
+            CoreUtils.bomAwareToString(bytes, innerHttpResponse.getHeaderValue("Content-Type")));
     }
 
     @Override
     public Mono<String> getBodyAsString(Charset charset) {
-        // Check that the body would fit into a String before spending the time to create the String.
-        return (cachedBodySize.get() > Integer.MAX_VALUE)
-            ? monoError(LOGGER, new IllegalStateException(
-                "Response with body size " + cachedBodySize.get() + " doesn't fit into a String."))
-            : getBodyAsByteArray().map(bytes -> new String(bytes, charset));
-    }
-
-    @Override
-    public BinaryData getBodyAsBinaryData() {
-        return BinaryData.fromFlux(getBody(), cachedBodySize.get(), false).block();
-    }
-
-    @Override
-    public Mono<InputStream> getBodyAsInputStream() {
-        return getBody().collectList().map(IterableOfByteBuffersInputStream::new);
-    }
-
-    @Override
-    public Mono<Void> writeBodyToAsync(AsynchronousByteChannel channel) {
-        return FluxUtil.writeToAsynchronousByteChannel(getBody(), channel);
-    }
-
-    @Override
-    public void writeBodyTo(WritableByteChannel channel) throws IOException {
-        FluxUtil.writeToWritableByteChannel(getBody(), channel).block();
+        return getBodyAsByteArray()
+                .map(bytes -> bytes == null ? null : new String(bytes, charset));
     }
 
     @Override

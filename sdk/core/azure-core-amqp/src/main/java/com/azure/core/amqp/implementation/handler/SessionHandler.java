@@ -6,10 +6,10 @@ package com.azure.core.amqp.implementation.handler;
 import com.azure.core.amqp.exception.AmqpErrorContext;
 import com.azure.core.amqp.exception.AmqpException;
 import com.azure.core.amqp.exception.SessionErrorContext;
-import com.azure.core.amqp.implementation.AmqpMetricsProvider;
+import com.azure.core.amqp.implementation.ClientConstants;
 import com.azure.core.amqp.implementation.ExceptionUtil;
 import com.azure.core.amqp.implementation.ReactorDispatcher;
-import com.azure.core.util.logging.LoggingEventBuilder;
+import com.azure.core.util.logging.ClientLogger;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Event;
@@ -18,82 +18,66 @@ import org.apache.qpid.proton.engine.Session;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Locale;
-import java.util.concurrent.RejectedExecutionException;
-
-import static com.azure.core.amqp.implementation.AmqpLoggingUtils.addErrorCondition;
-import static com.azure.core.amqp.implementation.ClientConstants.SESSION_NAME_KEY;
 
 public class SessionHandler extends Handler {
-    private final String sessionName;
+    private final ClientLogger logger = new ClientLogger(SessionHandler.class);
+
+    private final String entityName;
     private final Duration openTimeout;
     private final ReactorDispatcher reactorDispatcher;
-    private final AmqpMetricsProvider metricsProvider;
 
-    /**
-     * @deprecated use {@link SessionHandler#SessionHandler(String, String, String, ReactorDispatcher, Duration, AmqpMetricsProvider)} instead.
-     */
-    @Deprecated
-    public SessionHandler(String connectionId, String hostname, String sessionName, ReactorDispatcher reactorDispatcher,
+    public SessionHandler(String connectionId, String hostname, String entityName, ReactorDispatcher reactorDispatcher,
                           Duration openTimeout) {
-        this(connectionId, hostname, sessionName, reactorDispatcher, openTimeout, new AmqpMetricsProvider(null, hostname, null));
-    }
-
-    public SessionHandler(String connectionId, String hostname, String sessionName, ReactorDispatcher reactorDispatcher,
-        Duration openTimeout, AmqpMetricsProvider metricProvider) {
         super(connectionId, hostname);
-        this.sessionName = sessionName;
+        this.entityName = entityName;
         this.openTimeout = openTimeout;
         this.reactorDispatcher = reactorDispatcher;
-        this.metricsProvider = metricProvider;
     }
 
     public AmqpErrorContext getErrorContext() {
-        return new SessionErrorContext(getHostname(), sessionName);
+        return new SessionErrorContext(getHostname(), entityName);
     }
 
     @Override
     public void onSessionLocalOpen(Event e) {
-        addErrorCondition(logger.atVerbose(), e.getSession().getCondition())
-            .addKeyValue(SESSION_NAME_KEY, sessionName)
-            .log("onSessionLocalOpen");
+        logger.verbose("onSessionLocalOpen connectionId[{}], entityName[{}], condition[{}]",
+            getConnectionId(), this.entityName,
+            e.getSession().getCondition() == null
+                ? ClientConstants.NOT_APPLICABLE
+                : e.getSession().getCondition().toString());
 
         final Session session = e.getSession();
 
         try {
             reactorDispatcher.invoke(this::onSessionTimeout, this.openTimeout);
-        } catch (IOException | RejectedExecutionException ioException) {
-            logger.atInfo()
-                .addKeyValue(SESSION_NAME_KEY, sessionName)
-                .addKeyValue("reactorDispatcherError", ioException.getMessage())
-                .log("onSessionLocalOpen");
+        } catch (IOException ioException) {
+            logger.warning("onSessionLocalOpen connectionId[{}], entityName[{}], reactorDispatcherError[{}]",
+                getConnectionId(), this.entityName,
+                ioException.getMessage());
 
             session.close();
 
             final String message =
                 String.format(Locale.US, "onSessionLocalOpen connectionId[%s], entityName[%s], underlying IO of"
                         + " reactorDispatcher faulted with error: %s",
-                    getConnectionId(), sessionName, ioException.getMessage());
+                    getConnectionId(), this.entityName, ioException.getMessage());
             final Throwable exception = new AmqpException(false, message, ioException, getErrorContext());
 
-            onError(exception);
+            onNext(exception);
         }
     }
 
     @Override
     public void onSessionRemoteOpen(Event e) {
         final Session session = e.getSession();
-        LoggingEventBuilder logBuilder;
-        if (session.getLocalState() == EndpointState.UNINITIALIZED) {
-            logBuilder = logger.atWarning();
-            session.open();
-        } else {
-            logBuilder = logger.atInfo();
-        }
 
-        logBuilder.addKeyValue(SESSION_NAME_KEY, sessionName)
-            .addKeyValue("sessionIncCapacity", session.getIncomingCapacity())
-            .addKeyValue("sessionOutgoingWindow", session.getOutgoingWindow())
-            .log("onSessionRemoteOpen");
+        logger.info(
+            "onSessionRemoteOpen connectionId[{}], entityName[{}], sessionIncCapacity[{}], sessionOutgoingWindow[{}]",
+            getConnectionId(), entityName, session.getIncomingCapacity(), session.getOutgoingWindow());
+
+        if (session.getLocalState() == EndpointState.UNINITIALIZED) {
+            session.open();
+        }
 
         onNext(EndpointState.ACTIVE);
     }
@@ -104,41 +88,55 @@ public class SessionHandler extends Handler {
             ? e.getSession().getCondition()
             : null;
 
-        addErrorCondition(logger.atVerbose(), condition)
-            .addKeyValue(SESSION_NAME_KEY, sessionName)
-            .log("onSessionLocalClose");
+        logger.verbose("onSessionLocalClose connectionId[{}], entityName[{}], condition[{}]",
+            entityName, getConnectionId(),
+            condition == null ? ClientConstants.NOT_APPLICABLE : condition.toString());
     }
 
     @Override
     public void onSessionRemoteClose(Event e) {
         final Session session = e.getSession();
-        final ErrorCondition condition = session != null ? session.getRemoteCondition() : null;
 
-        addErrorCondition(logger.atInfo(), condition)
-            .addKeyValue(SESSION_NAME_KEY, sessionName)
-            .log("onSessionRemoteClose");
+        logger.info("onSessionRemoteClose connectionId[{}], entityName[{}], condition[{}]",
+            entityName,
+            getConnectionId(),
+            session == null || session.getRemoteCondition() == null
+                ? ClientConstants.NOT_APPLICABLE
+                : session.getRemoteCondition().toString());
+
+        ErrorCondition condition = session != null ? session.getRemoteCondition() : null;
 
         if (session != null && session.getLocalState() != EndpointState.CLOSED) {
-            addErrorCondition(logger.atInfo(), condition)
-                .addKeyValue(SESSION_NAME_KEY, sessionName)
-                .log("onSessionRemoteClose closing a local session.");
+            logger.info("onSessionRemoteClose closing a local session for connectionId[{}], entityName[{}], "
+                    + "condition[{}], description[{}]",
+                getConnectionId(), entityName,
+                condition != null ? condition.getCondition() : ClientConstants.NOT_APPLICABLE,
+                condition != null ? condition.getDescription() : ClientConstants.NOT_APPLICABLE);
 
             session.setCondition(session.getRemoteCondition());
             session.close();
         }
 
-        if (condition == null || condition.getCondition() == null) {
-            onNext(EndpointState.CLOSED);
-        } else {
+        onNext(EndpointState.CLOSED);
+
+        if (condition != null) {
             final String id = getConnectionId();
             final AmqpErrorContext context = getErrorContext();
+            final Exception exception;
+            if (condition.getCondition() == null) {
+                exception = new AmqpException(false,
+                    String.format(Locale.US,
+                        "onSessionRemoteClose connectionId[%s], entityName[%s], condition[%s]", id, entityName,
+                        condition),
+                    context);
+            } else {
+                exception = ExceptionUtil.toException(condition.getCondition().toString(),
+                    String.format(Locale.US, "onSessionRemoteClose connectionId[%s], entityName[%s]", id,
+                        entityName),
+                    context);
+            }
 
-            final Exception exception = ExceptionUtil.toException(condition.getCondition().toString(),
-                String.format(Locale.US, "onSessionRemoteClose connectionId[%s], entityName[%s] condition[%s]",
-                    id, sessionName, condition), context);
-
-            metricsProvider.recordHandlerError(AmqpMetricsProvider.ErrorSource.SESSION, condition);
-            onError(exception);
+            onNext(exception);
         }
     }
 
@@ -147,9 +145,11 @@ public class SessionHandler extends Handler {
         final Session session = e.getSession();
         final ErrorCondition condition = session != null ? session.getCondition() : null;
 
-        addErrorCondition(logger.atInfo(), condition)
-            .addKeyValue(SESSION_NAME_KEY, sessionName)
-            .log("onSessionFinal.");
+        logger.info("onSessionFinal connectionId[{}], entityName[{}], condition[{}], description[{}]",
+            getConnectionId(), entityName,
+            condition != null ? condition.getCondition() : ClientConstants.NOT_APPLICABLE,
+            condition != null ? condition.getDescription() : ClientConstants.NOT_APPLICABLE);
+
         close();
     }
 

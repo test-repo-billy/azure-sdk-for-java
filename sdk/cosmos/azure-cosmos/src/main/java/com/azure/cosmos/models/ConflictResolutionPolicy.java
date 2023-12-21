@@ -6,7 +6,6 @@ package com.azure.cosmos.models;
 
 import com.azure.cosmos.implementation.Constants;
 import com.azure.cosmos.implementation.JsonSerializable;
-import com.azure.cosmos.implementation.Paths;
 import com.azure.cosmos.implementation.Resource;
 import com.azure.cosmos.implementation.StoredProcedure;
 import com.azure.cosmos.implementation.Strings;
@@ -112,45 +111,21 @@ public final class ConflictResolutionPolicy {
      * required.
      *
      * <ul>
-     * <li>This method requires conflictResolutionStoredProcFullPath in format
-     * dbs/%s/colls/%s/sprocs/%s. User can also use equivalent method {@link #createCustomPolicy(String, String, String)}</li>
      * <li>In case the stored procedure fails or throws an exception,
      * the conflict resolution will default to registering conflicts in the conflicts feed</li>
      * <li>The user can provide the stored procedure @see {@link Resource#getId()} </li>
      * </ul>
      *
-     * @param conflictResolutionStoredProcFullPath stored procedure full path to perform conflict resolution.
+     * @param conflictResolutionStoredProcName stored procedure to perform conflict resolution.
      * @return ConflictResolutionPolicy.
      */
-    public static ConflictResolutionPolicy createCustomPolicy(String conflictResolutionStoredProcFullPath) {
+    public static ConflictResolutionPolicy createCustomPolicy(String conflictResolutionStoredProcName) {
         ConflictResolutionPolicy policy = new ConflictResolutionPolicy();
         policy.setMode(ConflictResolutionMode.CUSTOM);
-        if (conflictResolutionStoredProcFullPath != null) {
-            policy.setConflictResolutionProcedure(conflictResolutionStoredProcFullPath);
+        if (conflictResolutionStoredProcName != null) {
+            policy.setConflictResolutionProcedure(conflictResolutionStoredProcName);
         }
         return policy;
-    }
-
-    /**
-     * Creates a CUSTOM {@link ConflictResolutionPolicy} which uses the specified stored procedure
-     * to perform conflict resolution
-     * <p>
-     * This stored procedure may be created after the {@link CosmosContainerProperties} is created and can be changed as
-     * required.
-     *
-     * <ul>
-     * <li>In case the stored procedure fails or throws an exception,
-     * the conflict resolution will default to registering conflicts in the conflicts feed</li>
-     * <li>The user can provide the stored procedure @see {@link Resource#getId()} </li>
-     * </ul>
-     *
-     * @param dbName database name.
-     * @param containerName container name.
-     * @param sprocName stored procedure name to perform conflict resolution.
-     * @return ConflictResolutionPolicy.
-     */
-    public static ConflictResolutionPolicy createCustomPolicy(String dbName, String containerName, String sprocName) {
-        return createCustomPolicy(getFullPath(dbName, containerName, sprocName));
     }
 
     /**
@@ -291,32 +266,4 @@ public final class ConflictResolutionPolicy {
     }
 
     JsonSerializable getJsonSerializable() { return this.jsonSerializable; }
-
-    private static String getFullPath(String dbName, String containerName, String sprocName) {
-        if (dbName == null) {
-            throw new IllegalArgumentException("dbName cannot be null");
-        }
-
-        if (containerName == null) {
-            throw new IllegalArgumentException("containerName cannot be null");
-        }
-
-        if (sprocName == null) {
-            throw new IllegalArgumentException("sprocName cannot be null");
-        }
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(Paths.DATABASES_PATH_SEGMENT);
-        builder.append("/");
-        builder.append(dbName);
-        builder.append("/");
-        builder.append(Paths.COLLECTIONS_PATH_SEGMENT);
-        builder.append("/");
-        builder.append(containerName);
-        builder.append("/");
-        builder.append(Paths.STORED_PROCEDURES_PATH_SEGMENT);
-        builder.append("/");
-        builder.append(sprocName);
-        return builder.toString();
-    }
 }

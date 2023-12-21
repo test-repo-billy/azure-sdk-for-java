@@ -14,6 +14,7 @@ import com.microsoft.azure.batch.protocol.models.JobDeleteOptions;
 import com.microsoft.azure.batch.protocol.models.JobDisableOptions;
 import com.microsoft.azure.batch.protocol.models.JobEnableOptions;
 import com.microsoft.azure.batch.protocol.models.JobExecutionInformation;
+import com.microsoft.azure.batch.protocol.models.JobGetAllLifetimeStatisticsOptions;
 import com.microsoft.azure.batch.protocol.models.JobGetOptions;
 import com.microsoft.azure.batch.protocol.models.JobGetTaskCountsOptions;
 import com.microsoft.azure.batch.protocol.models.JobListFromJobScheduleOptions;
@@ -24,6 +25,7 @@ import com.microsoft.azure.batch.protocol.models.JobPatchParameter;
 import com.microsoft.azure.batch.protocol.models.JobPreparationAndReleaseTaskExecutionInformation;
 import com.microsoft.azure.batch.protocol.models.JobPreparationTask;
 import com.microsoft.azure.batch.protocol.models.JobReleaseTask;
+import com.microsoft.azure.batch.protocol.models.JobStatistics;
 import com.microsoft.azure.batch.protocol.models.JobTerminateOptions;
 import com.microsoft.azure.batch.protocol.models.JobUpdateOptions;
 import com.microsoft.azure.batch.protocol.models.JobUpdateParameter;
@@ -31,8 +33,6 @@ import com.microsoft.azure.batch.protocol.models.MetadataItem;
 import com.microsoft.azure.batch.protocol.models.OnAllTasksComplete;
 import com.microsoft.azure.batch.protocol.models.PoolInformation;
 import com.microsoft.azure.batch.protocol.models.TaskCounts;
-import com.microsoft.azure.batch.protocol.models.TaskCountsResult;
-import com.microsoft.azure.batch.protocol.models.TaskSlotCounts;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -74,6 +74,33 @@ public class JobOperations implements IInheritedBehaviors {
     public IInheritedBehaviors withCustomBehaviors(Collection<BatchClientBehavior> behaviors) {
         customBehaviors = behaviors;
         return this;
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the jobs in the current account.
+     *
+     * @return The aggregated job statistics.
+     * @throws BatchErrorException Exception thrown when an error response is received from the Batch service.
+     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
+     */
+    public JobStatistics getAllJobsLifetimeStatistics() throws BatchErrorException, IOException {
+        return getAllJobsLifetimeStatistics(null);
+    }
+
+    /**
+     * Gets lifetime summary statistics for all of the jobs in the current account.
+     *
+     * @param additionalBehaviors A collection of {@link BatchClientBehavior} instances that are applied to the Batch service request.
+     * @return The aggregated job statistics.
+     * @throws BatchErrorException Exception thrown when an error response is received from the Batch service.
+     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
+     */
+    public JobStatistics getAllJobsLifetimeStatistics(Iterable<BatchClientBehavior> additionalBehaviors) throws BatchErrorException, IOException {
+        JobGetAllLifetimeStatisticsOptions options = new JobGetAllLifetimeStatisticsOptions();
+        BehaviorManager bhMgr = new BehaviorManager(this.customBehaviors(), additionalBehaviors);
+        bhMgr.applyRequestBehaviors(options);
+
+        return this.parentBatchClient.protocolLayer().jobs().getAllLifetimeStatistics(options);
     }
 
     /**
@@ -451,41 +478,16 @@ public class JobOperations implements IInheritedBehaviors {
      */
     public void updateJob(String jobId, PoolInformation poolInfo, Integer priority, JobConstraints constraints, OnAllTasksComplete onAllTasksComplete,
                           List<MetadataItem> metadata, Iterable<BatchClientBehavior> additionalBehaviors) throws BatchErrorException, IOException {
+        JobUpdateOptions options = new JobUpdateOptions();
+        BehaviorManager bhMgr = new BehaviorManager(this.customBehaviors(), additionalBehaviors);
+        bhMgr.applyRequestBehaviors(options);
+
         JobUpdateParameter param = new JobUpdateParameter()
                 .withPriority(priority)
                 .withPoolInfo(poolInfo)
                 .withConstraints(constraints)
                 .withOnAllTasksComplete(onAllTasksComplete)
                 .withMetadata(metadata);
-
-        updateJob(jobId, param, additionalBehaviors);
-    }
-
-    /*
-    * Updates the specified job
-    * This method performs a full replace of all updatable properties of the job. For example, if the constraints parameter is null, then the Batch service removes the job's existing constraints and replaces them with the default constraints.
-     * @param jobId The job to be updated
-    * @param param Job Update parameters
-    * @throws BatchErrorException Exception thrown when an error response is received from the Batch service.
-    * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-    * */
-    public void updateJob(String jobId, JobUpdateParameter param) throws BatchErrorException, IOException {
-        updateJob(jobId, param, null);
-    }
-
-    /**
-     * Updates the specified job
-     * This method performs a full replace of all updatable properties of the job. For example, if the constraints parameter is null, then the Batch service removes the job's existing constraints and replaces them with the default constraints.
-     * @param jobId The job to be updated.
-     * @param param Job Update parameters
-     * @param additionalBehaviors A collection of {@link BatchClientBehavior} instances that are applied to the Batch service request.
-     * @throws BatchErrorException Exception thrown when an error response is received from the Batch service.
-     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-     */
-    public void updateJob(String jobId, JobUpdateParameter param, Iterable<BatchClientBehavior> additionalBehaviors) throws BatchErrorException, IOException {
-        JobUpdateOptions options = new JobUpdateOptions();
-        BehaviorManager bhMgr = new BehaviorManager(this.customBehaviors(), additionalBehaviors);
-        bhMgr.applyRequestBehaviors(options);
 
         this.parentBatchClient.protocolLayer().jobs().update(jobId, param, options);
     }
@@ -615,69 +617,11 @@ public class JobOperations implements IInheritedBehaviors {
      * @return the TaskCounts object if successful.
      */
     public TaskCounts getTaskCounts(String jobId, Iterable<BatchClientBehavior> additionalBehaviors) throws BatchErrorException, IOException {
-        return getTaskCountsResult(jobId, additionalBehaviors).taskCounts();
-
-    }
-
-    /**
-     * Gets the task slot counts for the specified job.
-     * Task slot counts provide a count of the tasks by active, running or completed task state, and a count of tasks which succeeded or failed. Tasks in the preparing state are counted as running.
-     *
-     * @param jobId The ID of the job.
-     * @throws BatchErrorException thrown if the request is rejected by server
-     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-     * @return the TaskSlotCounts object if successful.
-     */
-    public TaskSlotCounts getTaskSlotCounts(String jobId) throws BatchErrorException, IOException {
-        return getTaskSlotCounts(jobId, null);
-    }
-
-    /**
-     * Gets the task slot counts for the specified job.
-     * Task slot counts provide a count of the tasks by active, running or completed task state, and a count of tasks which succeeded or failed. Tasks in the preparing state are counted as running.
-     *
-     * @param jobId The ID of the job.
-     * @param additionalBehaviors A collection of {@link BatchClientBehavior} instances that are applied to the Batch service request.
-     * @throws BatchErrorException thrown if the request is rejected by server
-     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-     * @return the TaskSlotCounts object if successful.
-     */
-    public TaskSlotCounts getTaskSlotCounts(String jobId, Iterable<BatchClientBehavior> additionalBehaviors) throws BatchErrorException, IOException {
-        return getTaskCountsResult(jobId, additionalBehaviors).taskSlotCounts();
-
-    }
-
-    /**
-     * Gets the task counts result for the specified job.
-     * The result includes both task counts and task slot counts. Each counts object provides a count of the tasks by active, running or completed task state, and a count of tasks which succeeded or failed. Tasks in the preparing state are counted as running.
-     *
-     * @param jobId The ID of the job.
-     * @throws BatchErrorException thrown if the request is rejected by server
-     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-     * @return the TaskCountsResult object if successful.
-     */
-    public TaskCountsResult getTaskCountsResult(String jobId)
-    throws BatchErrorException, IOException {
-        return getTaskCountsResult(jobId, null);
-    }
-
-    /**
-     * Gets the task counts result for the specified job.
-     * The result includes both task counts and task slot counts. Each counts object provides a count of the tasks by active, running or completed task state, and a count of tasks which succeeded or failed. Tasks in the preparing state are counted as running.
-     *
-     * @param jobId The ID of the job.
-     * @param additionalBehaviors A collection of {@link BatchClientBehavior} instances that are applied to the Batch service request.
-     * @throws BatchErrorException thrown if the request is rejected by server
-     * @throws IOException Exception thrown when there is an error in serialization/deserialization of data sent to/received from the Batch service.
-     * @return the TaskCountsResult object if successful.
-     */
-    public TaskCountsResult getTaskCountsResult(
-        String jobId,
-        Iterable<BatchClientBehavior> additionalBehaviors
-    ) throws BatchErrorException, IOException {
         JobGetTaskCountsOptions options = new JobGetTaskCountsOptions();
         BehaviorManager bhMgr = new BehaviorManager(this.customBehaviors(), additionalBehaviors);
         bhMgr.applyRequestBehaviors(options);
+
         return this.parentBatchClient.protocolLayer().jobs().getTaskCounts(jobId, options);
     }
+
 }

@@ -3,8 +3,8 @@
 
 package com.azure.storage.blob.perf.core;
 
-import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
+import com.azure.perf.test.core.PerfStressHttpClient;
 import com.azure.perf.test.core.PerfStressOptions;
 import com.azure.perf.test.core.PerfStressTest;
 import com.azure.storage.blob.BlobServiceAsyncClient;
@@ -15,22 +15,19 @@ public abstract class ServiceTest<TOptions extends PerfStressOptions> extends Pe
 
     protected final BlobServiceClient blobServiceClient;
     protected final BlobServiceAsyncClient blobServiceAsyncClient;
-    protected String connectionString;
 
     public ServiceTest(TOptions options) {
         super(options);
-        Configuration configuration = Configuration.getGlobalConfiguration().clone();
-        connectionString = configuration.get("STORAGE_CONNECTION_STRING");
-
+        String connectionString = System.getenv("STORAGE_CONNECTION_STRING");
         if (CoreUtils.isNullOrEmpty(connectionString)) {
-            throw new IllegalStateException("Environment variable STORAGE_CONNECTION_STRING must be set");
+            System.out.println("Environment variable STORAGE_CONNECTION_STRING must be set");
+            System.exit(1);
         }
 
         // Setup the service client
         BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
-            .connectionString(connectionString);
-
-        configureClientBuilder(builder);
+            .connectionString(connectionString)
+            .httpClient(PerfStressHttpClient.create(options));
 
         blobServiceClient = builder.buildClient();
         blobServiceAsyncClient = builder.buildAsyncClient();

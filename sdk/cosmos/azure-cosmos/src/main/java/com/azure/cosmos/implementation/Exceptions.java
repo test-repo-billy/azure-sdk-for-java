@@ -18,19 +18,7 @@ public class Exceptions {
         return subStatus == e.getSubStatusCode();
     }
 
-    public static boolean isGone(CosmosException e) {
-        return isStatusCode(e, HttpConstants.StatusCodes.GONE);
-    }
-
-    public static boolean isConflict(CosmosException e) {
-        return isStatusCode(e, HttpConstants.StatusCodes.CONFLICT);
-    }
-
-    public static boolean isNotFound(CosmosException e) {
-        return isStatusCode(e, HttpConstants.StatusCodes.NOTFOUND);
-    }
-
-    public static boolean isPartitionSplitOrMerge(CosmosException e) {
+    public static boolean isPartitionSplit(CosmosException e) {
         return isStatusCode(e, HttpConstants.StatusCodes.GONE)
                 && isSubStatusCode(e, HttpConstants.SubStatusCodes.PARTITION_KEY_RANGE_GONE);
     }
@@ -38,20 +26,5 @@ public class Exceptions {
     public static boolean isNameCacheStale(CosmosException e) {
         return isStatusCode(e, HttpConstants.StatusCodes.GONE)
                 && isSubStatusCode(e, HttpConstants.SubStatusCodes.NAME_CACHE_IS_STALE);
-    }
-
-    public static boolean isThroughputControlRequestRateTooLargeException(CosmosException e) {
-        return isStatusCode(e, HttpConstants.StatusCodes.TOO_MANY_REQUESTS)
-            && isSubStatusCode(e, HttpConstants.SubStatusCodes.THROUGHPUT_CONTROL_REQUEST_RATE_TOO_LARGE);
-    }
-
-    public static boolean isPartitionCompletingSplittingException(CosmosException cosmosException) {
-        return Exceptions.isStatusCode(cosmosException, HttpConstants.StatusCodes.GONE) &&
-            Exceptions.isSubStatusCode(cosmosException, HttpConstants.SubStatusCodes.COMPLETING_SPLIT_OR_MERGE);
-    }
-
-    public static boolean isPartitionKeyMismatchException(CosmosException cosmosException) {
-        return Exceptions.isStatusCode(cosmosException, HttpConstants.StatusCodes.NOTFOUND) &&
-            Exceptions.isSubStatusCode(cosmosException, HttpConstants.SubStatusCodes.PARTITION_KEY_MISMATCH);
     }
 }

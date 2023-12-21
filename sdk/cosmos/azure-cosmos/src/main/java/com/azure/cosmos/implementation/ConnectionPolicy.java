@@ -6,7 +6,6 @@ package com.azure.cosmos.implementation;
 import com.azure.core.http.ProxyOptions;
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.ConnectionMode;
-import com.azure.cosmos.CosmosExcludedRegions;
 import com.azure.cosmos.DirectConnectionConfig;
 import com.azure.cosmos.GatewayConnectionConfig;
 import com.azure.cosmos.ThrottlingRetryOptions;
@@ -14,7 +13,6 @@ import com.azure.cosmos.ThrottlingRetryOptions;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Represents the Connection policy associated with a Cosmos client in the Azure Cosmos DB service.
@@ -24,124 +22,60 @@ public final class ConnectionPolicy {
     private static final int defaultGatewayMaxConnectionPoolSize = GatewayConnectionConfig.getDefaultConfig()
         .getMaxConnectionPoolSize();
 
+    private static final ConnectionPolicy defaultPolicy =
+        new ConnectionPolicy(DirectConnectionConfig.getDefaultConfig());
+
     private ConnectionMode connectionMode;
     private boolean endpointDiscoveryEnabled;
+    private Duration idleConnectionTimeout;
     private boolean multipleWriteRegionsEnabled;
     private List<String> preferredRegions;
-    private Supplier<CosmosExcludedRegions> excludedRegionsSupplier;
     private boolean readRequestsFallbackEnabled;
     private ThrottlingRetryOptions throttlingRetryOptions;
     private String userAgentSuffix;
 
     //  Gateway connection config properties
     private int maxConnectionPoolSize;
-    private Duration httpNetworkRequestTimeout;
+    private Duration requestTimeout;
     private ProxyOptions proxy;
-    private Duration idleHttpConnectionTimeout;
 
     //  Direct connection config properties
     private Duration connectTimeout;
-    private Duration idleTcpConnectionTimeout;
-    private Duration idleTcpEndpointTimeout;
+    private Duration idleEndpointTimeout;
     private int maxConnectionsPerEndpoint;
     private int maxRequestsPerConnection;
-    private Duration tcpNetworkRequestTimeout;
-    private boolean tcpConnectionEndpointRediscoveryEnabled;
-    private int ioThreadCountPerCoreFactor;
-    private int ioThreadPriority;
-    private boolean tcpHealthCheckTimeoutDetectionEnabled;
-    private int minConnectionPoolSizePerEndpoint;
-    private int openConnectionsConcurrency;
-    private int aggressiveWarmupConcurrency;
 
     /**
      * Constructor.
      */
-    public ConnectionPolicy(DirectConnectionConfig directConnectionConfig, GatewayConnectionConfig gatewayConnectionConfig) {
-        this(ConnectionMode.DIRECT, directConnectionConfig, gatewayConnectionConfig);
+    public ConnectionPolicy(GatewayConnectionConfig gatewayConnectionConfig) {
+        this(ConnectionMode.GATEWAY);
+        this.idleConnectionTimeout = gatewayConnectionConfig.getIdleConnectionTimeout();
+        this.maxConnectionPoolSize = gatewayConnectionConfig.getMaxConnectionPoolSize();
+        this.requestTimeout = BridgeInternal.getRequestTimeoutFromGatewayConnectionConfig(gatewayConnectionConfig);
+        this.proxy = gatewayConnectionConfig.getProxy();
     }
 
     public ConnectionPolicy(DirectConnectionConfig directConnectionConfig) {
-        this(ConnectionMode.DIRECT, directConnectionConfig, GatewayConnectionConfig.getDefaultConfig());
-    }
-
-    public ConnectionPolicy(GatewayConnectionConfig gatewayConnectionConfig) {
-        this(ConnectionMode.GATEWAY, DirectConnectionConfig.getDefaultConfig(), gatewayConnectionConfig);
-    }
-
-    private ConnectionPolicy(
-        ConnectionMode connectionMode,
-        DirectConnectionConfig directConnectionConfig,
-        GatewayConnectionConfig gatewayConnectionConfig) {
-        this();
-        this.connectionMode = connectionMode;
+        this(ConnectionMode.DIRECT);
         this.connectTimeout = directConnectionConfig.getConnectTimeout();
-        this.idleTcpConnectionTimeout = directConnectionConfig.getIdleConnectionTimeout();
-        this.idleTcpEndpointTimeout = directConnectionConfig.getIdleEndpointTimeout();
+        this.idleConnectionTimeout = directConnectionConfig.getIdleConnectionTimeout();
+        this.idleEndpointTimeout = directConnectionConfig.getIdleEndpointTimeout();
         this.maxConnectionsPerEndpoint = directConnectionConfig.getMaxConnectionsPerEndpoint();
         this.maxRequestsPerConnection = directConnectionConfig.getMaxRequestsPerConnection();
-        this.tcpNetworkRequestTimeout = directConnectionConfig.getNetworkRequestTimeout();
-        this.tcpConnectionEndpointRediscoveryEnabled = directConnectionConfig.isConnectionEndpointRediscoveryEnabled();
-        this.ioThreadCountPerCoreFactor = ImplementationBridgeHelpers
-            .DirectConnectionConfigHelper
-            .getDirectConnectionConfigAccessor()
-            .getIoThreadCountPerCoreFactor(directConnectionConfig);
-        this.ioThreadPriority = ImplementationBridgeHelpers
-            .DirectConnectionConfigHelper
-            .getDirectConnectionConfigAccessor()
-            .getIoThreadPriority(directConnectionConfig);
-        this.idleHttpConnectionTimeout = gatewayConnectionConfig.getIdleConnectionTimeout();
-        this.maxConnectionPoolSize = gatewayConnectionConfig.getMaxConnectionPoolSize();
-        this.httpNetworkRequestTimeout = BridgeInternal.getNetworkRequestTimeoutFromGatewayConnectionConfig(gatewayConnectionConfig);
-        this.proxy = gatewayConnectionConfig.getProxy();
-        this.tcpHealthCheckTimeoutDetectionEnabled =
-            ImplementationBridgeHelpers
-                .DirectConnectionConfigHelper
-                .getDirectConnectionConfigAccessor()
-                .isHealthCheckTimeoutDetectionEnabled(directConnectionConfig);
-
-        // NOTE: should be compared with COSMOS.MIN_CONNECTION_POOL_SIZE_PER_ENDPOINT
-        // read during client initialization before connections are created for the container
-        this.minConnectionPoolSizePerEndpoint =
-                Math.max(ImplementationBridgeHelpers
-                    .DirectConnectionConfigHelper
-                    .getDirectConnectionConfigAccessor()
-                    .getMinConnectionPoolSizePerEndpoint(directConnectionConfig), Configs.getMinConnectionPoolSizePerEndpoint());
+        this.requestTimeout = BridgeInternal.getRequestTimeoutFromDirectConnectionConfig(directConnectionConfig);
     }
 
-    private ConnectionPolicy() {
+    private ConnectionPolicy(ConnectionMode connectionMode) {
+        this.connectionMode = connectionMode;
         //  Default values
         this.endpointDiscoveryEnabled = true;
+        this.maxConnectionPoolSize = defaultGatewayMaxConnectionPoolSize;
         this.multipleWriteRegionsEnabled = true;
         this.readRequestsFallbackEnabled = true;
         this.throttlingRetryOptions = new ThrottlingRetryOptions();
         this.userAgentSuffix = "";
-        this.ioThreadPriority = Thread.NORM_PRIORITY;
-        this.tcpHealthCheckTimeoutDetectionEnabled = true;
-        this.minConnectionPoolSizePerEndpoint = Configs.getMinConnectionPoolSizePerEndpoint();
-        this.openConnectionsConcurrency = Configs.getOpenConnectionsConcurrency();
-        this.aggressiveWarmupConcurrency = Configs.getAggressiveWarmupConcurrency();
     }
-
-    /**
-     * Gets a value that indicates whether Direct TCP connection endpoint rediscovery is enabled.
-     *
-     * @return {@code true} if Direct TCP connection endpoint rediscovery should is enabled; {@code false} otherwise.
-     */
-    public boolean isTcpConnectionEndpointRediscoveryEnabled() {
-        return this.tcpConnectionEndpointRediscoveryEnabled;
-    }
-
-    /**
-     * Sets a value that indicates whether Direct TCP connection endpoint rediscovery is enabled.
-     *
-     * @return the {@linkplain ConnectionPolicy}.
-     */
-    public ConnectionPolicy setTcpConnectionEndpointRediscoveryEnabled(boolean tcpConnectionEndpointRediscoveryEnabled) {
-        this.tcpConnectionEndpointRediscoveryEnabled = tcpConnectionEndpointRediscoveryEnabled;
-        return this;
-    }
-
 
     /**
      * Gets the default connection policy.
@@ -149,59 +83,27 @@ public final class ConnectionPolicy {
      * @return the default connection policy.
      */
     public static ConnectionPolicy getDefaultPolicy() {
-        return new ConnectionPolicy(DirectConnectionConfig.getDefaultConfig());
+        return ConnectionPolicy.defaultPolicy;
     }
 
     /**
-     * Gets the http network request timeout interval (time to wait for response from network peer).
-     * The default is 60 seconds.
+     * Gets the request timeout (time to wait for response from network peer).
      *
-     * @return the http request timeout duration.
+     * @return the request timeout duration.
      */
-    public Duration getHttpNetworkRequestTimeout() {
-        return this.httpNetworkRequestTimeout;
+    public Duration getRequestTimeout() {
+        return this.requestTimeout;
     }
 
     /**
-     * Sets the http network request timeout interval (time to wait for response from network peer).
+     * Sets the request timeout (time to wait for response from network peer).
      * The default is 60 seconds.
      *
-     * @param httpNetworkRequestTimeout the http request timeout duration.
+     * @param requestTimeout the request timeout duration.
      * @return the ConnectionPolicy.
      */
-    public ConnectionPolicy setHttpNetworkRequestTimeout(Duration httpNetworkRequestTimeout) {
-        this.httpNetworkRequestTimeout = httpNetworkRequestTimeout;
-        return this;
-    }
-
-    /**
-     * Gets the tcp network request timeout interval (time to wait for response from network peer).
-     *
-     * Default value is 5 seconds
-     *
-     * @return the network request timeout interval
-     */
-    public Duration getTcpNetworkRequestTimeout() {
-        return this.tcpNetworkRequestTimeout;
-    }
-
-    /**
-     * Sets the tcp network request timeout interval (time to wait for response from network peer).
-     *
-     * Default value is 5 seconds.
-     * It only allows values &ge;5s and &le;10s. (backend allows requests to take up-to 5 seconds processing time - 5 seconds
-     * buffer so 10 seconds in total for transport is more than sufficient).
-     *
-     * Attention! Please adjust this value with caution.
-     * This config represents the max time allowed to wait for and consume a service response after the request has been written to the network connection.
-     * Setting a value too low can result in having not enough time to wait for the service response - which could cause too aggressive retries and degrade performance.
-     * Setting a value too high can result in fewer retries and reduce chances of success by retries.
-     *
-     * @param tcpNetworkRequestTimeout the network request timeout interval.
-     * @return the {@link ConnectionPolicy}
-     */
-    public ConnectionPolicy setTcpNetworkRequestTimeout(Duration tcpNetworkRequestTimeout) {
-        this.tcpNetworkRequestTimeout = tcpNetworkRequestTimeout;
+    public ConnectionPolicy setRequestTimeout(Duration requestTimeout) {
+        this.requestTimeout = requestTimeout;
         return this;
     }
 
@@ -247,54 +149,24 @@ public final class ConnectionPolicy {
     }
 
     /**
-     * Gets the value of the timeout for an idle http connection, the default is 60
+     * Gets the value of the timeout for an idle connection, the default is 60
      * seconds.
      *
      * @return Idle connection timeout duration.
      */
-    public Duration getIdleHttpConnectionTimeout() {
-        return this.idleHttpConnectionTimeout;
+    public Duration getIdleConnectionTimeout() {
+        return this.idleConnectionTimeout;
     }
 
     /**
-     * sets the value of the timeout for an idle http connection. After that time,
+     * sets the value of the timeout for an idle connection. After that time,
      * the connection will be automatically closed.
      *
-     * @param idleHttpConnectionTimeout the duration for an idle connection.
+     * @param idleConnectionTimeout the duration for an idle connection.
      * @return the ConnectionPolicy.
      */
-    public ConnectionPolicy setIdleHttpConnectionTimeout(Duration idleHttpConnectionTimeout) {
-        this.idleHttpConnectionTimeout = idleHttpConnectionTimeout;
-        return this;
-    }
-
-    /**
-     * Gets the idle tcp connection timeout for direct client
-     *
-     * Default value is {@link Duration#ZERO}
-     *
-     * Direct client doesn't close a single connection to an endpoint
-     * by default unless specified.
-     *
-     * @return idle tcp connection timeout
-     */
-    public Duration getIdleTcpConnectionTimeout() {
-        return idleTcpConnectionTimeout;
-    }
-
-    /**
-     * Sets the idle tcp connection timeout
-     *
-     * Default value is {@link Duration#ZERO}
-     *
-     * Direct client doesn't close a single connection to an endpoint
-     * by default unless specified.
-     *
-     * @param idleTcpConnectionTimeout idle connection timeout
-     * @return the {@link ConnectionPolicy}
-     */
-    public ConnectionPolicy setIdleTcpConnectionTimeout(Duration idleTcpConnectionTimeout) {
-        this.idleTcpConnectionTimeout = idleTcpConnectionTimeout;
+    public ConnectionPolicy setIdleConnectionTimeout(Duration idleConnectionTimeout) {
+        this.idleConnectionTimeout = idleConnectionTimeout;
         return this;
     }
 
@@ -478,15 +350,6 @@ public final class ConnectionPolicy {
         return this;
     }
 
-    public ConnectionPolicy setExcludedRegionsSupplier(Supplier<CosmosExcludedRegions> excludedRegionsSupplier) {
-        this.excludedRegionsSupplier = excludedRegionsSupplier;
-        return this;
-    }
-
-    public Supplier<CosmosExcludedRegions> getExcludedRegionsSupplier() {
-        return this.excludedRegionsSupplier;
-    }
-
     /**
      * Gets the proxy options which contain the InetSocketAddress of proxy server.
      *
@@ -532,17 +395,17 @@ public final class ConnectionPolicy {
      * Gets the idle endpoint timeout
      * @return the idle endpoint timeout
      */
-    public Duration getIdleTcpEndpointTimeout() {
-        return idleTcpEndpointTimeout;
+    public Duration getIdleEndpointTimeout() {
+        return idleEndpointTimeout;
     }
 
     /**
      * Sets the idle endpoint timeout
-     * @param idleTcpEndpointTimeout the idle endpoint timeout
+     * @param idleEndpointTimeout the idle endpoint timeout
      * @return the {@link ConnectionPolicy}
      */
-    public ConnectionPolicy setIdleTcpEndpointTimeout(Duration idleTcpEndpointTimeout) {
-        this.idleTcpEndpointTimeout = idleTcpEndpointTimeout;
+    public ConnectionPolicy setIdleEndpointTimeout(Duration idleEndpointTimeout) {
+        this.idleEndpointTimeout = idleEndpointTimeout;
         return this;
     }
 
@@ -582,45 +445,13 @@ public final class ConnectionPolicy {
         return this;
     }
 
-    public int getIoThreadCountPerCoreFactor() { return this.ioThreadCountPerCoreFactor; }
-
-    public int getIoThreadPriority() { return this.ioThreadPriority; }
-
-    public boolean isTcpHealthCheckTimeoutDetectionEnabled() {
-        return this.tcpHealthCheckTimeoutDetectionEnabled;
-    }
-
-    public ConnectionPolicy setIoThreadCountPerCoreFactor(int ioThreadCountPerCoreFactor) {
-        this.ioThreadCountPerCoreFactor = ioThreadCountPerCoreFactor;
-        return this;
-    }
-
-    public ConnectionPolicy setIoThreadPriority(int ioThreadPriority) {
-        this.ioThreadPriority = ioThreadPriority;
-        return this;
-    }
-
-    public int getMinConnectionPoolSizePerEndpoint() {
-        return minConnectionPoolSizePerEndpoint;
-    }
-
-    public String getExcludedRegionsAsString() {
-        if (this.excludedRegionsSupplier != null && this.excludedRegionsSupplier.get() != null) {
-            CosmosExcludedRegions excludedRegions = this.excludedRegionsSupplier.get();
-            return excludedRegions.toString();
-        }
-        return "[]";
-    }
-
     @Override
     public String toString() {
         return "ConnectionPolicy{" +
-            "httpNetworkRequestTimeout=" + httpNetworkRequestTimeout +
-            ", tcpNetworkRequestTimeout=" + tcpNetworkRequestTimeout +
+            "requestTimeout=" + requestTimeout +
             ", connectionMode=" + connectionMode +
             ", maxConnectionPoolSize=" + maxConnectionPoolSize +
-            ", idleHttpConnectionTimeout=" + idleHttpConnectionTimeout +
-            ", idleTcpConnectionTimeout=" + idleTcpConnectionTimeout +
+            ", idleConnectionTimeout=" + idleConnectionTimeout +
             ", userAgentSuffix='" + userAgentSuffix + '\'' +
             ", throttlingRetryOptions=" + throttlingRetryOptions +
             ", endpointDiscoveryEnabled=" + endpointDiscoveryEnabled +
@@ -630,16 +461,9 @@ public final class ConnectionPolicy {
             ", inetSocketProxyAddress=" + (proxy != null ? proxy.getAddress() : null) +
             ", readRequestsFallbackEnabled=" + readRequestsFallbackEnabled +
             ", connectTimeout=" + connectTimeout +
-            ", idleTcpEndpointTimeout=" + idleTcpEndpointTimeout +
+            ", idleEndpointTimeout=" + idleEndpointTimeout +
             ", maxConnectionsPerEndpoint=" + maxConnectionsPerEndpoint +
             ", maxRequestsPerConnection=" + maxRequestsPerConnection +
-            ", tcpConnectionEndpointRediscoveryEnabled=" + tcpConnectionEndpointRediscoveryEnabled +
-            ", ioThreadPriority=" + ioThreadPriority +
-            ", ioThreadCountPerCoreFactor=" + ioThreadCountPerCoreFactor +
-            ", tcpHealthCheckTimeoutDetectionEnabled=" + tcpHealthCheckTimeoutDetectionEnabled +
-            ", minConnectionPoolSizePerEndpoint=" + minConnectionPoolSizePerEndpoint +
-            ", openConnectionsConcurrency=" + openConnectionsConcurrency +
-            ", aggressiveWarmupConcurrency=" + aggressiveWarmupConcurrency +
             '}';
     }
 }

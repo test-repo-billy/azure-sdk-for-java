@@ -24,15 +24,12 @@ package com.azure.cosmos.implementation.apachecommons.text.translate;
 import java.io.IOException;
 import java.io.Writer;
 
-/**
- * This class is shaded from version 1.10.0 of apache commons-text library
- */
 public class OctalUnescaper extends CharSequenceTranslator {
     /**
      * {@inheritDoc}
      */
     @Override
-    public int translate(final CharSequence input, final int index, final Writer writer) throws IOException {
+    public int translate(final CharSequence input, final int index, final Writer out) throws IOException {
         final int remaining = input.length() - index - 1; // how many characters left, ignoring the first \
         final StringBuilder builder = new StringBuilder();
         if (input.charAt(index) == '\\' && remaining > 0 && isOctalDigit(input.charAt(index + 1))) {
@@ -50,15 +47,14 @@ public class OctalUnescaper extends CharSequenceTranslator {
                 }
             }
 
-            writer.write(Integer.parseInt(builder.toString(), 8));
+            out.write(Integer.parseInt(builder.toString(), 8));
             return 1 + builder.length();
         }
         return 0;
     }
 
     /**
-     * Tests if the given char is an octal digit. Octal digits are the character representations of the digits 0 to 7.
-     *
+     * Checks if the given char is an octal digit. Octal digits are the character representations of the digits 0 to 7.
      * @param ch the char to check
      * @return true if the given char is the character representation of one of the digits from 0 to 7
      */
@@ -67,8 +63,7 @@ public class OctalUnescaper extends CharSequenceTranslator {
     }
 
     /**
-     * Tests if the given char is the character representation of one of the digit from 0 to 3.
-     *
+     * Checks if the given char is the character representation of one of the digit from 0 to 3.
      * @param ch the char to check
      * @return true if the given char is the character representation of one of the digits from 0 to 3
      */

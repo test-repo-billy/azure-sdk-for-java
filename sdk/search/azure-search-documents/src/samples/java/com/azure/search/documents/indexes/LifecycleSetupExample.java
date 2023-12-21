@@ -28,23 +28,21 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * This scenario assumes an existing search solution and uses a pre-population data source with sample data set For more
- * information visit Azure Cognitive Search Sample Data: https://docs.microsoft.com/samples/azure-samples/azure-search-sample-data/azure-search-sample-data/
+ * This scenario assumes an existing search solution and uses a pre-population data source with sample data set
+ * For more information visit Azure Search Sample Data:
+ * https://docs.microsoft.com/en-us/samples/azure-samples/azure-search-sample-data/azure-search-sample-data/
  */
 public class LifecycleSetupExample {
     /**
-     * From the Azure portal, get your Azure Cognitive Search service URL and API admin key, and set the values of these
-     * environment variables:
+     * From the Azure portal, get your Azure Cognitive Search service URL and API admin key,
+     * and set the values of these environment variables:
      */
-    private static final String ENDPOINT = Configuration.getGlobalConfiguration()
-        .get("AZURE_COGNITIVE_SEARCH_ENDPOINT");
-    private static final String ADMIN_KEY = Configuration.getGlobalConfiguration()
-        .get("AZURE_COGNITIVE_SEARCH_ADMIN_KEY");
+    private static final String ENDPOINT = Configuration.getGlobalConfiguration().get("AZURE_COGNITIVE_SEARCH_ENDPOINT");
+    private static final String ADMIN_KEY = Configuration.getGlobalConfiguration().get("AZURE_COGNITIVE_SEARCH_ADMIN_KEY");
 
     // Using hard coded connection string to pre-populated Cosmos DB database with sample data set
-    // For more information visit https://github.com/Azure-Samples/azure-search-sample-data
-    private static final String COSMOS_CONNECTION_STRING = Configuration.getGlobalConfiguration()
-        .get("AZURE_COSMOS_CONNECTION_STRING");
+    // For more information visit https://docs.microsoft.com/en-us/samples/azure-samples/azure-search-sample-data/azure-search-sample-data/
+    private static final String COSMOS_CONNECTION_STRING = "AccountEndpoint=https://hotels-docbb.documents.azure.com:443/;AccountKey=4UPsNZyFAjgZ1tzHPGZaxS09XcwLrIawbXBWk6IixcxJoSePTcjBn0mi53XiKWu8MaUgowUhIovOv7kjksqAug==;Database=SampleData";
     private static final String COSMOS_COLLECTION_NAME = "hotels";
 
     private static final String INDEX_NAME = "hotels-sample-index1";
@@ -97,7 +95,8 @@ public class LifecycleSetupExample {
     }
 
     private static void updateIndexerSchedule(SearchIndexerClient client, SearchIndexer indexer) {
-        IndexingSchedule indexingSchedule = new IndexingSchedule(Duration.ofMinutes(10));
+        IndexingSchedule indexingSchedule = new IndexingSchedule()
+            .setInterval(Duration.ofMinutes(10));
         indexer.setSchedule(indexingSchedule);
 
         client.createOrUpdateIndexer(indexer);
@@ -105,31 +104,40 @@ public class LifecycleSetupExample {
 
     private static SearchIndexer createIndexer(SearchIndexerClient client, SearchIndexerDataSourceConnection dataSource,
         SearchIndexerSkillset skillset, SearchIndex index) {
-        SearchIndexer indexer = new SearchIndexer(INDEXER_NAME, dataSource.getName(), index.getName())
-            .setSkillsetName(skillset.getName());
+        SearchIndexer indexer = new SearchIndexer()
+            .setName(INDEXER_NAME)
+            .setDataSourceName(dataSource.getName())
+            .setSkillsetName(skillset.getName())
+            .setTargetIndexName(index.getName());
 
         return client.createOrUpdateIndexer(indexer);
     }
 
     private static SearchIndexerSkillset createSkillset(SearchIndexerClient client) {
         List<InputFieldMappingEntry> inputs = Collections.singletonList(
-            new InputFieldMappingEntry("text")
+            new InputFieldMappingEntry()
+                .setName("text")
                 .setSource("/document/Description")
         );
 
         List<OutputFieldMappingEntry> outputs = Collections.singletonList(
-            new OutputFieldMappingEntry("locations")
+            new OutputFieldMappingEntry()
+                .setName("locations")
                 .setTargetName("locations")
         );
 
 
-        SearchIndexerSkill skill = new EntityRecognitionSkill(inputs, outputs)
+        SearchIndexerSkill skill = new EntityRecognitionSkill()
             .setName("#1")
             .setDescription("Entity Recognition Skill")
-            .setContext("/document/Description");
+            .setContext("/document/Description")
+            .setInputs(inputs)
+            .setOutputs(outputs);
 
-        SearchIndexerSkillset skillset = new SearchIndexerSkillset(SKILLSET_NAME, Collections.singletonList(skill))
-            .setDescription("Skillset for testing default configuration");
+        SearchIndexerSkillset skillset = new SearchIndexerSkillset()
+            .setName(SKILLSET_NAME)
+            .setDescription("Skillset for testing default configuration")
+            .setSkills(Collections.singletonList(skill));
 
 
         return client.createOrUpdateSkillset(skillset);
@@ -137,51 +145,66 @@ public class LifecycleSetupExample {
 
     private static SearchIndex createIndex(SearchIndexClient client) {
 
-        List<SearchField> fields = Arrays.asList(new SearchField("HotelId", SearchFieldDataType.STRING)
-                .setKey(Boolean.TRUE)
-                .setFacetable(Boolean.TRUE)
-                .setFilterable(Boolean.TRUE)
-                .setHidden(Boolean.FALSE)
-                .setSearchable(Boolean.FALSE)
-                .setSortable(Boolean.FALSE),
-            new SearchField("HotelName", SearchFieldDataType.STRING)
-                .setFacetable(Boolean.FALSE)
-                .setFilterable(Boolean.FALSE)
-                .setHidden(Boolean.FALSE)
-                .setKey(Boolean.FALSE)
-                .setSearchable(Boolean.TRUE)
-                .setSortable(Boolean.FALSE)
-                .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT),
-            new SearchField("Description", SearchFieldDataType.STRING)
-                .setSearchable(Boolean.TRUE)
-                .setFilterable(Boolean.FALSE)
-                .setHidden(Boolean.FALSE)
-                .setSortable(Boolean.FALSE)
-                .setFacetable(Boolean.FALSE)
-                .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT),
-            new SearchField("Tags", SearchFieldDataType.collection(SearchFieldDataType.STRING))
-                .setFacetable(Boolean.TRUE)
-                .setFilterable(Boolean.TRUE)
-                .setHidden(Boolean.FALSE)
-                .setSearchable(Boolean.TRUE)
-                .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT));
         // Index definition
-        SearchIndex index = new SearchIndex(INDEX_NAME, fields);
+        SearchIndex index = new SearchIndex()
+            .setName(INDEX_NAME)
+            .setFields(
+                Arrays.asList(new SearchField()
+                        .setName("HotelId")
+                        .setType(SearchFieldDataType.STRING)
+                        .setKey(Boolean.TRUE)
+                        .setFacetable(Boolean.TRUE)
+                        .setFilterable(Boolean.TRUE)
+                        .setHidden(Boolean.FALSE)
+                        .setSearchable(Boolean.FALSE)
+                        .setSortable(Boolean.FALSE),
+                    new SearchField()
+                        .setName("HotelName")
+                        .setType(SearchFieldDataType.STRING)
+                        .setFacetable(Boolean.FALSE)
+                        .setFilterable(Boolean.FALSE)
+                        .setHidden(Boolean.FALSE)
+                        .setKey(Boolean.FALSE)
+                        .setSearchable(Boolean.TRUE)
+                        .setSortable(Boolean.FALSE)
+                        .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT),
+                    new SearchField()
+                        .setName("Description")
+                        .setType(SearchFieldDataType.STRING)
+                        .setSearchable(Boolean.TRUE)
+                        .setFilterable(Boolean.FALSE)
+                        .setHidden(Boolean.FALSE)
+                        .setSortable(Boolean.FALSE)
+                        .setFacetable(Boolean.FALSE)
+                        .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT),
+                    new SearchField()
+                        .setName("Tags")
+                        .setType(SearchFieldDataType.collection(SearchFieldDataType.STRING))
+                        .setFacetable(Boolean.TRUE)
+                        .setFilterable(Boolean.TRUE)
+                        .setHidden(Boolean.FALSE)
+                        .setSearchable(Boolean.TRUE)
+                        .setAnalyzerName(LexicalAnalyzerName.EN_MICROSOFT)));
 
         // Set Suggester
-        index.setSuggesters(new SearchSuggester(SUGGESTER_NAME, Collections.singletonList("Tags")));
+        index.setSuggesters(Collections.singletonList(new SearchSuggester()
+            .setName(SUGGESTER_NAME)
+            .setSourceFields(Collections.singletonList("Tags"))));
 
         return client.createOrUpdateIndex(index);
     }
 
     private static SearchIndexerDataSourceConnection createCosmosDataSource(SearchIndexerClient client) {
 
-        SearchIndexerDataContainer dataContainer = new SearchIndexerDataContainer(COSMOS_COLLECTION_NAME);
+        SearchIndexerDataContainer dataContainer = new SearchIndexerDataContainer().setName(COSMOS_COLLECTION_NAME);
         HighWaterMarkChangeDetectionPolicy highWaterMarkChangeDetectionPolicy =
-            new HighWaterMarkChangeDetectionPolicy("_ts");
+            new HighWaterMarkChangeDetectionPolicy().setHighWaterMarkColumnName("_ts");
 
-        SearchIndexerDataSourceConnection dataSource = new SearchIndexerDataSourceConnection(DATASOURCE_NAME,
-            SearchIndexerDataSourceType.COSMOS_DB, COSMOS_CONNECTION_STRING, dataContainer)
+        SearchIndexerDataSourceConnection dataSource = new SearchIndexerDataSourceConnection()
+            .setName(DATASOURCE_NAME)
+            .setType(SearchIndexerDataSourceType.COSMOS_DB)
+            .setConnectionString(COSMOS_CONNECTION_STRING)
+            .setContainer(dataContainer)
             .setDataChangeDetectionPolicy(highWaterMarkChangeDetectionPolicy);
 
         return client.createOrUpdateDataSourceConnection(dataSource);

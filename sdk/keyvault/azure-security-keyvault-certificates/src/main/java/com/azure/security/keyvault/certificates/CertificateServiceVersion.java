@@ -9,35 +9,8 @@ import com.azure.core.util.ServiceVersion;
  * The versions of Azure Key Vault Certificate supported by this client library.
  */
 public enum CertificateServiceVersion implements ServiceVersion {
-    /**
-     * Service version {@code 7.0}.
-     */
     V7_0("7.0"),
-
-    /**
-     * Service version {@code 7.1}.
-     */
-    V7_1("7.1"),
-
-    /**
-     * Service version {@code 7.2}.
-     */
-    V7_2("7.2"),
-
-    /**
-     * Service version {@code 7.3}.
-     */
-    V7_3("7.3"),
-
-    /**
-     * Service version {@code 7.4}.
-     */
-    V7_4("7.4"),
-
-    /**
-     * Service version {@code 7.5-preview.1}.
-     */
-    V7_5_PREVIEW_1("7.5-preview.1");
+    V7_1_PREVIEW("7.1-preview");
 
     private final String version;
 
@@ -59,6 +32,6 @@ public enum CertificateServiceVersion implements ServiceVersion {
      * @return the latest {@link CertificateServiceVersion}
      */
     public static CertificateServiceVersion getLatest() {
-        return V7_5_PREVIEW_1;
+        return V7_1_PREVIEW;
     }
 }

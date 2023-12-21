@@ -2,15 +2,11 @@
 // Licensed under the MIT License.
 package com.azure.search.documents.test.environment.models;
 
-import com.azure.core.models.GeoPoint;
-import com.azure.core.util.CoreUtils;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.azure.search.documents.models.GeoPoint;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.OffsetDateTime;
 
-@SuppressWarnings("unused")
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ModelWithPrimitiveCollections {
 
     @JsonProperty(value = "Key")
@@ -47,65 +43,65 @@ public class ModelWithPrimitiveCollections {
     }
 
     public ModelWithPrimitiveCollections bools(Boolean[] bools) {
-        this.bools = CoreUtils.clone(bools);
+        this.bools = bools;
         return this;
     }
 
     public Boolean[] bools() {
-        return CoreUtils.clone(bools);
+        return  bools;
     }
 
     public ModelWithPrimitiveCollections dates(OffsetDateTime[] dates) {
-        this.dates = CoreUtils.clone(dates);
+        this.dates = dates;
         return this;
     }
 
     public OffsetDateTime[] dates() {
-        return CoreUtils.clone(dates);
+        return dates;
     }
 
     public ModelWithPrimitiveCollections doubles(Double[] doubles) {
-        this.doubles = CoreUtils.clone(doubles);
+        this.doubles = doubles;
         return this;
     }
 
     public Double[] doubles() {
-        return CoreUtils.clone(doubles);
+        return doubles;
     }
 
     public ModelWithPrimitiveCollections ints(int[] ints) {
-        this.ints = CoreUtils.clone(ints);
+        this.ints = ints;
         return this;
     }
 
     public int[] ints() {
-        return CoreUtils.clone(ints);
+        return ints;
     }
 
     public ModelWithPrimitiveCollections longs(Long[] longs) {
-        this.longs = CoreUtils.clone(longs);
+        this.longs = longs;
         return this;
     }
 
     public Long[] longs() {
-        return CoreUtils.clone(longs);
+        return longs;
     }
 
     public ModelWithPrimitiveCollections points(GeoPoint[] points) {
-        this.points = CoreUtils.clone(points);
+        this.points = points;
         return this;
     }
 
     public GeoPoint[] points() {
-        return CoreUtils.clone(points);
+        return points;
     }
 
     public ModelWithPrimitiveCollections strings(String[] strings) {
-        this.strings = CoreUtils.clone(strings);
+        this.strings = strings;
         return this;
     }
 
     public String[] strings() {
-        return CoreUtils.clone(strings);
+        return strings;
     }
 }

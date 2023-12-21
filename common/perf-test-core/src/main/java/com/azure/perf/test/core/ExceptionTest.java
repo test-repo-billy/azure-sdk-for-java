@@ -6,6 +6,7 @@ package com.azure.perf.test.core;
 import reactor.core.publisher.Mono;
 
 class ExceptionTest extends PerfStressTest<PerfStressOptions> {
+
     /**
      * Sets up the Exception test.
      * @param options the options to setup the test with.
@@ -18,7 +19,7 @@ class ExceptionTest extends PerfStressTest<PerfStressOptions> {
     public void run() {
         try {
             throw new IllegalArgumentException();
-        } catch (Exception e) {
+        } catch (Exception ex) {
         }
     }
 

@@ -4,9 +4,7 @@
 package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
-import com.azure.cosmos.implementation.directconnectivity.rntbd.RntbdUtils;
 
-import java.net.URI;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -14,10 +12,10 @@ import java.util.Objects;
  * Used internally to encapsulate a physical address information in the Azure Cosmos DB database service.
  */
 public class AddressInformation {
-    private final Protocol protocol;
-    private final boolean isPublic;
-    private final boolean isPrimary;
-    private final Uri physicalUri;
+    private Protocol protocol;
+    private boolean isPublic;
+    private boolean isPrimary;
+    private Uri physicalUri;
 
     public AddressInformation(boolean isPublic, boolean isPrimary, String physicalUri, Protocol protocol) {
         Objects.requireNonNull(protocol);
@@ -25,7 +23,6 @@ public class AddressInformation {
         this.isPublic = isPublic;
         this.isPrimary = isPrimary;
         this.physicalUri = new Uri(normalizePhysicalUri(physicalUri));
-        this.physicalUri.setPrimary(this.isPrimary);
     }
 
     public AddressInformation(boolean isPublic, boolean isPrimary, String physicalUri, String protocolScheme) {
@@ -54,10 +51,6 @@ public class AddressInformation {
 
     public String getProtocolScheme() {
         return this.protocol.scheme();
-    }
-
-    public URI getServerKey() {
-        return RntbdUtils.getServerKey(this.physicalUri.getURI());
     }
 
     @Override

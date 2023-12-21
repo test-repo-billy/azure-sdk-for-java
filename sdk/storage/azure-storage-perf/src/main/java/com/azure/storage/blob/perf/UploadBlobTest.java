@@ -3,56 +3,30 @@
 
 package com.azure.storage.blob.perf;
 
-import com.azure.perf.test.core.RepeatingInputStream;
-import com.azure.storage.blob.models.ParallelTransferOptions;
-import com.azure.storage.blob.options.BlobParallelUploadOptions;
-import com.azure.storage.blob.perf.core.AbstractUploadTest;
+import static com.azure.perf.test.core.TestDataCreationHelper.createRandomByteBufferFlux;
+
+import com.azure.perf.test.core.PerfStressOptions;
+import com.azure.storage.blob.perf.core.BlobTestBase;
+import java.nio.ByteBuffer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.nio.ByteBuffer;
+public class UploadBlobTest extends BlobTestBase<PerfStressOptions> {
 
-import static com.azure.perf.test.core.TestDataCreationHelper.createRandomByteBufferFlux;
-import static com.azure.perf.test.core.TestDataCreationHelper.createRandomInputStream;
+    private final Flux<ByteBuffer> randomByteBufferFlux;
 
-public class UploadBlobTest extends AbstractUploadTest<BlobPerfStressOptions> {
-    protected final RepeatingInputStream inputStream;
-    protected final Flux<ByteBuffer> byteBufferFlux;
-
-    public UploadBlobTest(BlobPerfStressOptions options) {
+    public UploadBlobTest(PerfStressOptions options) {
         super(options);
-
-        if (options.isSync()) {
-            inputStream = (RepeatingInputStream) createRandomInputStream(options.getSize());
-            inputStream.mark(Long.MAX_VALUE);
-            byteBufferFlux = null;
-        } else {
-            inputStream = null;
-            byteBufferFlux = createRandomByteBufferFlux(options.getSize());
-        }
+        this.randomByteBufferFlux = createRandomByteBufferFlux(options.getSize());
     }
 
     @Override
     public void run() {
-        inputStream.reset();
-        // This one uses Storage's stream->flux converter
-        BlobParallelUploadOptions uploadOptions = new BlobParallelUploadOptions(inputStream, options.getSize())
-            .setParallelTransferOptions(
-                new ParallelTransferOptions()
-                    .setMaxSingleUploadSizeLong(options.getTransferSingleUploadSize())
-                    .setBlockSizeLong(options.getTransferBlockSize())
-                    .setMaxConcurrency(options.getTransferConcurrency())
-            );
-        blobClient.uploadWithResponse(uploadOptions, null, null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Mono<Void> runAsync() {
-        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-            .setMaxSingleUploadSizeLong(options.getTransferSingleUploadSize())
-            .setBlockSizeLong(options.getTransferBlockSize())
-            .setMaxConcurrency(options.getTransferConcurrency());
-        return blobAsyncClient.upload(byteBufferFlux, parallelTransferOptions, true)
-            .then();
+        return blobAsyncClient.upload(randomByteBufferFlux, null, true).then();
     }
 }

@@ -7,20 +7,16 @@ import com.azure.core.http.ProxyOptions;
 
 import java.time.Duration;
 
-import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
-import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
-
 /**
  * Represents the connection config with {@link ConnectionMode#GATEWAY} associated with Cosmos Client in the Azure Cosmos DB database service.
  */
 public final class GatewayConnectionConfig {
     //  Constants
-    private static final Duration MIN_NETWORK_REQUEST_TIMEOUT = Duration.ofSeconds(60);
-    private static final Duration DEFAULT_NETWORK_REQUEST_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_IDLE_CONNECTION_TIMEOUT = Duration.ofSeconds(60);
     private static final int DEFAULT_MAX_CONNECTION_POOL_SIZE = 1000;
 
-    private Duration networkRequestTimeout;
+    private Duration requestTimeout;
     private int maxConnectionPoolSize;
     private Duration idleConnectionTimeout;
     private ProxyOptions proxy;
@@ -31,7 +27,7 @@ public final class GatewayConnectionConfig {
     public GatewayConnectionConfig() {
         this.idleConnectionTimeout = DEFAULT_IDLE_CONNECTION_TIMEOUT;
         this.maxConnectionPoolSize = DEFAULT_MAX_CONNECTION_POOL_SIZE;
-        this.networkRequestTimeout = DEFAULT_NETWORK_REQUEST_TIMEOUT;
+        this.requestTimeout = DEFAULT_REQUEST_TIMEOUT;
     }
 
     /**
@@ -44,27 +40,23 @@ public final class GatewayConnectionConfig {
     }
 
     /**
-     * Gets the network request timeout interval (time to wait for response from network peer).
-     * The default is 60 seconds.
+     * Gets the request timeout (time to wait for response from network peer).
      *
-     * @return the network request timeout duration.
+     * @return the request timeout duration.
      */
-    Duration getNetworkRequestTimeout() {
-        return this.networkRequestTimeout;
+    Duration getRequestTimeout() {
+        return this.requestTimeout;
     }
 
     /**
-     * Sets the network request timeout interval (time to wait for response from network peer).
-     * The default is 60 seconds.
+     * Sets the request timeout (time to wait for response from network peer).
+     * The default is 5 seconds.
      *
-     * @param networkRequestTimeout the network request timeout duration.
+     * @param requestTimeout the request timeout duration.
      * @return the {@link GatewayConnectionConfig}.
      */
-    GatewayConnectionConfig setNetworkRequestTimeout(Duration networkRequestTimeout) {
-        checkNotNull(networkRequestTimeout, "NetworkRequestTimeout can not be null");
-        checkArgument(networkRequestTimeout.toMillis() >= MIN_NETWORK_REQUEST_TIMEOUT.toMillis(),
-            "NetworkRequestTimeout can not be less than %s millis", MIN_NETWORK_REQUEST_TIMEOUT.toMillis());
-        this.networkRequestTimeout = networkRequestTimeout;
+    GatewayConnectionConfig setRequestTimeout(Duration requestTimeout) {
+        this.requestTimeout = requestTimeout;
         return this;
     }
 
@@ -123,6 +115,8 @@ public final class GatewayConnectionConfig {
     /**
      * Sets the proxy options.
      *
+     * Currently only support Http proxy type with just the routing address. Username and password will be ignored.
+     *
      * @param proxy The proxy options.
      * @return the {@link GatewayConnectionConfig}.
      */
@@ -144,7 +138,6 @@ public final class GatewayConnectionConfig {
         return "GatewayConnectionConfig{" +
             ", maxConnectionPoolSize=" + maxConnectionPoolSize +
             ", idleConnectionTimeout=" + idleConnectionTimeout +
-            ", networkRequestTimeout=" + networkRequestTimeout +
             ", proxyType=" + proxyType +
             ", inetSocketProxyAddress=" + proxyAddress +
             '}';

@@ -8,12 +8,7 @@
   <artifactId>azure-eventgrid-service</artifactId>
   <packaging>pom</packaging>
   <version>1.0.0</version><!-- Need not change for every release-->
-
   <modules>
-    <module>azure-messaging-eventgrid</module>
-    <module>azure-messaging-eventgrid-cloudnative-cloudevents</module>
-    <module>azure-resourcemanager-eventgrid</module>
     <module>microsoft-azure-eventgrid</module>
   </modules>
-
 </project>

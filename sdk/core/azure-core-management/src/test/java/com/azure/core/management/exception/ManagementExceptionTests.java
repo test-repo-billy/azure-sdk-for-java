@@ -3,12 +3,8 @@
 
 package com.azure.core.management.exception;
 
-import com.azure.core.annotation.Fluent;
 import com.azure.core.annotation.Immutable;
-import com.azure.core.annotation.JsonFlatten;
-import com.azure.core.management.Resource;
-import com.azure.core.management.serializer.SerializerFactory;
-import com.azure.core.util.serializer.SerializerAdapter;
+import com.azure.core.management.serializer.AzureJacksonAdapter;
 import com.azure.core.util.serializer.SerializerEncoding;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.junit.jupiter.api.Assertions;
@@ -23,7 +19,7 @@ public class ManagementExceptionTests {
     public void testDeserialization() throws IOException {
         final String errorBody = "{\"error\":{\"code\":\"ResourceGroupNotFound\",\"message\":\"Resource group 'rg-not-exist' could not be found.\"}}";
 
-        SerializerAdapter serializerAdapter = SerializerFactory.createDefaultManagementSerializerAdapter();
+        AzureJacksonAdapter serializerAdapter = new AzureJacksonAdapter();
         ManagementError managementError = serializerAdapter.deserialize(errorBody, ManagementError.class, SerializerEncoding.JSON);
         Assertions.assertEquals("ResourceGroupNotFound", managementError.getCode());
     }
@@ -32,7 +28,7 @@ public class ManagementExceptionTests {
     public void testSubclassDeserialization() throws IOException {
         final String errorBody = "{\"error\":{\"code\":\"WepAppError\",\"message\":\"Web app error.\",\"innererror\":\"Deployment error.\",\"details\":[{\"innererror\":\"Inner error.\"}]}}";
 
-        SerializerAdapter serializerAdapter = SerializerFactory.createDefaultManagementSerializerAdapter();
+        AzureJacksonAdapter serializerAdapter = new AzureJacksonAdapter();
         WebError webError = serializerAdapter.deserialize(errorBody, WebError.class, SerializerEncoding.JSON);
         Assertions.assertEquals("WepAppError", webError.getCode());
 
@@ -41,28 +37,6 @@ public class ManagementExceptionTests {
 
         ManagementError managementError = serializerAdapter.deserialize(errorBodyWithoutErrorProperty, ManagementError.class, SerializerEncoding.JSON);
         Assertions.assertEquals("ResourceGroupNotFound", managementError.getCode());
-    }
-
-    @Test
-    public void testCaseInsensitiveSubclassDeserialization() throws IOException {
-        final String errorBody = "{\"error\":{\"Code\":\"WepAppError\",\"MESSAGE\":\"Web app error.\",\"Details\":[{\"code\":\"e\"}],\"TaRgeT\":\"foo\"}}";
-
-        SerializerAdapter serializerAdapter = SerializerFactory.createDefaultManagementSerializerAdapter();
-        WebError webError = serializerAdapter.deserialize(errorBody, WebError.class, SerializerEncoding.JSON);
-        Assertions.assertEquals("WepAppError", webError.getCode());
-        Assertions.assertEquals("Web app error.", webError.getMessage());
-        Assertions.assertEquals(1, webError.getDetails().size());
-        Assertions.assertEquals("foo", webError.getTarget());
-    }
-
-    @Test
-    public void testDeserializationInResource() throws IOException {
-        final String virtualMachineJson = "{\"properties\":{\"instanceView\":{\"patchStatus\":{\"availablePatchSummary\":{\"error\":{}}}}}}";
-
-        SerializerAdapter serializerAdapter = SerializerFactory.createDefaultManagementSerializerAdapter();
-        VirtualMachine virtualMachine = serializerAdapter.deserialize(virtualMachineJson, VirtualMachine.class, SerializerEncoding.JSON);
-
-        Assertions.assertNotNull(virtualMachine.instanceView.patchStatus.availablePatchSummary.error);
     }
 
     @Immutable
@@ -80,30 +54,5 @@ public class ManagementExceptionTests {
         public List<WebError> getDetails() {
             return details;
         }
-    }
-
-    @JsonFlatten
-    @Fluent
-    private static final class VirtualMachine extends Resource {
-        @JsonProperty(value = "properties.instanceView", access = JsonProperty.Access.WRITE_ONLY)
-        private VirtualMachineInstanceView instanceView;
-    }
-
-    @Fluent
-    public static final class VirtualMachineInstanceView {
-        @JsonProperty(value = "patchStatus")
-        private VirtualMachinePatchStatus patchStatus;
-    }
-
-    @Fluent
-    public static final class VirtualMachinePatchStatus {
-        @JsonProperty(value = "availablePatchSummary")
-        private AvailablePatchSummary availablePatchSummary;
-    }
-
-    @Immutable
-    public static final class AvailablePatchSummary {
-        @JsonProperty(value = "error", access = JsonProperty.Access.WRITE_ONLY)
-        private ManagementError error;
     }
 }

@@ -4,21 +4,18 @@ package com.azure.cosmos.implementation.query;
 
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.implementation.Utils;
-import com.azure.cosmos.implementation.routing.UInt128;
 import com.azure.cosmos.implementation.JsonSerializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 public class DistinctContinuationToken extends JsonSerializable {
 
     private static final String LAST_HASH_PROPERTY_NAME = "lastHash";
     private static final String SOURCE_TOKEN_PROPERTY_NAME = "sourceToken";
 
-    private static final Logger logger = LoggerFactory.getLogger(DistinctContinuationToken.class);
+    private static final Logger logger = LoggerFactory.getLogger(TakeContinuationToken.class);
 
-    public DistinctContinuationToken(UInt128 lastHash, String sourceToken) {
+    public DistinctContinuationToken(String lastHash, String sourceToken) {
         this.setLastHash(lastHash);
         this.setSourceToken(sourceToken);
     }
@@ -27,9 +24,8 @@ public class DistinctContinuationToken extends JsonSerializable {
         super(serializedDistinctContinuationToken);
     }
 
-    public static boolean tryParse(
-        String serializedDistinctContinuationToken,
-        Utils.ValueHolder<DistinctContinuationToken> outDistinctContinuationToken) {
+    public static boolean tryParse(String serializedDistinctContinuationToken,
+                                   Utils.ValueHolder<DistinctContinuationToken> outDistinctContinuationToken) {
 
         boolean parsed;
         try {
@@ -64,12 +60,8 @@ public class DistinctContinuationToken extends JsonSerializable {
         BridgeInternal.setProperty(this, SOURCE_TOKEN_PROPERTY_NAME, sourceToken);
     }
 
-    UInt128 getLastHash() {
-        ByteBuffer byteBuffer = super.getObject(LAST_HASH_PROPERTY_NAME, ByteBuffer.class);
-        if (byteBuffer != null) {
-            return new UInt128(byteBuffer);
-        }
-        return null;
+    String getLastHash() {
+        return super.getString(LAST_HASH_PROPERTY_NAME);
     }
 
     /**
@@ -77,12 +69,8 @@ public class DistinctContinuationToken extends JsonSerializable {
      *
      * @param lastHash Value to set for property 'lastHash'.
      */
-    public void setLastHash(UInt128 lastHash) {
-        if (lastHash != null) {
-            BridgeInternal.setProperty(this, LAST_HASH_PROPERTY_NAME, lastHash.toByteBuffer().array());
-        } else {
-            this.set(LAST_HASH_PROPERTY_NAME, null);
-        }
+    public void setLastHash(String lastHash) {
+        BridgeInternal.setProperty(this, LAST_HASH_PROPERTY_NAME, lastHash);
     }
 
 }

@@ -41,17 +41,18 @@ public class AnalyzeSentimentBatchStringDocumentsAsync {
             "The hotel was dark and unclean. The restaurant had amazing gnocchi!"
         );
 
+        // Request options: show statistics and model version
         TextAnalyticsRequestOptions requestOptions = new TextAnalyticsRequestOptions().setIncludeStatistics(true).setModelVersion("latest");
 
         // Analyzing sentiment for each document in a batch of documents
         AtomicInteger counter = new AtomicInteger();
         client.analyzeSentimentBatch(documents, "en", requestOptions).subscribe(
             sentimentBatchResultCollection -> {
-                System.out.printf("Results of \"Sentiment Analysis\" Model, version: %s%n", sentimentBatchResultCollection.getModelVersion());
+                System.out.printf("Results of Azure Text Analytics \"Sentiment Analysis\" Model, version: %s%n", sentimentBatchResultCollection.getModelVersion());
 
                 // Batch statistics
                 TextDocumentBatchStatistics batchStatistics = sentimentBatchResultCollection.getStatistics();
-                System.out.printf("Documents statistics: document count = %d, erroneous document count = %d, transaction count = %d, valid document count = %d.%n",
+                System.out.printf("Documents statistics: document count = %s, erroneous document count = %s, transaction count = %s, valid document count = %s.%n",
                     batchStatistics.getDocumentCount(), batchStatistics.getInvalidDocumentCount(), batchStatistics.getTransactionCount(), batchStatistics.getValidDocumentCount());
 
                 // Analyzed sentiment for each document in a batch of documents

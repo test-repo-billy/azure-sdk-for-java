@@ -3,14 +3,14 @@
 
 package com.azure.messaging.eventhubs;
 
+import com.azure.core.amqp.AmqpMessageConstant;
 import com.azure.core.amqp.implementation.MessageSerializer;
-import com.azure.core.amqp.models.AmqpAnnotatedMessage;
 import com.azure.core.exception.AzureException;
 import com.azure.core.util.Context;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.eventhubs.implementation.ManagementChannel;
-import com.azure.messaging.eventhubs.implementation.MessageUtils;
 import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
+import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
@@ -18,25 +18,17 @@ import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
 import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
-import org.apache.qpid.proton.codec.AMQPType;
-import org.apache.qpid.proton.codec.DecoderImpl;
-import org.apache.qpid.proton.codec.Encoder;
-import org.apache.qpid.proton.codec.EncoderImpl;
-import org.apache.qpid.proton.codec.TypeEncoding;
+import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.azure.core.amqp.AmqpMessageConstant.ENQUEUED_TIME_UTC_ANNOTATION_NAME;
-import static com.azure.core.amqp.AmqpMessageConstant.OFFSET_ANNOTATION_NAME;
-import static com.azure.core.amqp.AmqpMessageConstant.PARTITION_KEY_ANNOTATION_NAME;
-import static com.azure.core.amqp.AmqpMessageConstant.SEQUENCE_NUMBER_ANNOTATION_NAME;
 import static com.azure.messaging.eventhubs.implementation.ManagementChannel.MANAGEMENT_RESULT_LAST_ENQUEUED_OFFSET;
 import static com.azure.messaging.eventhubs.implementation.ManagementChannel.MANAGEMENT_RESULT_LAST_ENQUEUED_SEQUENCE_NUMBER;
 import static com.azure.messaging.eventhubs.implementation.ManagementChannel.MANAGEMENT_RESULT_LAST_ENQUEUED_TIME_UTC;
@@ -46,8 +38,7 @@ import static com.azure.messaging.eventhubs.implementation.ManagementChannel.MAN
  * Utility class for converting {@link EventData} to {@link Message}.
  */
 class EventHubMessageSerializer implements MessageSerializer {
-    private static final Encoder ENCODER = new EncoderImpl(new DecoderImpl());
-    private static final ClientLogger LOGGER = new ClientLogger(EventHubMessageSerializer.class);
+    private final ClientLogger logger = new ClientLogger(EventHubMessageSerializer.class);
     private static final Symbol LAST_ENQUEUED_SEQUENCE_NUMBER =
         Symbol.getSymbol(MANAGEMENT_RESULT_LAST_ENQUEUED_SEQUENCE_NUMBER);
     private static final Symbol LAST_ENQUEUED_OFFSET = Symbol.getSymbol(MANAGEMENT_RESULT_LAST_ENQUEUED_OFFSET);
@@ -109,23 +100,22 @@ class EventHubMessageSerializer implements MessageSerializer {
         Objects.requireNonNull(object, "'object' to serialize cannot be null.");
 
         if (!(object instanceof EventData)) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                "Cannot serialize object that is not EventData. Class: " + object.getClass()));
+            throw logger.logExceptionAsError(new IllegalArgumentException(
+                "Cannot serialize object that is not EventData. Clazz: " + object.getClass()));
         }
 
         final EventData eventData = (EventData) object;
-        final AmqpAnnotatedMessage amqpAnnotatedMessage = eventData.getRawAmqpMessage();
-        final Message protonJ = MessageUtils.toProtonJMessage(amqpAnnotatedMessage);
+        final Message message = Proton.message();
 
-        // Removing any system properties like ENQUEUED TIME, OFFSET, SEQUENCE NUMBER.
-        // These values are populated in the case that the user received the event and is
-        // resending the event.
-        if (protonJ.getMessageAnnotations() != null && protonJ.getMessageAnnotations().getValue() != null) {
-            EventData.RESERVED_SYSTEM_PROPERTIES.forEach(key ->
-                protonJ.getMessageAnnotations().getValue().remove(Symbol.valueOf(key)));
+        if (eventData.getProperties() != null && !eventData.getProperties().isEmpty()) {
+            message.setApplicationProperties(new ApplicationProperties(eventData.getProperties()));
         }
 
-        return protonJ;
+        setSystemProperties(eventData, message);
+
+        message.setBody(new Data(new Binary(eventData.getBody())));
+
+        return message;
     }
 
     @SuppressWarnings("unchecked")
@@ -141,7 +131,7 @@ class EventHubMessageSerializer implements MessageSerializer {
         } else if (clazz == LastEnqueuedEventProperties.class) {
             return (T) deserializeEnqueuedEventProperties(message);
         } else {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
+            throw logger.logExceptionAsError(new IllegalArgumentException(
                 "Deserialization only supports EventData, PartitionProperties, or EventHubProperties."));
         }
     }
@@ -154,13 +144,13 @@ class EventHubMessageSerializer implements MessageSerializer {
     @SuppressWarnings("unchecked")
     private <T> T deserializeManagementResponse(Message message, Class<T> deserializedType) {
         if (!(message.getBody() instanceof AmqpValue)) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
+            throw logger.logExceptionAsError(new IllegalArgumentException(
                 "Expected message.getBody() to be AmqpValue, but is: " + message.getBody()));
         }
 
         final AmqpValue body = (AmqpValue) message.getBody();
         if (!(body.getValue() instanceof Map)) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
+            throw logger.logExceptionAsError(new IllegalArgumentException(
                 "Expected message.getBody().getValue() to be of type Map"));
         }
 
@@ -171,7 +161,7 @@ class EventHubMessageSerializer implements MessageSerializer {
         } else if (deserializedType == EventHubProperties.class) {
             return (T) toEventHubProperties(amqpBody);
         } else {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(String.format(
+            throw logger.logExceptionAsError(new IllegalArgumentException(String.format(
                 Messages.CLASS_NOT_A_SUPPORTED_TYPE, deserializedType)));
         }
     }
@@ -201,36 +191,48 @@ class EventHubMessageSerializer implements MessageSerializer {
     }
 
     private EventData deserializeEventData(Message message) {
-        final AmqpAnnotatedMessage amqpAnnotatedMessage = MessageUtils.toAmqpAnnotatedMessage(message);
+        final Map<Symbol, Object> messageAnnotations = message.getMessageAnnotations().getValue();
+        final HashMap<String, Object> receiveProperties = new HashMap<>();
 
-        // Convert system properties to their respective types.
-        final Map<String, Object> messageAnnotations = amqpAnnotatedMessage.getMessageAnnotations();
-
-        if (!messageAnnotations.containsKey(OFFSET_ANNOTATION_NAME.getValue())) {
-            throw LOGGER.logExceptionAsError(new IllegalStateException(String.format(Locale.US,
-                "offset: %s should always be in map.", OFFSET_ANNOTATION_NAME.getValue())));
-        } else if (!messageAnnotations.containsKey(ENQUEUED_TIME_UTC_ANNOTATION_NAME.getValue())) {
-            throw LOGGER.logExceptionAsError(new IllegalStateException(String.format(Locale.US,
-                "enqueuedTime: %s should always be in map.", ENQUEUED_TIME_UTC_ANNOTATION_NAME.getValue())));
-        } else if (!messageAnnotations.containsKey(SEQUENCE_NUMBER_ANNOTATION_NAME.getValue())) {
-            throw LOGGER.logExceptionAsError(new IllegalStateException(String.format(Locale.US,
-                "enqueuedTime: %s should always be in map.", SEQUENCE_NUMBER_ANNOTATION_NAME.getValue())));
+        for (Map.Entry<Symbol, Object> annotation : messageAnnotations.entrySet()) {
+            receiveProperties.put(annotation.getKey().toString(), annotation.getValue());
         }
 
-        final Instant enqueuedTime = MessageUtils.getEnqueuedTime(messageAnnotations, ENQUEUED_TIME_UTC_ANNOTATION_NAME.getValue());
+        if (message.getProperties() != null) {
+            addMapEntry(receiveProperties, AmqpMessageConstant.MESSAGE_ID, message.getMessageId());
+            addMapEntry(receiveProperties, AmqpMessageConstant.USER_ID, message.getUserId());
+            addMapEntry(receiveProperties, AmqpMessageConstant.TO, message.getAddress());
+            addMapEntry(receiveProperties, AmqpMessageConstant.SUBJECT, message.getSubject());
+            addMapEntry(receiveProperties, AmqpMessageConstant.REPLY_TO, message.getReplyTo());
+            addMapEntry(receiveProperties, AmqpMessageConstant.CORRELATION_ID, message.getCorrelationId());
+            addMapEntry(receiveProperties, AmqpMessageConstant.CONTENT_TYPE, message.getContentType());
+            addMapEntry(receiveProperties, AmqpMessageConstant.CONTENT_ENCODING, message.getContentEncoding());
+            addMapEntry(receiveProperties, AmqpMessageConstant.ABSOLUTE_EXPIRY_TIME, message.getExpiryTime());
+            addMapEntry(receiveProperties, AmqpMessageConstant.CREATION_TIME, message.getCreationTime());
+            addMapEntry(receiveProperties, AmqpMessageConstant.GROUP_ID, message.getGroupId());
+            addMapEntry(receiveProperties, AmqpMessageConstant.GROUP_SEQUENCE, message.getGroupSequence());
+            addMapEntry(receiveProperties, AmqpMessageConstant.REPLY_TO_GROUP_ID, message.getReplyToGroupId());
+        }
 
-        final String partitionKey = (String) messageAnnotations.get(PARTITION_KEY_ANNOTATION_NAME.getValue());
-        final long offset = getAsLong(messageAnnotations, OFFSET_ANNOTATION_NAME.getValue());
-        final long sequenceNumber = getAsLong(messageAnnotations, SEQUENCE_NUMBER_ANNOTATION_NAME.getValue());
+        final Section bodySection = message.getBody();
+        byte[] body;
+        if (bodySection instanceof Data) {
+            Data bodyData = (Data) bodySection;
+            body = bodyData.getValue().getArray();
+        } else {
+            logger.warning(String.format(Messages.MESSAGE_NOT_OF_TYPE,
+                bodySection != null ? bodySection.getType() : "null"));
 
-        // Put the properly converted time back into the dictionary.
-        messageAnnotations.put(OFFSET_ANNOTATION_NAME.getValue(), offset);
-        messageAnnotations.put(ENQUEUED_TIME_UTC_ANNOTATION_NAME.getValue(), enqueuedTime);
-        messageAnnotations.put(SEQUENCE_NUMBER_ANNOTATION_NAME.getValue(), sequenceNumber);
+            body = new byte[0];
+        }
 
-        final SystemProperties systemProperties = new SystemProperties(amqpAnnotatedMessage, offset, enqueuedTime,
-            sequenceNumber, partitionKey);
-        final EventData eventData = new EventData(amqpAnnotatedMessage, systemProperties, Context.NONE);
+        final EventData.SystemProperties systemProperties = new EventData.SystemProperties(receiveProperties);
+        final EventData eventData = new EventData(body, systemProperties, Context.NONE);
+        final Map<String, Object> properties = message.getApplicationProperties() == null
+            ? new HashMap<>()
+            : message.getApplicationProperties().getValue();
+
+        properties.forEach((key, value) -> eventData.getProperties().put(key, value));
 
         message.clear();
         return eventData;
@@ -254,40 +256,9 @@ class EventHubMessageSerializer implements MessageSerializer {
             getValue(amqpBody, ManagementChannel.MANAGEMENT_RESULT_PARTITION_IS_EMPTY, Boolean.class));
     }
 
-    /**
-     * Gets the property value as a Long.
-     *
-     * @param amqpBody Map to get value from.
-     * @param key The key to get value of.
-     *
-     * @return The corresponding long.
-     *
-     * @throws IllegalStateException if the property is not a long.
-     */
-    private long getAsLong(Map<String, Object> amqpBody, String key) {
-        final Object object = amqpBody.get(key);
-        final long value;
-        if (object instanceof String) {
-            try {
-                value = Long.parseLong((String) object);
-            } catch (NumberFormatException e) {
-                throw LOGGER.logExceptionAsError(new IllegalStateException("'" + key
-                    + "' could not be parsed into a Long. Value: " + object, e));
-            }
-        } else if (object instanceof Long) {
-            value = (Long) object;
-        } else {
-            throw LOGGER.logExceptionAsError(new IllegalStateException(new IllegalStateException(
-                String.format(Locale.US, "'" + key + "' value is not a known type. Value: %s. Type: %s",
-                    object, object.getClass()))));
-        }
-
-        return value;
-    }
-
     private <T> T getValue(Map<?, ?> amqpBody, String key, Class<T> clazz) {
         if (!amqpBody.containsKey(key)) {
-            throw LOGGER.logExceptionAsError(new AzureException(
+            throw logger.logExceptionAsError(new AzureException(
                 String.format("AMQP body did not contain expected field '%s'.", key)));
         }
 
@@ -296,7 +267,7 @@ class EventHubMessageSerializer implements MessageSerializer {
 
     private <T> T getValue(Map<Symbol, Object> amqpBody, Symbol key, Class<T> clazz) {
         if (!amqpBody.containsKey(key)) {
-            throw LOGGER.logExceptionAsError(new AzureException(
+            throw logger.logExceptionAsError(new AzureException(
                 String.format("AMQP body did not contain expected field '%s'.", key)));
         }
 
@@ -306,10 +277,10 @@ class EventHubMessageSerializer implements MessageSerializer {
     @SuppressWarnings("unchecked")
     private <T> T getValue(Object value, Object key, Class<T> clazz) {
         if (value == null) {
-            throw LOGGER.logExceptionAsError(new AzureException(
+            throw logger.logExceptionAsError(new AzureException(
                 String.format("AMQP body did not contain a value for key '%s'.", key)));
         } else if (value.getClass() != clazz) {
-            throw LOGGER.logExceptionAsError(new AzureException(String.format(
+            throw logger.logExceptionAsError(new AzureException(String.format(
                 "AMQP body did not contain correct value for key '%s'. Expected class: '%s'. Actual: '%s'",
                 key, clazz, value.getClass())));
         }
@@ -320,6 +291,78 @@ class EventHubMessageSerializer implements MessageSerializer {
     private Instant getDate(Map<?, ?> amqpBody, String key) {
         final Date value = getValue(amqpBody, key, Date.class);
         return value.toInstant();
+    }
+
+    /*
+     * Sets AMQP protocol header values on the AMQP message.
+     */
+    private static void setSystemProperties(EventData eventData, Message message) {
+        if (eventData.getSystemProperties() == null || eventData.getSystemProperties().isEmpty()) {
+            return;
+        }
+
+        eventData.getSystemProperties().forEach((key, value) -> {
+            if (EventData.RESERVED_SYSTEM_PROPERTIES.contains(key)) {
+                return;
+            }
+
+            final AmqpMessageConstant constant = AmqpMessageConstant.fromString(key);
+
+            if (constant != null) {
+                switch (constant) {
+                    case MESSAGE_ID:
+                        message.setMessageId(value);
+                        break;
+                    case USER_ID:
+                        message.setUserId((byte[]) value);
+                        break;
+                    case TO:
+                        message.setAddress((String) value);
+                        break;
+                    case SUBJECT:
+                        message.setSubject((String) value);
+                        break;
+                    case REPLY_TO:
+                        message.setReplyTo((String) value);
+                        break;
+                    case CORRELATION_ID:
+                        message.setCorrelationId(value);
+                        break;
+                    case CONTENT_TYPE:
+                        message.setContentType((String) value);
+                        break;
+                    case CONTENT_ENCODING:
+                        message.setContentEncoding((String) value);
+                        break;
+                    case ABSOLUTE_EXPIRY_TIME:
+                        message.setExpiryTime((long) value);
+                        break;
+                    case CREATION_TIME:
+                        message.setCreationTime((long) value);
+                        break;
+                    case GROUP_ID:
+                        message.setGroupId((String) value);
+                        break;
+                    case GROUP_SEQUENCE:
+                        message.setGroupSequence((long) value);
+                        break;
+                    case REPLY_TO_GROUP_ID:
+                        message.setReplyToGroupId((String) value);
+                        break;
+                    default:
+                        throw new IllegalArgumentException(
+                            String.format(
+                                "Property is not a recognized reserved property name: %s",
+                                key));
+                }
+            } else {
+                final MessageAnnotations messageAnnotations = (message.getMessageAnnotations() == null)
+                    ? new MessageAnnotations(new HashMap<>())
+                    : message.getMessageAnnotations();
+                messageAnnotations.getValue().put(Symbol.getSymbol(key), value);
+                message.setMessageAnnotations(messageAnnotations);
+            }
+        });
     }
 
     private static int getPayloadSize(Message msg) {
@@ -354,24 +397,52 @@ class EventHubMessageSerializer implements MessageSerializer {
         return 0;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private static int sizeof(Object obj) {
-        if (obj == null) {
-            return 0;
+        if (obj instanceof String) {
+            return obj.toString().length() << 1;
         }
 
-        final AMQPType amqpType = ENCODER.getType(obj);
-        if (amqpType == null) {
-            throw new IllegalArgumentException(String.format(Messages.ENCODING_TYPE_NOT_SUPPORTED,
-                obj.getClass()));
+        if (obj instanceof Symbol) {
+            return ((Symbol) obj).length() << 1;
         }
 
-        final TypeEncoding encoding = amqpType.getEncoding(obj);
-        if (encoding == null) {
-            throw new IllegalArgumentException(String.format(
-                Messages.ENCODING_TYPE_NOT_SUPPORTED_ENCODER, obj.getClass()));
+        if (obj instanceof Integer) {
+            return Integer.BYTES;
         }
 
-        return encoding.getValueSize(obj);
+        if (obj instanceof Long) {
+            return Long.BYTES;
+        }
+
+        if (obj instanceof Short) {
+            return Short.BYTES;
+        }
+
+        if (obj instanceof Character) {
+            return Character.BYTES;
+        }
+
+        if (obj instanceof Float) {
+            return Float.BYTES;
+        }
+
+        if (obj instanceof Double) {
+            return Double.BYTES;
+        }
+
+        if (obj instanceof Date) {
+            return 32;
+        }
+
+        throw new IllegalArgumentException(String.format(Messages.ENCODING_TYPE_NOT_SUPPORTED,
+            obj.getClass()));
+    }
+
+    private static void addMapEntry(Map<String, Object> map, AmqpMessageConstant key, Object content) {
+        if (content == null) {
+            return;
+        }
+
+        map.put(key.getValue(), content);
     }
 }

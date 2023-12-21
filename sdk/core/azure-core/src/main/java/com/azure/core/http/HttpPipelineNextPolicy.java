@@ -4,41 +4,28 @@
 package com.azure.core.http;
 
 import com.azure.core.http.policy.HttpPipelinePolicy;
-import com.azure.core.implementation.http.HttpPipelineCallState;
-import com.azure.core.util.logging.ClientLogger;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * A type that invokes next policy in the pipeline.
  */
 public class HttpPipelineNextPolicy {
-    private static final ClientLogger LOGGER = new ClientLogger(HttpPipelineNextPolicy.class);
-    private final HttpPipelineCallState state;
-    private final boolean originatedFromSyncPolicy;
+    private final HttpPipeline pipeline;
+    private final HttpPipelineCallContext context;
+    private int currentPolicyIndex;
 
     /**
      * Package Private ctr.
      *
      * Creates HttpPipelineNextPolicy.
      *
-     * @param state the pipeline call state.
+     * @param pipeline the pipeline
+     * @param context the request-response context
      */
-    HttpPipelineNextPolicy(HttpPipelineCallState state) {
-        this.state = state;
-        this.originatedFromSyncPolicy = false;
-    }
-
-    /**
-     * Package Private ctr.
-     * Creates HttpPipelineNextPolicy.
-     *
-     * @param state the pipeline call state.
-     * @param originatedFromSyncPolicy boolean to indicate if the next policy originated from sync call stack.
-     */
-    HttpPipelineNextPolicy(HttpPipelineCallState state, boolean originatedFromSyncPolicy) {
-        this.state = state;
-        this.originatedFromSyncPolicy = originatedFromSyncPolicy;
+    HttpPipelineNextPolicy(final HttpPipeline pipeline, HttpPipelineCallContext context) {
+        this.pipeline = pipeline;
+        this.context = context;
+        this.currentPolicyIndex = -1;
     }
 
     /**
@@ -47,25 +34,16 @@ public class HttpPipelineNextPolicy {
      * @return A publisher which upon subscription invokes next policy and emits response from the policy.
      */
     public Mono<HttpResponse> process() {
-        if (originatedFromSyncPolicy && !Schedulers.isInNonBlockingThread()) {
-            // Pipeline executes in synchronous style. We most likely got here via default implementation in the
-            // HttpPipelinePolicy.processSynchronously so go back to sync style here.
-            // Don't do this on non-blocking threads.
-            return Mono.fromCallable(() -> new HttpPipelineNextSyncPolicy(state).processSync());
-        } else {
-            if (originatedFromSyncPolicy) {
-                LOGGER.warning("The pipeline switched from synchronous to asynchronous."
-                    + "Check if {} does not override HttpPipelinePolicy.processSync",
-                    this.state.getCurrentPolicy().getClass().getSimpleName());
-            }
+        final int size = this.pipeline.getPolicyCount();
+        if (this.currentPolicyIndex > size) {
+            return Mono.error(new IllegalStateException("There is no more policies to execute."));
+        }
 
-            HttpPipelinePolicy nextPolicy = state.getNextPolicy();
-            if (nextPolicy == null) {
-                return this.state.getPipeline().getHttpClient().send(
-                    this.state.getCallContext().getHttpRequest(), this.state.getCallContext().getContext());
-            } else {
-                return nextPolicy.process(this.state.getCallContext(), this);
-            }
+        this.currentPolicyIndex++;
+        if (this.currentPolicyIndex == size) {
+            return this.pipeline.getHttpClient().send(this.context.getHttpRequest());
+        } else {
+            return this.pipeline.getPolicy(this.currentPolicyIndex).process(this.context, this);
         }
     }
 
@@ -76,6 +54,8 @@ public class HttpPipelineNextPolicy {
      */
     @Override
     public HttpPipelineNextPolicy clone() {
-        return new HttpPipelineNextPolicy(this.state.clone(), this.originatedFromSyncPolicy);
+        HttpPipelineNextPolicy cloned = new HttpPipelineNextPolicy(this.pipeline, this.context);
+        cloned.currentPolicyIndex = this.currentPolicyIndex;
+        return cloned;
     }
 }

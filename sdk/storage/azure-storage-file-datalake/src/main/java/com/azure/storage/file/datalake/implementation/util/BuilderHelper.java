@@ -3,127 +3,88 @@
 
 package com.azure.storage.file.datalake.implementation.util;
 
-import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipeline;
 import com.azure.core.http.HttpPipelineBuilder;
 import com.azure.core.http.policy.AddDatePolicy;
-import com.azure.core.http.policy.AddHeadersPolicy;
-import com.azure.core.http.policy.AzureSasCredentialPolicy;
 import com.azure.core.http.policy.BearerTokenAuthenticationPolicy;
 import com.azure.core.http.policy.HttpLogOptions;
 import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.core.http.policy.HttpPolicyProviders;
 import com.azure.core.http.policy.RequestIdPolicy;
-import com.azure.core.http.policy.RetryOptions;
 import com.azure.core.http.policy.UserAgentPolicy;
-import com.azure.core.util.ClientOptions;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
-import com.azure.core.util.TracingOptions;
 import com.azure.core.util.logging.ClientLogger;
-import com.azure.core.util.tracing.Tracer;
-import com.azure.core.util.tracing.TracerProvider;
 import com.azure.storage.blob.BlobUrlParts;
-import com.azure.storage.blob.implementation.util.BlobUserAgentModificationPolicy;
 import com.azure.storage.blob.implementation.util.ModelHelper;
 import com.azure.storage.common.StorageSharedKeyCredential;
-import com.azure.storage.common.implementation.BuilderUtils;
 import com.azure.storage.common.implementation.Constants;
-import com.azure.storage.common.implementation.credentials.CredentialValidator;
-import com.azure.storage.common.policy.MetadataValidationPolicy;
+import com.azure.storage.common.implementation.credentials.SasTokenCredential;
+import com.azure.storage.common.implementation.policy.SasTokenCredentialPolicy;
 import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RequestRetryPolicy;
 import com.azure.storage.common.policy.ResponseValidationPolicyBuilder;
 import com.azure.storage.common.policy.ScrubEtagPolicy;
 import com.azure.storage.common.policy.StorageSharedKeyCredentialPolicy;
-import com.azure.storage.file.datalake.models.DataLakeAudience;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.azure.storage.common.Utility.STORAGE_TRACING_NAMESPACE_VALUE;
-
 /**
  * This class provides helper methods for common builder patterns.
- * <p>
+ *
  * RESERVED FOR INTERNAL USE.
  */
 public final class BuilderHelper {
-    private static final String CLIENT_NAME;
-    private static final String CLIENT_VERSION;
-
-    static {
-        Map<String, String> properties = CoreUtils.getProperties("azure-storage-file-datalake.properties");
-        CLIENT_NAME = properties.getOrDefault("name", "UnknownName");
-        CLIENT_VERSION = properties.getOrDefault("version", "UnknownVersion");
-    }
+    private static final Map<String, String> PROPERTIES =
+        CoreUtils.getProperties("azure-storage-file-datalake.properties");
+    private static final String SDK_NAME = "name";
+    private static final String SDK_VERSION = "version";
 
     /**
      * Constructs a {@link HttpPipeline} from values passed from a builder.
      *
      * @param storageSharedKeyCredential {@link StorageSharedKeyCredential} if present.
      * @param tokenCredential {@link TokenCredential} if present.
-     * @param azureSasCredential {@link AzureSasCredential} if present.
+     * @param sasTokenCredential {@link SasTokenCredential} if present.
      * @param endpoint The endpoint for the client.
-     * @param retryOptions Storage retry options to set in the retry policy.
-     * @param coreRetryOptions Core retry options to set in the retry policy.
+     * @param retryOptions Retry options to set in the retry policy.
      * @param logOptions Logging options to set in the logging policy.
-     * @param clientOptions Client options.
      * @param httpClient HttpClient to use in the builder.
-     * @param perCallPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline per call.
-     * @param perRetryPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline per retry.
+     * @param additionalPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline.
      * @param configuration Configuration store contain environment settings.
-     * @param audience {@link DataLakeAudience} used to determine the audience of the path.
      * @param logger {@link ClientLogger} used to log any exception.
      * @return A new {@link HttpPipeline} from the passed values.
      */
-    public static HttpPipeline buildPipeline(
-        StorageSharedKeyCredential storageSharedKeyCredential,
-        TokenCredential tokenCredential, AzureSasCredential azureSasCredential, String endpoint,
-        RequestRetryOptions retryOptions, RetryOptions coreRetryOptions,
-        HttpLogOptions logOptions, ClientOptions clientOptions, HttpClient httpClient,
-        List<HttpPipelinePolicy> perCallPolicies, List<HttpPipelinePolicy> perRetryPolicies,
-        Configuration configuration, DataLakeAudience audience, ClientLogger logger) {
-
-        CredentialValidator.validateSingleCredentialIsPresent(
-            storageSharedKeyCredential, tokenCredential, azureSasCredential, null, logger);
-
+    public static HttpPipeline buildPipeline(StorageSharedKeyCredential storageSharedKeyCredential,
+        TokenCredential tokenCredential, SasTokenCredential sasTokenCredential, String endpoint,
+        RequestRetryOptions retryOptions, HttpLogOptions logOptions, HttpClient httpClient,
+        List<HttpPipelinePolicy> additionalPolicies, Configuration configuration, ClientLogger logger) {
         // Closest to API goes first, closest to wire goes last.
         List<HttpPipelinePolicy> policies = new ArrayList<>();
 
-        policies.add(getUserAgentPolicy(configuration, logOptions, clientOptions));
+        policies.add(getUserAgentPolicy(configuration));
         policies.add(new RequestIdPolicy());
 
-        policies.addAll(perCallPolicies);
         HttpPolicyProviders.addBeforeRetryPolicies(policies);
-        policies.add(BuilderUtils.createRetryPolicy(retryOptions, coreRetryOptions, logger));
+        policies.add(new RequestRetryPolicy(retryOptions));
 
         policies.add(new AddDatePolicy());
-
-        // We need to place this policy right before the credential policy since headers may affect the string to sign
-        // of the request.
-        HttpHeaders headers = CoreUtils.createHttpHeadersFromClientOptions(clientOptions);
-        if (headers != null) {
-            policies.add(new AddHeadersPolicy(headers));
-        }
-        policies.add(new MetadataValidationPolicy());
 
         HttpPipelinePolicy credentialPolicy;
         if (storageSharedKeyCredential != null) {
             credentialPolicy =  new StorageSharedKeyCredentialPolicy(storageSharedKeyCredential);
         } else if (tokenCredential != null) {
             // The endpoint scope for the BearerToken is the blob endpoint not dfs
-            String scope = audience != null
-                ? ((audience.toString().endsWith("/") ? audience + ".default" : audience + "/.default"))
-                : Constants.STORAGE_SCOPE;
-            credentialPolicy =  new BearerTokenAuthenticationPolicy(tokenCredential, scope);
-        } else if (azureSasCredential != null) {
-            credentialPolicy = new AzureSasCredentialPolicy(azureSasCredential, false);
+            credentialPolicy =  new BearerTokenAuthenticationPolicy(tokenCredential,
+                String.format("%s/.default", DataLakeImplUtils.endpointToDesiredEndpoint(endpoint, "blob", "dfs")));
+        } else if (sasTokenCredential != null) {
+            credentialPolicy =  new SasTokenCredentialPolicy(sasTokenCredential);
         } else {
             credentialPolicy =  null;
         }
@@ -132,7 +93,7 @@ public final class BuilderHelper {
             policies.add(credentialPolicy);
         }
 
-        policies.addAll(perRetryPolicies);
+        policies.addAll(additionalPolicies);
 
         HttpPolicyProviders.addAfterRetryPolicies(policies);
 
@@ -145,8 +106,6 @@ public final class BuilderHelper {
         return new HttpPipelineBuilder()
             .policies(policies.toArray(new HttpPipelinePolicy[0]))
             .httpClient(httpClient)
-            .clientOptions(clientOptions)
-            .tracer(createTracer(clientOptions))
             .build();
     }
 
@@ -181,15 +140,15 @@ public final class BuilderHelper {
      * Creates a {@link UserAgentPolicy} using the default blob module name and version.
      *
      * @param configuration Configuration store used to determine whether telemetry information should be included.
-     * @param logOptions Logging options to set in the logging policy.
-     * @param clientOptions Client options.
      * @return The default {@link UserAgentPolicy} for the module.
      */
-    private static UserAgentPolicy getUserAgentPolicy(Configuration configuration, HttpLogOptions logOptions,
-        ClientOptions clientOptions) {
+    private static UserAgentPolicy getUserAgentPolicy(Configuration configuration) {
         configuration = (configuration == null) ? Configuration.NONE : configuration;
-        String applicationId = CoreUtils.getApplicationId(clientOptions, logOptions);
-        return new UserAgentPolicy(applicationId, CLIENT_NAME, CLIENT_VERSION, configuration);
+
+        String clientName = PROPERTIES.getOrDefault(SDK_NAME, "UnknownName");
+        String clientVersion = PROPERTIES.getOrDefault(SDK_VERSION, "UnknownVersion");
+        return new UserAgentPolicy(getDefaultHttpLogOptions().getApplicationId(), clientName, clientVersion,
+            configuration);
     }
 
     /*
@@ -203,34 +162,5 @@ public final class BuilderHelper {
             .addOptionalEcho(Constants.HeaderConstants.CLIENT_REQUEST_ID)
             .addOptionalEcho(Constants.HeaderConstants.ENCRYPTION_KEY_SHA256)
             .build();
-    }
-
-    /**
-     * Gets a BlobUserAgentModificationPolicy with the correct clientName and clientVersion.
-     *
-     * @return {@link BlobUserAgentModificationPolicy}
-     */
-    public static BlobUserAgentModificationPolicy getBlobUserAgentModificationPolicy() {
-        return new BlobUserAgentModificationPolicy(CLIENT_NAME, CLIENT_VERSION);
-    }
-
-    /**
-     * Validates that the client is properly configured to use https.
-     *
-     * @param objectToCheck The object to check for.
-     * @param objectName The name of the object.
-     * @param endpoint The endpoint for the client.
-     */
-    public static void httpsValidation(Object objectToCheck, String objectName, String endpoint, ClientLogger logger) {
-        if (objectToCheck != null && !BlobUrlParts.parse(endpoint).getScheme().equals(Constants.HTTPS)) {
-            throw logger.logExceptionAsError(new IllegalArgumentException(
-                "Using a(n) " + objectName + " requires https"));
-        }
-    }
-
-    private static Tracer createTracer(ClientOptions clientOptions) {
-        TracingOptions tracingOptions = clientOptions == null ? null : clientOptions.getTracingOptions();
-        return TracerProvider.getDefaultProvider()
-            .createTracer(CLIENT_NAME, CLIENT_VERSION, STORAGE_TRACING_NAMESPACE_VALUE, tracingOptions);
     }
 }

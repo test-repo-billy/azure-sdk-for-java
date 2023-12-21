@@ -7,7 +7,7 @@ package com.azure.ai.textanalytics.models;
 import com.azure.core.annotation.Immutable;
 
 /**
- * The {@code TextAnalyticsError} model.
+ * The {@link TextAnalyticsError} model.
  */
 @Immutable
 public final class TextAnalyticsError {
@@ -28,7 +28,7 @@ public final class TextAnalyticsError {
     private final String target;
 
     /**
-     * Creates a {@code TextAnalyticsError} model that describes text analytics error.
+     * Creates a {@link TextAnalyticsError} model that describes text analytics error.
      * @param errorCode The error code.
      * @param message The error message.
      * @param target The error target.

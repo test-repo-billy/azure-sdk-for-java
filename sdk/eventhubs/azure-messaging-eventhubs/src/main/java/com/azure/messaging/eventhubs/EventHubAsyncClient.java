@@ -4,12 +4,10 @@
 package com.azure.messaging.eventhubs;
 
 import com.azure.core.amqp.implementation.MessageSerializer;
+import com.azure.core.amqp.implementation.TracerProvider;
 import com.azure.core.util.logging.ClientLogger;
-import com.azure.core.util.metrics.Meter;
-import com.azure.core.util.tracing.Tracer;
 import com.azure.messaging.eventhubs.implementation.EventHubConnectionProcessor;
 import com.azure.messaging.eventhubs.implementation.EventHubManagementNode;
-import com.azure.messaging.eventhubs.implementation.instrumentation.EventHubsConsumerInstrumentation;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -27,18 +25,17 @@ import java.util.Objects;
  * @see <a href="https://docs.microsoft.com/Azure/event-hubs/event-hubs-about">About Azure Event Hubs</a>
  */
 class EventHubAsyncClient implements Closeable {
-    private static final ClientLogger LOGGER = new ClientLogger(EventHubAsyncClient.class);
+    private final ClientLogger logger = new ClientLogger(EventHubAsyncClient.class);
     private final MessageSerializer messageSerializer;
     private final EventHubConnectionProcessor connectionProcessor;
     private final Scheduler scheduler;
     private final boolean isSharedConnection;
     private final Runnable onClientClose;
-    private final String identifier;
-    private final Tracer tracer;
-    private final Meter meter;
+    private final TracerProvider tracerProvider;
 
-    EventHubAsyncClient(EventHubConnectionProcessor connectionProcessor, MessageSerializer messageSerializer,
-        Scheduler scheduler, boolean isSharedConnection, Runnable onClientClose, String identifier, Meter meter, Tracer tracer) {
+    EventHubAsyncClient(EventHubConnectionProcessor connectionProcessor, TracerProvider tracerProvider,
+        MessageSerializer messageSerializer, Scheduler scheduler, boolean isSharedConnection, Runnable onClientClose) {
+        this.tracerProvider = Objects.requireNonNull(tracerProvider, "'tracerProvider' cannot be null.");
         this.messageSerializer = Objects.requireNonNull(messageSerializer, "'messageSerializer' cannot be null.");
         this.connectionProcessor = Objects.requireNonNull(connectionProcessor,
             "'connectionProcessor' cannot be null.");
@@ -46,9 +43,6 @@ class EventHubAsyncClient implements Closeable {
         this.onClientClose = Objects.requireNonNull(onClientClose, "'onClientClose' cannot be null.");
 
         this.isSharedConnection = isSharedConnection;
-        this.identifier = identifier;
-        this.tracer = tracer;
-        this.meter = meter;
     }
 
     /**
@@ -109,10 +103,9 @@ class EventHubAsyncClient implements Closeable {
      * @return A new {@link EventHubProducerAsyncClient}.
      */
     EventHubProducerAsyncClient createProducer() {
-        EventHubsProducerInstrumentation instrumentation = new EventHubsProducerInstrumentation(tracer, meter, connectionProcessor.getFullyQualifiedNamespace(), connectionProcessor.getEventHubName());
         return new EventHubProducerAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), getEventHubName(),
-            connectionProcessor, connectionProcessor.getRetryOptions(), messageSerializer, scheduler,
-            isSharedConnection, onClientClose, identifier, instrumentation);
+            connectionProcessor, connectionProcessor.getRetryOptions(), tracerProvider, messageSerializer, scheduler,
+            isSharedConnection, onClientClose);
     }
 
     /**
@@ -122,25 +115,22 @@ class EventHubAsyncClient implements Closeable {
      * @param consumerGroup The name of the consumer group this consumer is associated with. Events are read in the
      * context of this group. The name of the consumer group that is created by default is
      * {@link EventHubClientBuilder#DEFAULT_CONSUMER_GROUP_NAME "$Default"}.
-     * @param prefetchCount The number of events to queue locally.
+     * @param prefetchCount The set of options to apply when creating the consumer.
      * @return An new {@link EventHubConsumerAsyncClient} that receives events from the Event Hub.
      * @throws NullPointerException If {@code consumerGroup} is {@code null}.
      * @throws IllegalArgumentException If {@code consumerGroup} is an empty string.
      */
-    EventHubConsumerAsyncClient createConsumer(String consumerGroup, int prefetchCount, boolean isSync) {
+    EventHubConsumerAsyncClient createConsumer(String consumerGroup, int prefetchCount) {
         Objects.requireNonNull(consumerGroup, "'consumerGroup' cannot be null.");
 
         if (consumerGroup.isEmpty()) {
-            throw LOGGER.logExceptionAsError(
+            throw logger.logExceptionAsError(
                 new IllegalArgumentException("'consumerGroup' cannot be an empty string."));
         }
 
-        EventHubsConsumerInstrumentation instrumentation = new EventHubsConsumerInstrumentation(tracer, meter,
-            connectionProcessor.getFullyQualifiedNamespace(), connectionProcessor.getEventHubName(), consumerGroup, isSync);
-
         return new EventHubConsumerAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), getEventHubName(),
-            connectionProcessor, messageSerializer, consumerGroup, prefetchCount, isSharedConnection,
-            onClientClose, identifier, instrumentation);
+            connectionProcessor, messageSerializer, consumerGroup, prefetchCount, scheduler, isSharedConnection,
+            onClientClose);
     }
 
     /**
@@ -151,14 +141,5 @@ class EventHubAsyncClient implements Closeable {
     @Override
     public void close() {
         connectionProcessor.dispose();
-    }
-
-    /**
-     * Gets the client identifier.
-     *
-     * @return The unique identifier string for current client.
-     */
-    public String getIdentifier() {
-        return identifier;
     }
 }

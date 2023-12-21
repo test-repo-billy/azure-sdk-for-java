@@ -3,9 +3,6 @@
 
 package com.azure.storage.file.share.specialized;
 
-import com.azure.storage.file.share.ShareAsyncClient;
-import com.azure.storage.file.share.ShareClient;
-import com.azure.storage.file.share.ShareClientBuilder;
 import com.azure.storage.file.share.ShareFileAsyncClient;
 import com.azure.storage.file.share.ShareFileClient;
 import com.azure.storage.file.share.ShareFileClientBuilder;
@@ -18,14 +15,6 @@ public class LeaseClientBuilderJavaDocCodeSnippets {
     private ShareFileClient shareFileClient = new ShareFileClientBuilder()
         .resourcePath("file")
         .buildFileClient();
-
-    private ShareAsyncClient shareAsyncClient = new ShareClientBuilder()
-        .endpoint("file")
-        .buildAsyncClient();
-
-    private ShareClient shareClient = new ShareClientBuilder()
-        .endpoint("file")
-        .buildClient();
 
     private String leaseId = "leaseId";
 
@@ -44,24 +33,12 @@ public class LeaseClientBuilderJavaDocCodeSnippets {
      * Code snippets for {@link ShareLeaseClientBuilder#buildClient()}.
      */
     public void syncInstantiationWithLeaseId() {
-        // BEGIN: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithFileAndLeaseId
+        // BEGIN: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithLeaseId
         ShareLeaseClient fileLeaseClient = new ShareLeaseClientBuilder()
             .fileClient(shareFileClient)
             .leaseId(leaseId)
             .buildClient();
-        // END: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithFileAndLeaseId
-    }
-
-    /**
-     * Code snippets for {@link ShareLeaseClientBuilder#buildClient()}.
-     */
-    public void syncInstantiationWithShareAndLeaseId() {
-        // BEGIN: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithShareAndLeaseId
-        ShareLeaseClient fileLeaseClient = new ShareLeaseClientBuilder()
-            .shareClient(shareClient)
-            .leaseId(leaseId)
-            .buildClient();
-        // END: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithShareAndLeaseId
+        // END: com.azure.storage.file.share.specialized.ShareLeaseClientBuilder.syncInstantiationWithLeaseId
     }
 
     /**
@@ -79,23 +56,11 @@ public class LeaseClientBuilderJavaDocCodeSnippets {
      * Code snippets for {@link ShareLeaseClientBuilder#buildAsyncClient()}.
      */
     public void asyncInstantiationWithLeaseId() {
-        // BEGIN: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithFileAndLeaseId
+        // BEGIN: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithLeaseId
         ShareLeaseAsyncClient fileLeaseAsyncClient = new ShareLeaseClientBuilder()
             .fileAsyncClient(shareFileAsyncClient)
             .leaseId(leaseId)
             .buildAsyncClient();
-        // END: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithFileAndLeaseId
-    }
-
-    /**
-     * Code snippets for {@link ShareLeaseClientBuilder#buildAsyncClient()}.
-     */
-    public void asyncInstantiationWithShareAndLeaseId() {
-        // BEGIN: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithShareAndLeaseId
-        ShareLeaseAsyncClient fileLeaseAsyncClient = new ShareLeaseClientBuilder()
-            .shareAsyncClient(shareAsyncClient)
-            .leaseId(leaseId)
-            .buildAsyncClient();
-        // END: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithShareAndLeaseId
+        // END: com.azure.storage.file.specialized.ShareLeaseClientBuilder.asyncInstantiationWithLeaseId
     }
 }

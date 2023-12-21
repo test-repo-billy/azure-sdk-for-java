@@ -3,8 +3,6 @@
 
 package com.azure.cosmos;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,7 +74,6 @@ public enum ConsistencyLevel {
         return consistencyLevelHashMap.get(consistencyLevel);
     }
 
-    @JsonValue
     @Override
     public String toString() {
         return this.overWireValue;

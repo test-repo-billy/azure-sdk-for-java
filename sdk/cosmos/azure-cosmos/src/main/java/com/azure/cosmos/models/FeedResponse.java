@@ -7,27 +7,18 @@ import com.azure.core.util.IterableStream;
 import com.azure.core.util.paging.ContinuablePage;
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.CosmosDiagnostics;
-import com.azure.cosmos.implementation.ClientSideRequestStatistics;
 import com.azure.cosmos.implementation.Constants;
 import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.QueryMetrics;
 import com.azure.cosmos.implementation.QueryMetricsConstants;
-import com.azure.cosmos.implementation.RxDocumentServiceResponse;
-import com.azure.cosmos.implementation.Strings;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.query.QueryInfo;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.regex.Pattern;
 
 /**
  * The type Feed response.
@@ -36,11 +27,6 @@ import java.util.regex.Pattern;
  */
 public class FeedResponse<T> implements ContinuablePage<String, T> {
 
-    private final static
-    ImplementationBridgeHelpers.CosmosDiagnosticsHelper.CosmosDiagnosticsAccessor diagnosticsAccessor =
-        ImplementationBridgeHelpers.CosmosDiagnosticsHelper.getCosmosDiagnosticsAccessor();
-
-    private static final Pattern DELIMITER_CHARS_PATTERN = Pattern.compile(Constants.Quota.DELIMITER_CHARS);
     private final List<T> results;
     private final Map<String, String> header;
     private final HashMap<String, Long> usageHeaders;
@@ -49,52 +35,19 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
     final boolean nochanges;
     private final ConcurrentMap<String, QueryMetrics> queryMetricsMap;
     private final static String defaultPartition = "0";
-    private CosmosDiagnostics cosmosDiagnostics;
+    private final CosmosDiagnostics cosmosDiagnostics;
     private QueryInfo queryInfo;
-    private QueryInfo.QueryPlanDiagnosticsContext queryPlanDiagnosticsContext;
 
     FeedResponse(List<T> results, Map<String, String> headers) {
         this(results, headers, false, false, new ConcurrentHashMap<>());
     }
 
-    // TODO: probably have to add two booleans
-    FeedResponse(List<T> results, RxDocumentServiceResponse response) {
-        this(results, response.getResponseHeaders(), false, false, new ConcurrentHashMap<>());
-        this.cosmosDiagnostics = response.getCosmosDiagnostics();
-        if (this.cosmosDiagnostics != null) {
-            BridgeInternal.setFeedResponseDiagnostics(this.cosmosDiagnostics, queryMetricsMap);
-        }
-    }
-
-    FeedResponse(
-        List<T> results,
-        Map<String, String> headers,
-        ConcurrentMap<String, QueryMetrics> queryMetricsMap,
-        boolean useEtagAsContinuation,
-        boolean isNoChanges) {
-
-        this(results, headers, useEtagAsContinuation, isNoChanges, queryMetricsMap);
+    FeedResponse(List<T> results, Map<String, String> headers, ConcurrentMap<String, QueryMetrics> queryMetricsMap) {
+        this(results, headers, false, false, queryMetricsMap);
     }
 
     FeedResponse(List<T> results, Map<String, String> header, boolean nochanges) {
         this(results, header, true, nochanges, new ConcurrentHashMap<>());
-    }
-
-    FeedResponse(List<T> results, Map<String, String> headers, CosmosDiagnostics diagnostics) {
-        this(results, headers);
-
-        if (diagnostics != null) {
-            ClientSideRequestStatistics requestStatistics =
-                diagnosticsAccessor.getClientSideRequestStatisticsRaw(diagnostics);
-            if (requestStatistics != null) {
-                diagnosticsAccessor.addClientSideDiagnosticsToFeed(cosmosDiagnostics,
-                    Collections.singletonList(requestStatistics));
-            } else {
-                diagnosticsAccessor.addClientSideDiagnosticsToFeed(
-                    cosmosDiagnostics,
-                    diagnosticsAccessor.getClientSideRequestStatistics(diagnostics));
-            }
-        }
     }
 
     // TODO: need to more sure the query metrics can round trip just from the headers.
@@ -113,35 +66,6 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
         this.nochanges = nochanges;
         this.queryMetricsMap = new ConcurrentHashMap<>(queryMetricsMap);
         this.cosmosDiagnostics = BridgeInternal.createCosmosDiagnostics(queryMetricsMap);
-    }
-
-    private FeedResponse(
-        List<T> transformedResults,
-        FeedResponse<?> toBeCloned) {
-        this.results = transformedResults;
-
-        // NOTE - it is important to use HashMap over ConcurrentHashMap here because some keys/values might be null
-        // and this is not allowed in ConcurrentHashMap - while it is ok in HashMap
-        this.header = toBeCloned.header != null ? new HashMap<>(toBeCloned.header) : null;
-
-        this.usageHeaders = toBeCloned.usageHeaders != null ? new HashMap<>(toBeCloned.usageHeaders) : null;
-        this.quotaHeaders = toBeCloned.quotaHeaders != null ? new HashMap<>(toBeCloned.quotaHeaders) : null;
-        this.useEtagAsContinuation = toBeCloned.useEtagAsContinuation;
-        this.nochanges = toBeCloned.nochanges;
-        this.queryMetricsMap = toBeCloned.queryMetricsMap != null ?
-            new ConcurrentHashMap<>(toBeCloned.queryMetricsMap) :
-            new ConcurrentHashMap<>();
-        this.cosmosDiagnostics = toBeCloned.cosmosDiagnostics != null ?
-            BridgeInternal.cloneCosmosDiagnostics(toBeCloned.cosmosDiagnostics) :
-            BridgeInternal.createCosmosDiagnostics(this.queryMetricsMap);
-
-        this.queryInfo = toBeCloned.queryInfo != null ? new QueryInfo(toBeCloned.queryInfo.getPropertyBag()) : null;
-        this.queryPlanDiagnosticsContext = toBeCloned.queryPlanDiagnosticsContext != null ?
-            new QueryInfo.QueryPlanDiagnosticsContext(
-                toBeCloned.queryPlanDiagnosticsContext.getStartTimeUTC(),
-                toBeCloned.queryPlanDiagnosticsContext.getEndTimeUTC(),
-                toBeCloned.queryPlanDiagnosticsContext.getRequestTimeline()) :
-            null;
     }
 
     /**
@@ -244,24 +168,6 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
     }
 
     /**
-     * Gets the current size of the documents in a container in kilobytes from the Azure Cosmos DB service.
-     *
-     * @return The current size of a container in kilobytes.
-     */
-    public long getDocumentUsage() {
-        return this.currentQuotaHeader(Constants.Quota.DOCUMENTS_SIZE);
-    }
-
-    /**
-     * Current document count usage.
-     *
-     * @return the document count usage.
-     */
-    public long getDocumentCountUsage() {
-        return this.currentQuotaHeader(Constants.Quota.DOCUMENTS_COUNT);
-    }
-
-    /**
      * Gets the maximum quota of stored procedures for a container from the Azure Cosmos DB service.
      *
      * @return The maximum stored procedure quota.
@@ -339,7 +245,7 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
 
     /**
      * Gets the request charge as request units (RU) consumed by the operation.
-     * <br/>
+     * <p>
      * For more information about the RU and factors that can impact the effective charges please visit
      * <a href="https://docs.microsoft.com/en-us/azure/cosmos-db/request-units">Request Units in Azure Cosmos DB</a>
      *
@@ -351,7 +257,7 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
         if (StringUtils.isEmpty(value)) {
             return 0;
         }
-        return Double.parseDouble(value);
+        return Double.valueOf(value);
     }
 
     /**
@@ -361,23 +267,6 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
      */
     public String getActivityId() {
         return getValueOrNull(header, HttpConstants.HttpHeaders.ACTIVITY_ID);
-    }
-
-    /**
-     * Gets the correlation activity ID for the responses of a query operation or null if
-     * no correlation activity id is present
-     *
-     * @return the correlation activity id or null if no correlation activity id is present.
-     */
-    public UUID getCorrelationActivityId() {
-        String correlationActivityIdAsString =
-            getValueOrNull(header, HttpConstants.HttpHeaders.CORRELATED_ACTIVITY_ID);
-
-        if (!Strings.isNullOrWhiteSpace(correlationActivityIdAsString)) {
-            return UUID.fromString(correlationActivityIdAsString);
-        }
-
-        return null;
     }
 
     @Override
@@ -395,27 +284,6 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
                                 ? HttpConstants.HttpHeaders.E_TAG
                                 : HttpConstants.HttpHeaders.CONTINUATION;
         return getValueOrNull(header, headerName);
-    }
-
-    /**
-     * Sets the continuation token to be used for continuing the enumeration.
-     *
-     * @param continuationToken updates the continuation token header of the response
-     */
-    void setContinuationToken(String continuationToken) {
-        String headerName = useEtagAsContinuation
-            ? HttpConstants.HttpHeaders.E_TAG
-            : HttpConstants.HttpHeaders.CONTINUATION;
-
-        if (!Strings.isNullOrWhiteSpace(continuationToken)) {
-            this.header.put(headerName, continuationToken);
-        } else {
-            this.header.remove(headerName);
-        }
-    }
-
-    boolean getNoChanges() {
-        return this.nochanges;
     }
 
     /**
@@ -496,20 +364,10 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
         return 0;
     }
 
-    <TNew> FeedResponse<TNew> convertGenericType(Function<T, TNew> conversion) {
-        List<TNew> newResults = new ArrayList<>(this.results.size());
-
-        for (T result: this.results) {
-            newResults.add(conversion.apply(result));
-        }
-
-        return new FeedResponse<TNew>(newResults, this);
-    }
-
     private void populateQuotaHeader(String headerMaxQuota,
                                      String headerCurrentUsage) {
-        String[] headerMaxQuotaWords = DELIMITER_CHARS_PATTERN.split(headerMaxQuota, -1);
-        String[] headerCurrentUsageWords = DELIMITER_CHARS_PATTERN.split(headerCurrentUsage, -1);
+        String[] headerMaxQuotaWords = headerMaxQuota.split(Constants.Quota.DELIMITER_CHARS, -1);
+        String[] headerCurrentUsageWords = headerCurrentUsage.split(Constants.Quota.DELIMITER_CHARS, -1);
 
         for (int i = 0; i < headerMaxQuotaWords.length; ++i) {
             if (headerMaxQuotaWords[i].equalsIgnoreCase(Constants.Quota.DATABASE)) {
@@ -533,12 +391,6 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
             } else if (headerMaxQuotaWords[i].equalsIgnoreCase(Constants.Quota.TRIGGER)) {
                 this.quotaHeaders.put(Constants.Quota.TRIGGER, Long.valueOf(headerMaxQuotaWords[i + 1]));
                 this.usageHeaders.put(Constants.Quota.TRIGGER, Long.valueOf(headerCurrentUsageWords[i + 1]));
-            } else if (headerMaxQuotaWords[i].equalsIgnoreCase(Constants.Quota.DOCUMENTS_SIZE)) {
-                this.quotaHeaders.put(Constants.Quota.DOCUMENTS_SIZE, Long.valueOf(headerMaxQuotaWords[i + 1]));
-                this.usageHeaders.put(Constants.Quota.DOCUMENTS_SIZE, Long.valueOf(headerCurrentUsageWords[i + 1]));
-            } else if (headerMaxQuotaWords[i].equalsIgnoreCase(Constants.Quota.DOCUMENTS_COUNT)) {
-                this.quotaHeaders.put(Constants.Quota.DOCUMENTS_COUNT, Long.valueOf(headerMaxQuotaWords[i + 1]));
-                this.usageHeaders.put(Constants.Quota.DOCUMENTS_COUNT, Long.valueOf(headerCurrentUsageWords[i + 1]));
             } else if (headerMaxQuotaWords[i].equalsIgnoreCase(Constants.Quota.USER_DEFINED_FUNCTION)) {
                 this.quotaHeaders.put(Constants.Quota.USER_DEFINED_FUNCTION, Long.valueOf(headerMaxQuotaWords[i + 1]));
                 this.usageHeaders.put(Constants.Quota.USER_DEFINED_FUNCTION,
@@ -562,40 +414,4 @@ public class FeedResponse<T> implements ContinuablePage<String, T> {
         return this.queryInfo;
     }
 
-    QueryInfo.QueryPlanDiagnosticsContext getQueryPlanDiagnosticsContext() {
-        return queryPlanDiagnosticsContext;
-    }
-
-    void setQueryPlanDiagnosticsContext(QueryInfo.QueryPlanDiagnosticsContext queryPlanDiagnosticsContext) {
-        this.queryPlanDiagnosticsContext = queryPlanDiagnosticsContext;
-        BridgeInternal.setQueryPlanDiagnosticsContext(cosmosDiagnostics, queryPlanDiagnosticsContext);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // the following helper/accessor only helps to access this class outside of this package.//
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    static void initialize() {
-        ImplementationBridgeHelpers.FeedResponseHelper.setFeedResponseAccessor(
-            new ImplementationBridgeHelpers.FeedResponseHelper.FeedResponseAccessor() {
-                @Override
-                public <T> boolean getNoChanges(FeedResponse<T> feedResponse) {
-                    return feedResponse.getNoChanges();
-                }
-
-                @Override
-                public <TNew, T> FeedResponse<TNew> convertGenericType(FeedResponse<T> feedResponse, Function<T,
-                    TNew> conversion) {
-
-                    return feedResponse.convertGenericType(conversion);
-                }
-
-                @Override
-                public <T> FeedResponse<T> createFeedResponse(List<T> results, Map<String, String> headers,
-                                                              CosmosDiagnostics diagnostics) {
-                    return new FeedResponse<>(results, headers, diagnostics);
-                }
-            });
-    }
-
-    static { initialize(); }
 }

@@ -33,14 +33,8 @@ public class CustomIOHandler extends IOHandler {
 
     @Override
     public void onTransportClosed(Event event) {
-    	Transport tansport = event.getTransport();
-        if (tansport != null) {
-			Connection connection = event.getConnection();
-			// connection.getTransport returns null if already unbound.
-			if (connection != null && connection.getTransport() != null)
-			{
-				tansport.unbind();
-			}
+        if (event.getTransport() != null) {
+            event.getTransport().unbind();
         }
     }
 }

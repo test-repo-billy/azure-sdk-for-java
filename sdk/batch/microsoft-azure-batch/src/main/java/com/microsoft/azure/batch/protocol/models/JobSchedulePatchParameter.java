@@ -17,9 +17,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class JobSchedulePatchParameter {
     /**
      * The schedule according to which Jobs will be created.
-     * All times are fixed respective to UTC and are not impacted by daylight
-     * saving time. If you do not specify this element, the existing schedule
-     * is left unchanged.
+     * If you do not specify this element, the existing schedule is left
+     * unchanged.
      */
     @JsonProperty(value = "schedule")
     private Schedule schedule;
@@ -40,7 +39,7 @@ public class JobSchedulePatchParameter {
     private List<MetadataItem> metadata;
 
     /**
-     * Get all times are fixed respective to UTC and are not impacted by daylight saving time. If you do not specify this element, the existing schedule is left unchanged.
+     * Get if you do not specify this element, the existing schedule is left unchanged.
      *
      * @return the schedule value
      */
@@ -49,7 +48,7 @@ public class JobSchedulePatchParameter {
     }
 
     /**
-     * Set all times are fixed respective to UTC and are not impacted by daylight saving time. If you do not specify this element, the existing schedule is left unchanged.
+     * Set if you do not specify this element, the existing schedule is left unchanged.
      *
      * @param schedule the schedule value to set
      * @return the JobSchedulePatchParameter object itself.

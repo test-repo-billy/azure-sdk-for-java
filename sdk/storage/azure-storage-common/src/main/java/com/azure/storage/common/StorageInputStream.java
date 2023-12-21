@@ -18,7 +18,7 @@ public abstract class StorageInputStream extends InputStream {
     private static final String UNEXPECTED_STREAM_READ_ERROR =
         "Unexpected error. Stream returned unexpected number of bytes.";
 
-    private static final ClientLogger LOGGER = new ClientLogger(StorageInputStream.class);
+    private final ClientLogger logger = new ClientLogger(StorageInputStream.class);
 
     /**
      * A flag to determine if the stream is faulted, if so the last error will be thrown on next operation.
@@ -93,7 +93,7 @@ public abstract class StorageInputStream extends InputStream {
      * @param rangeLength How much data the stream should return after blobRangeOffset.
      * @param chunkSize Holds the stream read size.
      * @param contentLength The length of the stream to be transferred.
-     * @throws IndexOutOfBoundsException when range offset is less than 0 or rangeLength exists but less than or
+     * @throws IndexOutOfBoundsException when range offset is less than 0 or rangeLength exists but les than or
      * equal to 0.
      */
     protected StorageInputStream(long rangeOffset, final Long rangeLength,
@@ -105,38 +105,10 @@ public abstract class StorageInputStream extends InputStream {
         this.streamLength = rangeLength == null ? contentLength - this.rangeOffset
             : Math.min(contentLength - this.rangeOffset, rangeLength);
         if (rangeOffset < 0 || (rangeLength != null && rangeLength <= 0)) {
-            throw LOGGER.logExceptionAsError(new IndexOutOfBoundsException());
+            throw logger.logExceptionAsError(new IndexOutOfBoundsException());
         }
 
         this.reposition(rangeOffset);
-    }
-
-    /**
-     * Initializes a new instance of the StorageInputStream class.
-     *
-     * @param rangeOffset The offset of the data to begin stream.
-     * @param rangeLength How much data the stream should return after blobRangeOffset.
-     * @param chunkSize Holds the stream read size.
-     * @param contentLength The length of the stream to be transferred.
-     * @param initialBuffer The first chunk of the download. Fetched alongside properties for optimization
-     * @throws IndexOutOfBoundsException when range offset is less than 0 or rangeLength exists but less than or
-     * equal to 0.
-     */
-    protected StorageInputStream(long rangeOffset, final Long rangeLength,
-        final int chunkSize, final long contentLength, ByteBuffer initialBuffer) {
-        this.rangeOffset = rangeOffset;
-        this.streamFaulted = false;
-        this.currentAbsoluteReadPosition = rangeOffset;
-        this.chunkSize = chunkSize;
-        this.streamLength = rangeLength == null ? contentLength - this.rangeOffset
-            : Math.min(contentLength - this.rangeOffset, rangeLength);
-        if (rangeOffset < 0 || (rangeLength != null && rangeLength <= 0)) {
-            throw LOGGER.logExceptionAsError(new IndexOutOfBoundsException());
-        }
-
-        this.currentBuffer = initialBuffer;
-        this.bufferStartOffset = rangeOffset;
-        this.bufferSize = initialBuffer.remaining();
     }
 
     /**
@@ -160,9 +132,7 @@ public abstract class StorageInputStream extends InputStream {
      */
     private synchronized void checkStreamState() {
         if (this.streamFaulted) {
-            // TODO (alzimmer): Should this throw the lastError as is? This is adding another layer of exception
-            //  wrapping that may be unnecessary.
-            throw LOGGER.logExceptionAsError(new RuntimeException(this.lastError.getMessage(), this.lastError));
+            throw logger.logExceptionAsError(new RuntimeException(this.lastError.getMessage()));
         }
     }
 
@@ -177,7 +147,7 @@ public abstract class StorageInputStream extends InputStream {
     }
 
     /**
-     * Dispatches a read operation of N bytes and updates stream state accordingly.
+     * Dispatches a read operation of N bytes.
      *
      * @param readLength An <code>int</code> which represents the number of bytes to read.
      * @param offset The start point of data to be acquired.
@@ -200,7 +170,7 @@ public abstract class StorageInputStream extends InputStream {
     }
 
     /**
-     * Tests if this input stream supports the mark and reset methods. Whether mark and reset are supported is an
+     * Tests if this input stream supports the mark and reset methods. Whether or not mark and reset are supported is an
      * invariant property of a particular input stream instance. The markSupported method of {@link InputStream} returns
      * false.
      *
@@ -230,7 +200,7 @@ public abstract class StorageInputStream extends InputStream {
         if (numberOfBytesRead > 0) {
             return tBuff[0] & 0xFF;
         } else if (numberOfBytesRead == 0) {
-            throw LOGGER.logExceptionAsError(new RuntimeException(UNEXPECTED_STREAM_READ_ERROR));
+            throw logger.logExceptionAsError(new RuntimeException(UNEXPECTED_STREAM_READ_ERROR));
         } else {
             return -1;
         }
@@ -310,7 +280,7 @@ public abstract class StorageInputStream extends InputStream {
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
         if (off < 0 || len < 0 || len > b.length - off) {
-            throw LOGGER.logExceptionAsError(new IndexOutOfBoundsException());
+            throw logger.logExceptionAsError(new IndexOutOfBoundsException());
         }
 
         int chunks = (int) (Math.ceil((double) len / (double) this.chunkSize));
@@ -318,7 +288,7 @@ public abstract class StorageInputStream extends InputStream {
         for (int i = 0; i < chunks; i++) {
             int results = this.readInternal(b, off + numOfBytesRead, len - numOfBytesRead);
             if (results == -1) {
-                return numOfBytesRead == 0 ? -1 : numOfBytesRead;
+                return -1;
             }
             numOfBytesRead += results;
         }
@@ -375,7 +345,7 @@ public abstract class StorageInputStream extends InputStream {
     /**
      * Repositions the stream to the given absolute byte offset.
      *
-     * @param absolutePosition A <code>long</code> which represents the absolute byte offset within the stream
+     * @param absolutePosition A <code>long</code> which represents the absolute byte offset withitn the stream
      * reposition.
      */
     private synchronized void reposition(final long absolutePosition) {
@@ -393,7 +363,7 @@ public abstract class StorageInputStream extends InputStream {
     @Override
     public synchronized void reset() {
         if (this.markedPosition + this.markExpiry < this.currentAbsoluteReadPosition) {
-            throw LOGGER.logExceptionAsError(new RuntimeException(MARK_EXPIRED));
+            throw logger.logExceptionAsError(new RuntimeException(MARK_EXPIRED));
         }
         this.reposition(this.markedPosition);
     }
@@ -415,7 +385,7 @@ public abstract class StorageInputStream extends InputStream {
         }
 
         if (n < 0 || this.currentAbsoluteReadPosition + n > this.streamLength + this.rangeOffset) {
-            throw LOGGER.logExceptionAsError(new IndexOutOfBoundsException());
+            throw logger.logExceptionAsError(new IndexOutOfBoundsException());
         }
 
         this.reposition(this.currentAbsoluteReadPosition + n);

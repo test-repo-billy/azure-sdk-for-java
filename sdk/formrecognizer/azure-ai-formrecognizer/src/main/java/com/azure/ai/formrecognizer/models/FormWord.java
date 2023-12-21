@@ -6,25 +6,23 @@ package com.azure.ai.formrecognizer.models;
 import com.azure.core.annotation.Immutable;
 
 /**
- * Represents a word recognized from the input document.
+ * The FormTable model.
  */
 @Immutable
-public final class FormWord extends FormElement {
-
+public final class FormWord extends FormContent {
     /*
      * The confidence value of the recognized word.
      */
     private final float confidence;
 
     /**
-     * Constructs a FormWord object.
-     *
-     * @param text the text content of recognized field.
-     * @param boundingBox the BoundingBox of recognized field.
-     * @param pageNumber the 1 based page number.
-     * @param confidence the confidence property of the Form Word.
+     * Creates raw OCR item.
+     *  @param text The text content of ExtractedField.
+     * @param boundingBox The BoundingBox of ExtractedField.
+     * @param pageNumber The 1 based page number.
+     * @param confidence the confidence.
      */
-    public FormWord(String text, FieldBoundingBox boundingBox, int pageNumber, final float confidence) {
+    public FormWord(String text, BoundingBox boundingBox, Integer pageNumber, final float confidence) {
         super(text, boundingBox, pageNumber);
         this.confidence = confidence;
     }
@@ -32,7 +30,7 @@ public final class FormWord extends FormElement {
     /**
      * Gets the confidence property of the Form Word.
      *
-     * @return the confidence property of the Form Word.
+     * @return The confidence property of the Form Word.
      */
     public float getConfidence() {
         return this.confidence;
@@ -42,7 +40,7 @@ public final class FormWord extends FormElement {
      * {@inheritDoc}
      */
     @Override
-    public FieldBoundingBox getBoundingBox() {
+    public BoundingBox getBoundingBox() {
         return super.getBoundingBox();
     }
 
@@ -58,7 +56,7 @@ public final class FormWord extends FormElement {
      * {@inheritDoc}
      */
     @Override
-    public int getPageNumber() {
+    public Integer getPageNumber() {
         return super.getPageNumber();
     }
 }

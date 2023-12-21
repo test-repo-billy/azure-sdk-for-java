@@ -3,14 +3,18 @@
 
 package com.azure.perf.test.core;
 
+import com.azure.core.util.logging.ClientLogger;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 class SleepTest extends PerfStressTest<PerfStressOptions> {
+    private static final ClientLogger LOGGER = new ClientLogger(SleepTest.class);
     private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger();
     private final int secondsPerOperation;
+
 
     public SleepTest(PerfStressOptions options) {
         super(options);
@@ -31,7 +35,8 @@ class SleepTest extends PerfStressTest<PerfStressOptions> {
     public void run() {
         try {
             Thread.sleep(secondsPerOperation * 1000);
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            throw LOGGER.logExceptionAsError(new RuntimeException(e));
         }
     }
 

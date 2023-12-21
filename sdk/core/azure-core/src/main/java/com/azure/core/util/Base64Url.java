@@ -40,25 +40,19 @@ public final class Base64Url {
 
     private static byte[] unquote(byte[] bytes) {
         if (bytes != null && bytes.length > 1) {
-            byte firstByte = bytes[0];
-            if (firstByte == '\"' || firstByte == '\'') {
-                byte lastByte = bytes[bytes.length - 1];
-                if (lastByte == firstByte) {
-                    return Arrays.copyOfRange(bytes, 1, bytes.length - 1);
-                }
-            }
+            bytes = unquote(new String(bytes, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8);
         }
         return bytes;
     }
 
     private static String unquote(String string) {
-        if (!CoreUtils.isNullOrEmpty(string)) {
+        if (string != null && !string.isEmpty()) {
             final char firstCharacter = string.charAt(0);
             if (firstCharacter == '\"' || firstCharacter == '\'') {
                 final int base64UrlStringLength = string.length();
                 final char lastCharacter = string.charAt(base64UrlStringLength - 1);
                 if (lastCharacter == firstCharacter) {
-                    return string.substring(1, base64UrlStringLength - 1);
+                    string = string.substring(1, base64UrlStringLength - 1);
                 }
             }
         }
@@ -113,14 +107,15 @@ public final class Base64Url {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
+        if (obj == null) {
+            return false;
         }
 
         if (!(obj instanceof Base64Url)) {
             return false;
         }
 
-        return Arrays.equals(this.bytes, ((Base64Url) obj).encodedBytes());
+        Base64Url rhs = (Base64Url) obj;
+        return Arrays.equals(this.bytes, rhs.encodedBytes());
     }
 }

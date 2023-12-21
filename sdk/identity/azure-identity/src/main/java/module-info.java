@@ -4,15 +4,17 @@
 module com.azure.identity {
     requires transitive com.azure.core;
 
-    requires com.microsoft.aad.msal4j;
+    requires msal4j;
     requires msal4j.persistence.extension;
     requires com.sun.jna;
     requires com.sun.jna.platform;
+    requires nanohttpd;
     requires org.reactivestreams;
-    requires java.xml;
+    requires org.linguafranca.pwdb.database;
+    requires org.linguafranca.pwdb.kdbx;
+    requires org.linguafranca.pwdb.kdbx.simple;
 
     exports com.azure.identity;
-    exports com.azure.identity.implementation to com.azure.identity.broker;
-    opens com.azure.identity to com.azure.identity.broker;
-    opens com.azure.identity.implementation to com.fasterxml.jackson.databind, com.azure.identity.broker, com.azure.core;
+
+    opens com.azure.identity.implementation to com.fasterxml.jackson.databind;
 }
