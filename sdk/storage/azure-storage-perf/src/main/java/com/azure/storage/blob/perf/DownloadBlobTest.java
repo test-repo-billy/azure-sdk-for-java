@@ -3,54 +3,46 @@
 
 package com.azure.storage.blob.perf;
 
-import static com.azure.perf.test.core.TestDataCreationHelper.createRandomByteBufferFlux;
-
-import com.azure.perf.test.core.PerfStressOptions;
-import com.azure.storage.blob.BlobAsyncClient;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.perf.core.ContainerTest;
-import java.io.IOException;
-import java.io.OutputStream;
+import com.azure.perf.test.core.NullOutputStream;
+import com.azure.storage.StoragePerfUtils;
+import com.azure.storage.blob.perf.core.AbstractDownloadTest;
 import reactor.core.publisher.Mono;
 
-public class DownloadBlobTest extends ContainerTest<PerfStressOptions> {
-    private final BlobClient blobClient;
-    private final BlobAsyncClient blobAsyncClient;
+import java.io.OutputStream;
 
-    public DownloadBlobTest(PerfStressOptions options) {
+public class DownloadBlobTest extends AbstractDownloadTest<BlobPerfStressOptions> {
+    private final OutputStream devNull = new NullOutputStream();
+
+    private final int bufferSize;
+    private final byte[] buffer;
+
+    public DownloadBlobTest(BlobPerfStressOptions options) {
         super(options);
-        String blobName = "downloadTest";
-        blobClient = blobContainerClient.getBlobClient(blobName);
-        blobAsyncClient = blobContainerAsyncClient.getBlobAsyncClient(blobName);
+
+        this.bufferSize = StoragePerfUtils.getDynamicDownloadBufferSize(options.getSize());
+        this.buffer = new byte[bufferSize];
     }
 
-    // Required resource setup goes here, upload the file to be downloaded during tests.
-    public Mono<Void> globalSetupAsync() {
-        return super.globalSetupAsync()
-                   .then(blobAsyncClient.upload(createRandomByteBufferFlux(options.getSize()), null))
-                   .then();
-    }
 
     // Perform the API call to be tested here
     @Override
     public void run() {
-        blobClient.download(new NullOutputStream());
+        blobClient.download(devNull);
     }
 
-    static class NullOutputStream extends OutputStream {
-        @Override
-        public void write(int b) throws IOException {
-
-        }
-    }
 
     @Override
     public Mono<Void> runAsync() {
         return blobAsyncClient.download()
             .map(b -> {
-                for (int i = 0; i < b.remaining(); i++) {
-                    b.get();
+                int readCount = 0;
+                int remaining = b.remaining();
+                while (readCount < remaining) {
+                    int expectedReadCount = Math.min(remaining - readCount, bufferSize);
+                    b.get(buffer, 0, expectedReadCount);
+                    readCount += expectedReadCount;
                 }
+
                 return 1;
             }).then();
     }

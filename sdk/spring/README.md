@@ -1,83 +1,225 @@
-# Azure Spring Boot client library for Java
+# Spring Cloud Azure
 
-## Getting started
-### Introduction
+Spring Cloud Azure offers a convenient way to interact with **Azure** provided services using well-known Spring idioms and APIs for Spring developers. 
 
-This repo is for Spring Boot Starters of Azure services. It helps Spring Boot developers to adopt Azure services.
+ - [Reference doc](https://aka.ms/spring/docs).
+ - [Migration guide for 4.0](https://aka.ms/spring/docs#migration-guide-for-4-0).
+ - [Spring Boot Support Status](https://aka.ms/spring/versions)
 
-### Support Spring Boot
-This repository supports both Spring Boot 2.1.x and 2.2.x. Please read [Spring Boot Dependency Mapping](https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Boot-Dependency-Mapping) for dependency mapping.
+## Build from Source
 
-### Prerequisites
-- JDK 1.8 and above
-- [Maven](http://maven.apache.org/) 3.0 and above
+To check out the project and build it from source, do the following:
 
-## Key concepts
-### Usage
-
-Below starters are available with latest release version. We recommend users to leverage latest version for bug fix and new features.
-You can find them in [Maven Central Repository](https://search.maven.org/).
-The first three starters are also available in [Spring Initializr](http://start.spring.io/). 
-
-Starter Name | Version for Spring Boot 2.2.x | Version for Spring Boot 2.1.x | Version for Spring Boot 2.0.x
----|:---:|:---:|:---:
-[azure-active-directory-spring-boot-starter](azure-spring-boot-starter-active-directory/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-active-directory-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-active-directory-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-active-directory-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-active-directory-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-active-directory-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-active-directory-spring-boot-starter%20AND%20v:2.0.*)
-[azure-storage-spring-boot-starter](azure-spring-boot-starter-storage/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-storage-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-storage-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-storage-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-storage-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-storage-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-storage-spring-boot-starter%20AND%20v:2.0.*)
-[azure-keyvault-secrets-spring-boot-starter](azure-spring-boot-starter-keyvault-secrets/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-keyvault-secrets-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-keyvault-secrets-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-keyvault-secrets-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-keyvault-secrets-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-keyvault-secrets-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-keyvault-secrets-spring-boot-starter%20AND%20v:2.0.*)
-[azure-active-directory-b2c-spring-boot-starter](azure-spring-boot-starter-active-directory-b2c/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-active-directory-b2c-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-active-directory-b2c-spring-boot-starter%22) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-active-directory-b2c-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-active-directory-b2c-spring-boot-starter%20AND%20v:2.1.*) | N/A
-[azure-cosmosdb-spring-boot-starter](azure-spring-boot-starter-cosmosdb/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-cosmosdb-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-cosmosdb-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-cosmosdb-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-cosmosdb-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-cosmosdb-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-cosmosdb-spring-boot-starter%20AND%20v:2.0.*)
-[azure-mediaservices-spring-boot-starter](azure-spring-boot-starter-mediaservices/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-mediaservices-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-mediaservices-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-mediaservices-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-mediaservices-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-mediaservices-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-mediaservices-spring-boot-starter%20AND%20v:2.0.*)
-[azure-servicebus-spring-boot-starter](azure-spring-boot-starter-servicebus/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-servicebus-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-servicebus-spring-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-servicebus-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-servicebus-spring-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-servicebus-spring-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-servicebus-spring-boot-starter%20AND%20v:2.0.*)
-[spring-data-gremlin-boot-starter](azure-spring-boot-starter-data-gremlin/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/spring-data-gremlin-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22spring-data-gremlin-boot-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/spring-data-gremlin-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:spring-data-gremlin-boot-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/spring-data-gremlin-boot-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:spring-data-gremlin-boot-starter%20AND%20v:2.0.*)
-[azure-spring-boot-metrics-starter](azure-spring-boot-starter-metrics) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-spring-boot-metrics-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-spring-boot-metrics-starter%22) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-spring-boot-metrics-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-spring-boot-metrics-starter%20AND%20v:2.1.*) | [![](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-spring-boot-metrics-starter/2.0.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-spring-boot-metrics-starter%20AND%20v:2.0.*)
-[azure-servicebus-jms-spring-boot-starter](azure-servicebus-jms-spring-boot-starter/README.md) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-servicebus-jms-spring-boot-starter.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.microsoft.azure%22%20AND%20a%3A%22azure-servicebus-jms-spring-boot-starter%22) | [![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.azure/azure-servicebus-jms-spring-boot-starter/2.1.svg)](https://search.maven.org/search?q=g:com.microsoft.azure%20AND%20a:azure-servicebus-jms-spring-boot-starter%20AND%20v:2.1.*) | N/A
-
-### Snapshots  
-[![Nexus OSS](https://img.shields.io/nexus/snapshots/https/oss.sonatype.org/com.microsoft.azure/azure-spring-boot.svg)](https://oss.sonatype.org/content/repositories/snapshots/com/microsoft/azure/azure-spring-boot/)
-
-Snapshots built from `master` branch are available, add [maven repositories](https://maven.apache.org/settings.html#Repositories) configuration to your pom file as below. 
-```xml
-<repositories>
-  <repository>
-    <id>nexus-snapshots</id>
-    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-    <snapshots>
-      <enabled>true</enabled>
-      <updatePolicy>always</updatePolicy>
-    </snapshots>
-  </repository>
-</repositories>
+```shell
+git clone git@github.com:Azure/azure-sdk-for-java.git
+cd azure-sdk-for-java
+mvn clean package -f sdk/spring/pom.xml -P dev
 ```
-## Examples
-You could check below articles to learn more on usage of specific starters.
 
-[How to use the Spring Boot Starter with Azure Cosmos DB API](https://docs.microsoft.com/java/azure/spring-framework/configure-spring-boot-starter-java-app-with-cosmos-db).
+You can use the following command to install jars into your local repository quickly:
 
-## Troubleshooting
-## Next steps
+```shell
+mvn clean install \
+  -Dcheckstyle.skip=true \
+  -Dcodesnippet.skip \
+  -Denforcer.skip \
+  -Djacoco.skip=true \
+  -Dmaven.javadoc.skip=true \
+  -Drevapi.skip=true \
+  -DskipTests \
+  -Dspotbugs.skip=true \
+  -Pdev \
+  -T 4 \
+  -ntp \
+  -f sdk/spring/pom.xml
+```
+
+If you are using PowerShell, please use the following command instead:
+```powershell
+mvn clean install `
+ "-Dcheckstyle.skip" `
+ "-Dcodesnippet.skip" `
+ "-Denforcer.skip" `
+ "-Djacoco.skip" `
+ "-Dmaven.javadoc.skip" `
+ "-Drevapi.skip" `
+ "-DskipTests" `
+ "-Dspotbugs.skip" `
+ -Pdev `
+ -T 4 `
+ -ntp `
+ -f sdk/spring/pom.xml
+```
+
+
+
+## Modules
+
+There are several modules in Spring Cloud Azure. Here is a quick review:
+
+### spring-cloud-azure-autoconfigure
+
+Auto-configuration attempts to deduce which beans a user might need. For example, if `Cosmos DB` is on the classpath, and the user has not configured any Cosmos DB clients, then they probably want an Cosmos DB client to be defined. Auto-configuration will always back away as the user starts to define their own beans. 
+
+This module contains the auto-configuration code for Azure services. 
+
+### spring-cloud-azure-starters
+
+Spring Cloud Azure Starters are a set of convenient dependency descriptors to include in your application. It boosts your Spring Boot application developement with Azure services. For example, if you want to get started using Spring and Azure Cosmos DB for data persistence, include the `spring-cloud-azure-starter-cosmos` dependency in your project. 
+
+The following application starters are provided by Spring Cloud Azure under the `com.azure.spring` group:
+
+| Name                                                 | Description                                                        |
+|------------------------------------------------------|--------------------------------------------------------------------|
+| spring-cloud-azure-starter                           | Core starter, including auto-configuration support                 |
+| spring-cloud-azure-starter-active-directory          | Starter for using Microsoft Entra ID with Spring Security          |
+| spring-cloud-azure-starter-active-directory-b2c      | Starter for using Azure Active Directory B2C with Spring Security  |
+| spring-cloud-azure-starter-appconfiguration          | Starter for using Azure App Configuration                          |
+| spring-cloud-azure-starter-cosmos                    | Starter for using Azure Cosmos DB                                  |
+| spring-cloud-azure-starter-data-cosmos               | Starter for using Azure Cosmos DB and Spring Data Cosmos DB        |
+| spring-cloud-azure-starter-eventhubs                 | Starter for using Azure Event Hubs                                 |
+| spring-cloud-azure-starter-eventgrid                 | Starter for using Azure Event Grid                                 |
+| spring-cloud-azure-starter-integration-eventhubs     | Starter for using Azure Event Hubs and Spring Integration          |
+| spring-cloud-azure-starter-integration-servicebus    | Starter for using Azure Service Bus and Spring Integration         |
+| spring-cloud-azure-starter-integration-storage-queue | Starter for using Azure Storage Queue and Spring Integration       |
+| spring-cloud-azure-starter-keyvault-secrets          | Starter for using Azure Key Vault Secrets                          |
+| spring-cloud-azure-starter-keyvault-certificates     | Starter for using Azure Key Vault Certificates                     |
+| spring-cloud-azure-starter-servicebus                | Starter for using Azure Service Bus                                |
+| spring-cloud-azure-starter-servicebus-jms            | Starter for using Azure Service Bus and JMS                        |
+| spring-cloud-azure-starter-storage-blob              | Starter for using Azure Storage Blob                               |
+| spring-cloud-azure-starter-storage-file-share        | Starter for using Azure Storage File Share                         |
+| spring-cloud-azure-starter-storage-queue             | Starter for using Azure Storage Queue                              |
+| spring-cloud-azure-starter-stream-eventhubs          | Starter for using Azure Event Hubs and Spring Cloud Stream Binder  |
+| spring-cloud-azure-starter-stream-servicebus         | Starter for using Azure Service Bus and Spring Cloud Stream Binder |
+
+
+In addition to the application starters, the following starters can be used to add `production ready` features:
+
+| Name                                | Description                                                                                                                       |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| spring-cloud-azure-starter-actuator | Starter for using Spring Boot’s Actuator which provides production ready features to help you monitor and manage your application |
+
+### spring-cloud-azure-actuator
+
+Actuator endpoints let you monitor and interact with your application. `Spring Boot Actuator` provides the infrastructure required for actuator endpoints. 
+
+This module extends the `Spring Boot Actuator` module and provides the actuating support for Azure services.
+
+### spring-cloud-azure-actuator-autoconfigure
+
+This provides auto-configuration for actuator endpoints based on the content of the classpath and a set of properties. 
+
+### spring-integration-azure
+
+Spring Integration Extension for Azure provides Spring Integration adapters for the various services provided by the [Azure SDK for Java](https://github.com/Azure/azure-sdk-for-java/). Below is a list of supported adapters:
+
+- spring-integration-azure-eventhbus
+- spring-integration-azure-servicebus
+- spring-integration-azure-storage-queue
+
+### spring-cloud-azure-stream-binder
+
+Spring Cloud Stream is a framework for building highly scalable event-driven microservices connected with shared messaging systems.
+
+The framework provides a flexible programming model built on already established and familiar Spring idioms and best practices, including support for persistent pub/sub semantics, consumer groups, and stateful partitions.
+
+Current binder implementations include:
+
+- spring-cloud-azure-stream-binder-eventhubs
+- spring-cloud-azure-stream-binder-servicebus
+
+## Spring Cloud Azure Bill of Materials (BOM)
+
+If you’re a Maven user, add our BOM to your pom.xml `<dependencyManagement>` section. This will allow you to not specify versions for any of the Maven dependencies and instead delegate versioning to the BOM.
+
+[//]: # ({x-version-update-start;com.azure.spring:spring-cloud-azure-dependencies;current})
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.azure.spring</groupId>
+            <artifactId>spring-cloud-azure-dependencies</artifactId>
+            <version>4.14.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+[//]: # ({x-version-update-end})
+
+## Spring Boot 3 Support
+
+The source code of Spring Cloud Azure for Spring Boot 3.x can be found on the [feature/spring-boot-3](https://github.com/Azure/azure-sdk-for-java/tree/feature/spring-boot-3) branch.
+
+#### Spring AOT and Spring native images
+
+Azure SDK JARs are signed. [Spring Boot 3 does not support today signed JARs](https://github.com/Azure/azure-sdk-for-java/issues/30320) when you run your application with [AOT mode on a JVM](https://docs.spring.io/spring-boot/docs/current/reference/html/deployment.html#deployment.efficient.aot) or you [build a native image](https://docs.spring.io/spring-boot/docs/current/reference/html/native-image.html).
+
+You can disable the JAR signature verification in the following way for GraalVM Native Build Tools:
+
+* Maven
+```xml
+<plugin>
+    <groupId>org.graalvm.buildtools</groupId>
+    <artifactId>native-maven-plugin</artifactId>
+    <configuration>
+        <buildArgs>
+            <arg>-Djava.security.properties=src/main/resources/custom.security</arg>
+        </buildArgs>
+    </configuration>
+</plugin>
+```
+
+* Gradle:
+```groovy
+graalvmNative {
+  binaries {
+    main {
+      buildArgs('-Djava.security.properties=' + file("$rootDir/custom.security").absolutePath)
+    }
+  }
+}
+```
+
+You have to create a `custom.security file` in `src/main/resources` with the following content:
+```
+jdk.jar.disabledAlgorithms=MD2, MD5, RSA, DSA
+```
 
 ## Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
 
-Please follow [instructions here](https://github.com/Azure/azure-sdk-for-java/blob/master/CONTRIBUTING.md) to build from source or contribute.
+Please follow [instructions here][spring-contributing] to build from source or contribute.
 
 ### Filing Issues
 
-If you encounter any bug, please file an issue [here](https://github.com/Azure/azure-sdk-for-java/issues).
+If you encounter any bug, please file an issue [here][azure-sdk-for-java-issues].
 
 To suggest a new feature or changes that could be made, file an issue the same way you would for a bug.
 
-You can participate community driven [![Gitter](https://badges.gitter.im/Microsoft/spring-on-azure.svg)](https://gitter.im/Microsoft/spring-on-azure)
+You can participate community driven [![Gitter][gitter-spring-on-azure-img]][gitter-spring-on-azure]
 
 ### Pull Requests
 
-Pull requests are welcome. To open your own pull request, click [here](https://github.com/Microsoft/azure-spring-boot/compare). When creating a pull request, make sure you are pointing to the fork and branch that your changes were made in.
+Pull requests are welcome. To open your own pull request, click [here][azure-sdk-for-java-compare]. When creating a pull request, make sure you are pointing to the fork and branch that your changes were made in.
 
 ### Code of Conduct
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct][codeofconduct]. For more information see the [Code of Conduct FAQ][codeofconduct-faq] or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ### Data/Telemetry
 
-This project collects usage data and sends it to Microsoft to help improve our products and services. Read our [privacy](https://privacy.microsoft.com/privacystatement) statement to learn more.
+This project collects usage data and sends it to Microsoft to help improve our products and services. Read our [privacy][privacy-statement] statement to learn more.
+
+
+
+[spring-contributing]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/spring/CONTRIBUTING.md
+[azure-sdk-for-java-issues]: https://github.com/Azure/azure-sdk-for-java/issues
+[gitter-spring-on-azure-img]: https://badges.gitter.im/Microsoft/spring-on-azure.svg
+[gitter-spring-on-azure]: https://gitter.im/Microsoft/spring-on-azure
+[azure-sdk-for-java-compare]: https://github.com/Azure/azure-sdk-for-java/compare
+[codeofconduct]: https://opensource.microsoft.com/codeofconduct/faq/
+[codeofconduct-faq]: https://opensource.microsoft.com/codeofconduct/faq/
+[privacy-statement]: https://privacy.microsoft.com/privacystatement
 

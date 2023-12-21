@@ -8,9 +8,7 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/**
- * A Message object which can be stored in a Queue.
- */
+/** A Message object which can be stored in a Queue. */
 @JacksonXmlRootElement(localName = "QueueMessage")
 @Fluent
 public final class QueueMessage {
@@ -19,6 +17,9 @@ public final class QueueMessage {
      */
     @JsonProperty(value = "MessageText", required = true)
     private String messageText;
+
+    /** Creates an instance of QueueMessage class. */
+    public QueueMessage() {}
 
     /**
      * Get the messageText property: The content of the message.

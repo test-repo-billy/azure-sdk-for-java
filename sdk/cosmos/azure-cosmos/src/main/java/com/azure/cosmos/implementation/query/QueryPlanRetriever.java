@@ -3,7 +3,14 @@
 
 package com.azure.cosmos.implementation.query;
 
+import com.azure.cosmos.BridgeInternal;
+import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
+import com.azure.cosmos.implementation.DiagnosticsClientContext;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.routing.PartitionKeyInternal;
+import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.models.SqlQuerySpec;
 import com.azure.cosmos.implementation.BackoffRetryUtility;
 import com.azure.cosmos.implementation.DocumentClientRetryPolicy;
@@ -16,49 +23,86 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 class QueryPlanRetriever {
+
+    private final static
+    ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor qryOptAccessor =
+        ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.getCosmosQueryRequestOptionsAccessor();
+
     private static final String TRUE = "True";
     private static final String SUPPORTED_QUERY_FEATURES = QueryFeature.Aggregate.name() + ", " +
                                                                QueryFeature.CompositeAggregate.name() + ", " +
                                                                QueryFeature.MultipleOrderBy.name() + ", " +
+                                                               QueryFeature.MultipleAggregates.name() + ", " +
                                                                QueryFeature.OrderBy.name() + ", " +
                                                                QueryFeature.OffsetAndLimit.name() + ", " +
                                                                QueryFeature.Distinct.name() + ", " +
-                                                               QueryFeature.Top.name();
+                                                               QueryFeature.GroupBy.name() + ", " +
+                                                               QueryFeature.Top.name() + ", " +
+                                                               QueryFeature.DCount.name() + ", " +
+                                                               QueryFeature.NonValueAggregate.name();
 
-    static Mono<PartitionedQueryExecutionInfo> getQueryPlanThroughGatewayAsync(IDocumentQueryClient queryClient,
+    static Mono<PartitionedQueryExecutionInfo> getQueryPlanThroughGatewayAsync(DiagnosticsClientContext diagnosticsClientContext,
+                                                                               IDocumentQueryClient queryClient,
                                                                                SqlQuerySpec sqlQuerySpec,
-                                                                               String resourceLink) {
+                                                                               String resourceLink,
+                                                                               CosmosQueryRequestOptions initialQueryRequestOptions) {
+
+        CosmosQueryRequestOptions nonNullRequestOptions = initialQueryRequestOptions != null
+            ? initialQueryRequestOptions
+            : new CosmosQueryRequestOptions();
+
+        PartitionKey partitionKey = nonNullRequestOptions.getPartitionKey();
+
+
         final Map<String, String> requestHeaders = new HashMap<>();
         requestHeaders.put(HttpConstants.HttpHeaders.CONTENT_TYPE, RuntimeConstants.MediaTypes.JSON);
         requestHeaders.put(HttpConstants.HttpHeaders.IS_QUERY_PLAN_REQUEST, TRUE);
         requestHeaders.put(HttpConstants.HttpHeaders.SUPPORTED_QUERY_FEATURES, SUPPORTED_QUERY_FEATURES);
         requestHeaders.put(HttpConstants.HttpHeaders.QUERY_VERSION, HttpConstants.Versions.QUERY_VERSION);
 
-        final RxDocumentServiceRequest request = RxDocumentServiceRequest.create(OperationType.QueryPlan,
+        if (partitionKey != null && partitionKey != PartitionKey.NONE) {
+            PartitionKeyInternal partitionKeyInternal = BridgeInternal.getPartitionKeyInternal(partitionKey);
+            requestHeaders.put(HttpConstants.HttpHeaders.PARTITION_KEY, partitionKeyInternal.toJson());
+        }
+
+        final RxDocumentServiceRequest queryPlanRequest = RxDocumentServiceRequest.create(diagnosticsClientContext,
+                                                                                 OperationType.QueryPlan,
                                                                                  ResourceType.Document,
                                                                                  resourceLink,
                                                                                  requestHeaders);
-        request.UseGatewayMode = true;
-        request.setByteBuffer(ModelBridgeInternal.serializeJsonToByteBuffer(sqlQuerySpec));
+        queryPlanRequest.useGatewayMode = true;
+        queryPlanRequest.setByteBuffer(ModelBridgeInternal.serializeJsonToByteBuffer(sqlQuerySpec));
 
-        final DocumentClientRetryPolicy retryPolicyInstance =
-            queryClient.getResetSessionTokenRetryPolicy().getRequestPolicy();
+        CosmosEndToEndOperationLatencyPolicyConfig end2EndConfig =
+            qryOptAccessor.getEndToEndOperationLatencyPolicyConfig(nonNullRequestOptions);
+        if (end2EndConfig != null) {
+            queryPlanRequest.requestContext.setEndToEndOperationLatencyPolicyConfig(end2EndConfig);
+        }
 
-        Function<RxDocumentServiceRequest, Mono<PartitionedQueryExecutionInfo>> executeFunc = req -> {
-            return BackoffRetryUtility.executeRetry(() -> {
+        BiFunction<Supplier<DocumentClientRetryPolicy>, RxDocumentServiceRequest, Mono<PartitionedQueryExecutionInfo>> executeFunc =
+            (retryPolicyFactory, req) -> {
+                DocumentClientRetryPolicy retryPolicyInstance = retryPolicyFactory.get();
                 retryPolicyInstance.onBeforeSendRequest(req);
-                return queryClient.executeQueryAsync(request).flatMap(rxDocumentServiceResponse -> {
-                    PartitionedQueryExecutionInfo partitionedQueryExecutionInfo =
-                        new PartitionedQueryExecutionInfo(rxDocumentServiceResponse.getResponseBodyAsByteArray());
-                    return Mono.just(partitionedQueryExecutionInfo);
 
-                });
-            }, retryPolicyInstance);
-        };
+                return BackoffRetryUtility.executeRetry(() ->
+                    queryClient.executeQueryAsync(req).flatMap(rxDocumentServiceResponse -> {
+                        PartitionedQueryExecutionInfo partitionedQueryExecutionInfo =
+                            new PartitionedQueryExecutionInfo(rxDocumentServiceResponse.getResponseBodyAsByteArray(), rxDocumentServiceResponse.getGatewayHttpRequestTimeline());
+                        return Mono.just(partitionedQueryExecutionInfo);
 
-        return executeFunc.apply(request);
+                    }), retryPolicyInstance);
+            };
+
+        return queryClient.executeFeedOperationWithAvailabilityStrategy(
+            ResourceType.Document,
+            OperationType.QueryPlan,
+            () -> queryClient.getResetSessionTokenRetryPolicy().getRequestPolicy(diagnosticsClientContext),
+            queryPlanRequest,
+            executeFunc
+        );
     }
 }

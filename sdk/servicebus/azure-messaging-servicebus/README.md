@@ -13,48 +13,63 @@ have to be online at the same time.
 - Implement workflows that require message ordering or message deferral.
 
 [Source code][source_code] | [API reference documentation][api_documentation]
-| [Product documentation][product_docs]| [Samples][sample_examples]
-
-## Table of contents
-
-- [Azure Service Bus client library for Java](#azure-service-bus-client-library-for-java)
-  - [Table of contents](#table-of-contents)
-  - [Getting started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Include the package](#include-the-package)
-    - [Authenticate the client](#authenticate-the-client)
-  - [Key concepts](#key-concepts)
-  - [Examples](#examples)
-    - [Send messages](#send-messages)
-    - [Receive messages](#receive-messages)
-    - [Settle messages](#settle-messages)
-    - [Send and receive from session enabled queues or topics](#send-and-receive-from-session-enabled-queues-or-topics)
-  - [Troubleshooting](#troubleshooting)
-    - [Enable client logging](#enable-client-logging)
-    - [Enable AMQP transport logging](#enable-amqp-transport-logging)
-    - [Common exceptions](#common-exceptions)
-  - [Next steps](#next-steps)
-  - [Contributing](#contributing)
+| [Product documentation][product_docs] | [Samples][sample_examples] | [Package (Maven)][maven_package]
 
 ## Getting started
 
 ### Prerequisites
 
-- Java Development Kit (JDK) with version 8 or above
+- [Java Development Kit (JDK)][java_development_kit] with version 8 or above
 - [Maven][maven]
 - Microsoft Azure subscription
-  - You can create a free account at: https://azure.microsoft.com
+  - You can create a free account at: [https://azure.microsoft.com](https://azure.microsoft.com)
 - Azure Service Bus instance
   - Step-by-step guide for [creating a Service Bus instance using Azure Portal][service_bus_create]
 
+To quickly create the needed Service Bus resources in Azure and to receive a connection string for them, you can deploy our sample template by clicking:
+
+[![](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-sdk-for-net%2Fmaster%2Fsdk%2Fservicebus%2FAzure.Messaging.ServiceBus%2Fassets%2Fsamples-azure-deploy.json)
+
 ### Include the package
+#### Include the BOM file
+
+Please include the azure-sdk-bom to your project to take dependency on the General Availability (GA) version of the library. In the following snippet, replace the {bom_version_to_target} placeholder with the version number.
+To learn more about the BOM, see the [AZURE SDK BOM README](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/boms/azure-sdk-bom/README.md).
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-sdk-bom</artifactId>
+            <version>{bom_version_to_target}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+and then include the direct dependency in the dependencies section without the version tag.
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>com.azure</groupId>
+    <artifactId>azure-messaging-servicebus</artifactId>
+  </dependency>
+</dependencies>
+```
+
+#### Include direct dependency
+If you want to take dependency on a particular version of the library that is not present in the BOM,
+add the direct dependency to your project as follows.
 
 [//]: # ({x-version-update-start;com.azure:azure-messaging-servicebus;current})
 ```xml
 <dependency>
     <groupId>com.azure</groupId>
     <artifactId>azure-messaging-servicebus</artifactId>
-    <version>7.0.0-beta.3</version>
+    <version>7.14.6</version>
 </dependency>
 ```
 [//]: # ({x-version-update-end})
@@ -64,49 +79,24 @@ have to be online at the same time.
 For the Service Bus client library to interact with Service Bus, it will need to understand how to connect and authorize
 with it.
 
-#### Create Service Bus clients using a connection string
+#### Create a Service Bus client using Azure Active Directory (Azure AD)
 
-The easiest means for authenticating is to use a connection string, which automatically created when creating a Service Bus
-namespace. If you aren't familiar with shared access policies in Azure, you may wish to follow the step-by-step guide to
-[get a Service Bus connection string][service_bus_connection_string].
-
-Both the asynchronous and synchronous Service Bus sender and receiver clients are instantiated using
-`ServiceBusClientBuilder`. The snippets below create a synchronous Service Bus sender and an asynchronous receiver,
-respectively.
-
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L29-L33 -->
-```java
-ServiceBusSenderClient sender = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .sender()
-    .queueName("<< QUEUE NAME >>")
-    .buildClient();
-```
-
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L40-L45 -->
-```java
-ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .receiver()
-    .topicName("<< TOPIC NAME >>")
-    .subscriptionName("<< SUBSCRIPTION NAME >>")
-    .buildAsyncClient();
-```
-
-#### Create a Service Bus client using Microsoft Identity platform (formerly Azure Active Directory)
-
-Azure SDK for Java supports the Azure Identity package, making it simple to get credentials from the Microsoft identity
-platform. First, add the package:
+Azure SDK for Java supports the Azure Identity client library, making it simple to get credentials from Azure AD. 
+First, add the package:
 
 [//]: # ({x-version-update-start;com.azure:azure-identity;dependency})
 ```xml
 <dependency>
     <groupId>com.azure</groupId>
     <artifactId>azure-identity</artifactId>
-    <version>1.0.6</version>
+    <version>1.11.0</version>
 </dependency>
 ```
 [//]: # ({x-version-update-end})
+
+- Known Issue: The pom.xml file should list `azure-messaging-servicebus` before `azure-identity` client libraries. This
+  issue is resolved with `azure-identity:1.2.1`.
+  Check [here][known-issue-binarydata-notfound] for more details.
 
 The implemented ways to request a credential are under the `com.azure.identity.credential` package. The sample below
 shows how to use an Azure Active Directory (AAD) application client secret to authorize with Azure Service Bus.
@@ -119,15 +109,22 @@ refer to [the associated documentation][aad_authorization].
 
 Use the returned token credential to authenticate the client:
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L52-L58 -->
-```java
-TokenCredential credential = new DefaultAzureCredentialBuilder()
-    .build();
-ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
-    .credential("<<fully-qualified-namespace>>", credential)
+```java com.azure.messaging.servicebus.servicebusreceiverasyncclient.instantiation
+TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+// 'disableAutoComplete' indicates that users will explicitly settle their message.
+ServiceBusReceiverAsyncClient asyncReceiver = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, credential)
     .receiver()
-    .queueName("<<queue-name>>")
+    .disableAutoComplete()
+    .queueName(queueName)
     .buildAsyncClient();
+
+// When users are done with the receiver, dispose of the receiver.
+// Clients should be long-lived objects as they require resources
+// and time to establish a connection to the service.
+asyncReceiver.close();
 ```
 
 ## Key concepts
@@ -142,8 +139,24 @@ on which actual message transmission takes place. The namespace often serves as 
 * A **[subscription][subscription_concept]** receives messages from a topic. Each subscription is independent and
   receives a copy of the message sent to the topic.
 
-## Examples
+### Service Bus Clients
+The builder [`ServiceBusClientBuilder`][ServiceBusClientBuilder] is used to create all the Service Bus clients.
 
+* **[`ServiceBusSenderClient`][ServiceBusSenderClient]** A <b>synchronous</b> sender responsible for sending
+[`ServiceBusMessage`][ServiceBusMessage] to specific queue or topic on Azure Service Bus.
+* **[`ServiceBusSenderAsyncClient`][ServiceBusSenderAsyncClient]** A <b>asynchronous</b> sender responsible for sending
+[`ServiceBusMessage`][ServiceBusMessage] to specific queue or topic on Azure Service Bus.
+* **[`ServiceBusReceiverClient`][ServiceBusReceiverClient]** A <b>synchronous</b> receiver responsible for receiving
+ [`ServiceBusMessage`][ServiceBusMessage] from a specific queue or topic on Azure Service Bus.
+* **[`ServiceBusReceiverAsyncClient`][ServiceBusReceiverAsyncClient]** A <b>asynchronous</b> receiver responsible for
+receiving [`ServiceBusMessage`][ServiceBusMessage] from a specific queue or topic on Azure Service Bus.
+
+## Examples
+ - [Send messages](#send-messages)
+ - [Receive messages](#receive-messages)
+ - [Send and receive from session enabled queues or topics](#send-and-receive-from-session-enabled-queues-or-topics)
+ - [Create a dead-letter queue Receiver](#create-a-dead-letter-queue-receiver)
+ - [Sharing a connection between clients](#sharing-of-connection-between-clients)
 ### Send messages
 
 You'll need to create an asynchronous [`ServiceBusSenderAsyncClient`][ServiceBusSenderAsyncClient] or a synchronous
@@ -153,112 +166,161 @@ a topic.
 The snippet below creates a synchronous [`ServiceBusSenderClient`][ServiceBusSenderClient] to publish a message to a
 queue.
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L65-L77 -->
-```java
+```java com.azure.messaging.servicebus.servicebussenderclient.createMessageBatch
+TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
 ServiceBusSenderClient sender = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
+    .credential(fullyQualifiedNamespace, credential)
     .sender()
-    .queueName("<< QUEUE NAME >>")
+    .queueName(queueName)
     .buildClient();
+
 List<ServiceBusMessage> messages = Arrays.asList(
-    new ServiceBusMessage("Hello world").setMessageId("1"),
-    new ServiceBusMessage("Bonjour").setMessageId("2"));
+    new ServiceBusMessage("test-1"),
+    new ServiceBusMessage("test-2"));
 
-sender.send(messages);
+// Creating a batch without options set.
+ServiceBusMessageBatch batch = sender.createMessageBatch();
+for (ServiceBusMessage message : messages) {
+    if (batch.tryAddMessage(message)) {
+        continue;
+    }
 
-// When you are done using the sender, dispose of it.
+    // The batch is full. Send the current batch and create a new one.
+    sender.sendMessages(batch);
+
+    batch = sender.createMessageBatch();
+
+    // Add the message we couldn't before.
+    if (!batch.tryAddMessage(message)) {
+        throw new IllegalArgumentException("Message is too large for an empty batch.");
+    }
+}
+
+// Send the final batch if there are any messages in it.
+if (batch.getCount() > 0) {
+    sender.sendMessages(batch);
+}
+
+// Continue using the sender and finally, dispose of the sender.
+// Clients should be long-lived objects as they require resources
+// and time to establish a connection to the service.
 sender.close();
 ```
 
 ### Receive messages
 
-You'll need to create an asynchronous [`ServiceBusReceiverAsyncClient`][ServiceBusReceiverAsyncClient] or a synchronous
-[`ServiceBusReceiverClient`][ServiceBusReceiverClient] to receive messages. Each receiver can consume messages from
-either a queue or a topic subscription.
+To receive messages, you will need to create a `ServiceBusProcessorClient` with callbacks for incoming messages and any error that occurs in the process. You can then start and stop the client as required.
 
-By default, the receive mode is [`ReceiveMode.PEEK_LOCK`][ReceiveMode]. This tells the broker that the receiving client
-wants to manage settlement of received messages explicitly. The message is made available for the receiver to process,
-while held under an exclusive lock in the service so that other, competing receivers cannot see it.
-`ServiceBusReceivedMessage.getLockedUntil()` indicates when the lock expires and can be extended by the client using
-`receiver.renewMessageLock()`.
+When receiving message with [PeekLock][peek_lock_mode_docs] mode, it tells the broker that the application logic wants to settle (e.g. complete, abandon) received messages explicitly.
 
-#### Receive a batch of messages
+```java com.azure.messaging.servicebus.servicebusprocessorclient#receive-mode-peek-lock-instantiation
+// Function that gets called whenever a message is received.
+Consumer<ServiceBusReceivedMessageContext> processMessage = context -> {
+    final ServiceBusReceivedMessage message = context.getMessage();
+    // Randomly complete or abandon each message. Ideally, in real-world scenarios, if the business logic
+    // handling message reaches desired state such that it doesn't require Service Bus to redeliver
+    // the same message, then context.complete() should be called otherwise context.abandon().
+    final boolean success = Math.random() < 0.5;
+    if (success) {
+        try {
+            context.complete();
+        } catch (RuntimeException error) {
+            System.out.printf("Completion of the message %s failed.%n Error: %s%n",
+                message.getMessageId(), error);
+        }
+    } else {
+        try {
+            context.abandon();
+        } catch (RuntimeException error) {
+            System.out.printf("Abandoning of the message %s failed.%nError: %s%n",
+                message.getMessageId(), error);
+        }
+    }
+};
 
-The snippet below creates a [`ServiceBusReceiverClient`][ServiceBusReceiverClient] to receive messages from a topic
-subscription.
+// Sample code that gets called if there's an error
+Consumer<ServiceBusErrorContext> processError = errorContext -> {
+    if (errorContext.getException() instanceof ServiceBusException) {
+        ServiceBusException exception = (ServiceBusException) errorContext.getException();
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L84-L101 -->
-```java
-ServiceBusReceiverClient receiver = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .receiver()
-    .topicName("<< TOPIC NAME >>")
-    .subscriptionName("<< SUBSCRIPTION NAME >>")
-    .buildClient();
+        System.out.printf("Error source: %s, reason %s%n", errorContext.getErrorSource(),
+            exception.getReason());
+    } else {
+        System.out.printf("Error occurred: %s%n", errorContext.getException());
+    }
+};
 
-// Receives a batch of messages when 10 messages are received or until 30 seconds have elapsed, whichever
-// happens first.
-IterableStream<ServiceBusReceivedMessageContext> messages = receiver.receive(10, Duration.ofSeconds(30));
-messages.forEach(context -> {
-    ServiceBusReceivedMessage message = context.getMessage();
-    System.out.printf("Id: %s. Contents: %s%n", message.getMessageId(),
-        new String(message.getBody(), StandardCharsets.UTF_8));
-});
+TokenCredential tokenCredential = new DefaultAzureCredentialBuilder().build();
 
-// When you are done using the receiver, dispose of it.
-receiver.close();
+// Create the processor client via the builder and its sub-builder
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+ServiceBusProcessorClient processorClient = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, tokenCredential)
+    .processor()
+    .queueName(queueName)
+    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+    .disableAutoComplete()  // Make sure to explicitly opt in to manual settlement (e.g. complete, abandon).
+    .processMessage(processMessage)
+    .processError(processError)
+    .disableAutoComplete()
+    .buildProcessorClient();
+
+// Starts the processor in the background. Control returns immediately.
+processorClient.start();
+
+// Stop processor and dispose when done processing messages.
+processorClient.stop();
+processorClient.close();
 ```
 
-#### Receive a stream of messages
+When receiving message with [ReceiveAndDelete][receive_and_delete_mode_docs] mode, tells the broker to consider all messages it sends to the receiving client as settled when sent.
 
-The asynchronous [`ServiceBusReceiverAsyncClient`][ServiceBusReceiverAsyncClient] continuously fetches messages until
-the `subscription` is disposed.
+```java com.azure.messaging.servicebus.servicebusprocessorclient#receive-mode-receive-and-delete-instantiation
+// Function that gets called whenever a message is received.
+Consumer<ServiceBusReceivedMessageContext> processMessage = context -> {
+    final ServiceBusReceivedMessage message = context.getMessage();
+    System.out.printf("Processing message. Session: %s, Sequence #: %s. Contents: %s%n",
+        message.getSessionId(), message.getSequenceNumber(), message.getBody());
+};
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L108-L130 -->
-```java
-ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .receiver()
-    .queueName("<< QUEUE NAME >>")
-    .buildAsyncClient();
+// Sample code that gets called if there's an error
+Consumer<ServiceBusErrorContext> processError = errorContext -> {
+    if (errorContext.getException() instanceof ServiceBusException) {
+        ServiceBusException exception = (ServiceBusException) errorContext.getException();
 
-// receive() operation continuously fetches messages until the subscription is disposed.
-// The stream is infinite, and completes when the subscription or receiver is closed.
-Disposable subscription = receiver.receive().subscribe(context -> {
-    ServiceBusReceivedMessage message = context.getMessage();
-    System.out.printf("Id: %s%n", message.getMessageId());
-    System.out.printf("Contents: %s%n", new String(message.getBody(), StandardCharsets.UTF_8));
-}, error -> {
-        System.err.println("Error occurred while receiving messages: " + error);
-    }, () -> {
-        System.out.println("Finished receiving messages.");
-    });
+        System.out.printf("Error source: %s, reason %s%n", errorContext.getErrorSource(),
+            exception.getReason());
+    } else {
+        System.out.printf("Error occurred: %s%n", errorContext.getException());
+    }
+};
 
-// Continue application processing. When you are finished receiving messages, dispose of the subscription.
-subscription.dispose();
+TokenCredential tokenCredential = new DefaultAzureCredentialBuilder().build();
 
-// When you are done using the receiver, dispose of it.
-receiver.close();
+// Create the processor client via the builder and its sub-builder
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+// 'disableAutoComplete()' will opt in to manual settlement (e.g. complete, abandon).
+ServiceBusProcessorClient processorClient = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, tokenCredential)
+    .processor()
+    .queueName(queueName)
+    .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
+    .processMessage(processMessage)
+    .processError(processError)
+    .disableAutoComplete()
+    .buildProcessorClient();
+
+// Starts the processor in the background. Control returns immediately.
+processorClient.start();
+
+// Stop processor and dispose when done processing messages.
+processorClient.stop();
+processorClient.close();
 ```
 
-### Settle messages
-
-When a message is received, it can be settled using any of the `complete()`, `abandon()`, `defer()`, or `deadLetter()`
-overloads. The sample below completes a received message from synchronous
-[`ServiceBusReceiverClient`][ServiceBusReceiverClient].
-
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L145-L151 -->
-```java
-// This fetches a batch of 10 messages or until the default operation timeout has elapsed.
-receiver.receive(10).forEach(context -> {
-    ServiceBusReceivedMessage message = context.getMessage();
-
-    // Process message and then complete it.
-    receiver.complete(message);
-});
-```
-
-There are four ways of settling messages:
+There are four ways of settling messages using the methods on the message context passed to your callback.
   - Complete - causes the message to be deleted from the queue or topic.
   - Abandon - releases the receiver's lock on the message allowing for the message to be received by other receivers.
   - Defer - defers the message from being received by normal means. In order to receive deferred messages, the sequence
@@ -287,39 +349,99 @@ Create a [`ServiceBusSenderClient`][ServiceBusSenderClient] for a session enable
 `ServiceBusMessage.setSessionId(String)` on a `ServiceBusMessage` will publish the message to that session. If the
 session does not exist, it is created.
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L164-L168 -->
-```java
+```java com.azure.messaging.servicebus.servicebussenderclient.sendMessage-session
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+ServiceBusSenderClient sender = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, new DefaultAzureCredentialBuilder().build())
+    .sender()
+    .queueName(sessionEnabledQueueName)
+    .buildClient();
+
 // Setting sessionId publishes that message to a specific session, in this case, "greeting".
 ServiceBusMessage message = new ServiceBusMessage("Hello world")
     .setSessionId("greetings");
 
-sender.send(message);
+sender.sendMessage(message);
+
+// Dispose of the sender.
+sender.close();
 ```
 
 #### Receive messages from a session
 
-Receivers can fetch messages from a specific session or the first available, unlocked session.
+Receiving messages from sessions is similar to receiving messages from a non session enabled queue or subscription. The difference is in the builder and the class you use.
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L175-L181 -->
-```java
-// Creates a session-enabled receiver that gets messages from the session "greetings".
-ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .sessionReceiver()
-    .queueName("<< QUEUE NAME >>")
-    .sessionId("greetings")
-    .buildAsyncClient();
+In non-session case, you would use the sub builder `processor()`. In case of sessions, you would use the sub builder `sessionProcessor()`. Both sub builders will create an instance of `ServiceBusProcessorClient` configured to work on a session or a non-session Service Bus entity. In the case of the session processor, you can pass the maximum number of sessions you want the processor to process concurrently as well.
+
+### Create a dead-letter queue Receiver
+
+Azure Service Bus queues and topic subscriptions provide a secondary sub-queue, called a dead-letter queue (DLQ).
+The dead-letter queue doesn't need to be explicitly created and can't be deleted or otherwise managed independent
+of the main entity. For session enabled or non-session queue or topic subscriptions, the dead-letter receiver can be
+created the same way as shown below. Learn more about dead-letter queue [here][dead-letter-queue].
+
+```java com.azure.messaging.servicebus.servicebusreceiverclient.instantiation-deadLetterQueue
+TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+// 'disableAutoComplete' indicates that users will explicitly settle their message.
+ServiceBusReceiverClient receiver = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, credential)
+    .receiver() // Use this for session or non-session enabled queue or topic/subscriptions
+    .topicName(topicName)
+    .subscriptionName(subscriptionName)
+    .subQueue(SubQueue.DEAD_LETTER_QUEUE)
+    .buildClient();
+
+// When users are done with the receiver, dispose of the receiver.
+// Clients should be long-lived objects as they require resources
+// and time to establish a connection to the service.
+receiver.close();
 ```
 
-<!-- embedme ./src/samples/java/com/azure/messaging/servicebus/ReadmeSamples.java#L188-L193 -->
-```java
-// Creates a session-enabled receiver that gets messages from the first available session.
-ServiceBusReceiverAsyncClient receiver = new ServiceBusClientBuilder()
-    .connectionString("<< CONNECTION STRING FOR THE SERVICE BUS NAMESPACE >>")
-    .sessionReceiver()
-    .queueName("<< QUEUE NAME >>")
-    .buildAsyncClient();
+### Sharing of connection between clients
+The creation of physical connection to Service Bus requires resources. An application should share the connection  
+between clients which can be achieved by sharing the top level builder as shown below.
+
+```java com.azure.messaging.servicebus.connection.sharing
+TokenCredential credential = new DefaultAzureCredentialBuilder().build();
+
+// 'fullyQualifiedNamespace' will look similar to "{your-namespace}.servicebus.windows.net"
+// Any clients created from this builder will share the underlying connection.
+ServiceBusClientBuilder sharedConnectionBuilder = new ServiceBusClientBuilder()
+    .credential(fullyQualifiedNamespace, credential);
+
+// Create receiver and sender which will share the connection.
+ServiceBusReceiverClient receiver = sharedConnectionBuilder
+    .receiver()
+    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+    .queueName(queueName)
+    .buildClient();
+ServiceBusSenderClient sender = sharedConnectionBuilder
+    .sender()
+    .queueName(queueName)
+    .buildClient();
+
+// Use the clients and finally close them.
+try {
+    sender.sendMessage(new ServiceBusMessage("payload"));
+    receiver.receiveMessages(1);
+} finally {
+    // Clients should be long-lived objects as they require resources
+    // and time to establish a connection to the service.
+    sender.close();
+    receiver.close();
+}
 ```
+### When to use 'ServiceBusProcessorClient'.
+ When to use 'ServiceBusProcessorClient', 'ServiceBusReceiverClient' or ServiceBusReceiverAsyncClient? The processor 
+ is built using 'ServiceBusReceiverAsyncClient', it provides a convenient way of receiving messages with default 
+ auto complete and auto-renew of message locks in 'PEEK_LOCK' mode. The processor is appropriate where the 
+ applications have not made complete move to async receiver client and want to process message in synchronous mode. 
+ The processor receives messages forever because it recovers from the network errors internally. 
+ 'ServiceBusProcessorClient:processMessage()' function call is made for each message. Alternatively, You can also use 
+ 'ServiceBusReceiverClient', it is a lower level client and provides a wider range of APIs. If async processing is  
+ suitable for your application, you can use 'ServiceBusReceiverAsyncClient'. 
 
 ## Troubleshooting
 
@@ -359,7 +481,9 @@ java.util.logging.SimpleFormatter.format=[%1$tF %1$tr] %3$s %4$s: %5$s %n
 
 This is a general exception for AMQP related failures, which includes the AMQP errors as `ErrorCondition` and the
 context that caused this exception as `AmqpErrorContext`. `isTransient` is a boolean indicating if the exception is a
-transient error or not. If true, then the request can be retried; otherwise not.
+transient error or not. If a transient AMQP exception occurs, the client library retries the operation as many times
+as the [AmqpRetryOptions][AmqpRetryOptions] allows. Afterwords, the operation fails and an exception is propagated back
+to the user.
 
 [`AmqpErrorCondition`][AmqpErrorCondition] contains error conditions common to the AMQP protocol and used by Azure
 services. When an AMQP exception is thrown, examining the error condition field can inform developers as to why the AMQP
@@ -367,49 +491,63 @@ exception occurred and if possible, how to mitigate this exception. A list of al
 [OASIS AMQP Version 1.0 Transport Errors][oasis_amqp_v1_error].
 
 The recommended way to solve the specific exception the AMQP exception represents is to follow the
-[Service Bus Messaging Exceptions][] guidance.
+[Service Bus Messaging Exceptions][servicebus_messaging_exceptions] guidance.
+
+### Understanding the APIs behavior
+
+The document [here][sync_receivemessages_implicit_prefetch] provides insights into the expected behavior of synchronous `receiveMessages` API when using it to obtain more than one message (a.k.a. implicit prefetching).
 
 ## Next steps
 
 Beyond those discussed, the Azure Service Bus client library offers support for many additional scenarios to help take
 advantage of the full feature set of the Azure Service Bus service. In order to help explore some of these scenarios,
-check out the [samples README][samples_readme].
+the following set of sample is available [here][samples_readme].
 
 ## Contributing
 
 If you would like to become an active contributor to this project please refer to our [Contribution
-Guidelines](./../../../CONTRIBUTING.md) for more information.
+Guidelines](https://github.com/Azure/azure-sdk-for-java/blob/main/CONTRIBUTING.md) for more information.
 
 <!-- Links -->
 [aad_authorization]: https://docs.microsoft.com/azure/service-bus-messaging/authenticate-application
 [amqp_transport_error]: https://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-transport-v1.0-os.html#type-amqp-error
-[AmqpErrorCondition]: ../../core/azure-core-amqp/src/main/java/com/azure/core/amqp/exception/AmqpErrorCondition.java
+[AmqpErrorCondition]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core-amqp/src/main/java/com/azure/core/amqp/exception/AmqpErrorCondition.java
+[AmqpRetryOptions]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core-amqp/src/main/java/com/azure/core/amqp/AmqpRetryOptions.java
 [api_documentation]: https://aka.ms/java-docs
+[dead-letter-queue]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-dead-letter-queues
 [deadletterqueue_docs]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-dead-letter-queues
+[java_development_kit]: https://docs.microsoft.com/java/azure/jdk/?view=azure-java-stable
 [java_8_sdk_javadocs]: https://docs.oracle.com/javase/8/docs/api/java/util/logging/package-summary.html
-[logging]: https://github.com/Azure/azure-sdk-for-java/wiki/Logging-with-Azure-SDK
+[logging]: https://docs.microsoft.com/azure/developer/java/sdk/logging-overview
 [maven]: https://maven.apache.org/
+[maven_package]: https://central.sonatype.com/artifact/com.azure/azure-messaging-servicebus
 [message-sessions]: https://docs.microsoft.com/azure/service-bus-messaging/message-sessions
-[oasis_amqp_v1_error]: http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-transport-v1.0-os.html#type-error
+[oasis_amqp_v1_error]: https://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-transport-v1.0-os.html#type-error
 [oasis_amqp_v1]: http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-overview-v1.0-os.html
 [product_docs]: https://docs.microsoft.com/azure/service-bus-messaging
-[qpid_proton_j_apache]: http://qpid.apache.org/proton/
+[qpid_proton_j_apache]: https://qpid.apache.org/proton/
 [queue_concept]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-messaging-overview#queues
-[ReceiveMode]: ./src/main/java/com/azure/messaging/servicebus/models/ReceiveMode.java
-[RetryOptions]: ../../core/azure-core-amqp/src/main/java/com/azure/core/amqp/AmqpRetryOptions.java
-[sample_examples]: ./src/samples/java/com/azure/messaging/servicebus/
-[samples_readme]: ./src/samples/README.md
+[ReceiveMode]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/models/ReceiveMode.java
+[RetryOptions]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core-amqp/src/main/java/com/azure/core/amqp/AmqpRetryOptions.java
+[sample_examples]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/samples/java/com/azure/messaging/servicebus/
+[samples_readme]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/samples/java/com/azure/messaging/servicebus
 [service_bus_connection_string]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-create-namespace-portal#get-the-connection-string
 [servicebus_create]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-create-namespace-portal
 [servicebus_messaging_exceptions]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-messaging-exceptions
 [servicebus_roles]: https://docs.microsoft.com/azure/service-bus-messaging/authenticate-application#built-in-rbac-roles-for-azure-service-bus
-[ServiceBusReceiverAsyncClient]: ./src/main/java/com/azure/messaging/servicebus/ServiceBusReceiverAsyncClient.java
-[ServiceBusReceiverClient]: ./src/main/java/com/azure/messaging/servicebus/ServiceBusReceiverClient.java
-[ServiceBusSenderAsyncClient]: ./src/main/java/com/azure/messaging/servicebus/ServiceBusSenderAsyncClient.java
-[ServiceBusSenderClient]: ./src/main/java/com/azure/messaging/servicebus/ServiceBusSenderClient.java
-[source_code]: ./
+[ServiceBusClientBuilder]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusClientBuilder.java
+[ServiceBusMessage]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusMessage.java
+[ServiceBusReceiverAsyncClient]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusReceiverAsyncClient.java
+[ServiceBusReceiverClient]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusReceiverClient.java
+[ServiceBusSenderAsyncClient]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusSenderAsyncClient.java
+[ServiceBusSenderClient]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/src/main/java/com/azure/messaging/servicebus/ServiceBusSenderClient.java
+[service_bus_create]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-create-namespace-portal
+[source_code]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/
 [subscription_concept]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions#topics-and-subscriptions
 [topic_concept]: https://docs.microsoft.com/azure/service-bus-messaging/service-bus-messaging-overview#topics
 [wiki_identity]: https://github.com/Azure/azure-sdk-for-java/wiki/Identity-and-Authentication
-
+[known-issue-binarydata-notfound]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/known-issues.md#can-not-resolve-binarydata-or-noclassdeffounderror-version-700
+[sync_receivemessages_implicit_prefetch]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/docs/SyncReceiveAndPrefetch.md
+[peek_lock_mode_docs]: https://learn.microsoft.com/azure/service-bus-messaging/message-transfers-locks-settlement#peeklock
+[receive_and_delete_mode_docs]: https://learn.microsoft.com/azure/service-bus-messaging/message-transfers-locks-settlement#receiveanddelete
 ![Impressions](https://azure-sdk-impressions.azurewebsites.net/api/impressions/azure-sdk-for-java%2Fsdk%2Fservicebus%2Fazure-messaging-servicebus%2FREADME.png)

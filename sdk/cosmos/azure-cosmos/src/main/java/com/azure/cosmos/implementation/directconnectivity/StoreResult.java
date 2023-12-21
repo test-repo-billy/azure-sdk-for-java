@@ -3,22 +3,16 @@
 
 package com.azure.cosmos.implementation.directconnectivity;
 
-import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.implementation.InternalServerErrorException;
 import com.azure.cosmos.implementation.Exceptions;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ISessionToken;
+import com.azure.cosmos.implementation.InternalServerErrorException;
 import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.RequestChargeTracker;
 import com.azure.cosmos.implementation.Strings;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 public class StoreResult {
     private final static Logger logger = LoggerFactory.getLogger(StoreResult.class);
@@ -34,6 +28,8 @@ public class StoreResult {
     final public long itemLSN;
     final public ISessionToken sessionToken;
     final public double requestCharge;
+    final public String activityId;
+    final public String correlatedActivityId;
     final public int currentReplicaSetSize;
     final public int currentWriteQuorum;
     final public boolean isValid;
@@ -41,6 +37,9 @@ public class StoreResult {
     final public boolean isNotFoundException;
     final public boolean isInvalidPartitionException;
     final public Uri storePhysicalAddress;
+    final public boolean isThroughputControlRequestRateTooLargeException;
+    final public Double backendLatencyInMs;
+    final public Double retryAfterInMs;
 
     public StoreResult(
             StoreResponse storeResponse,
@@ -49,6 +48,8 @@ public class StoreResult {
             long lsn,
             long quorumAckedLsn,
             double requestCharge,
+            String activityId,
+            String correlatedActivityId,
             int currentReplicaSetSize,
             int currentWriteQuorum,
             boolean isValid,
@@ -56,13 +57,17 @@ public class StoreResult {
             long globalCommittedLSN,
             int numberOfReadRegions,
             long itemLSN,
-            ISessionToken sessionToken) {
+            ISessionToken sessionToken,
+            Double backendLatencyInMs,
+            Double retryAfterInMs) {
         this.storeResponse = storeResponse;
         this.exception = exception;
         this.partitionKeyRangeId = partitionKeyRangeId;
         this.lsn = lsn;
         this.quorumAckedLSN = quorumAckedLsn;
         this.requestCharge = requestCharge;
+        this.activityId= activityId;
+        this.correlatedActivityId = correlatedActivityId;
         this.currentReplicaSetSize = currentReplicaSetSize;
         this.currentWriteQuorum = currentWriteQuorum;
         this.isValid = isValid;
@@ -75,6 +80,13 @@ public class StoreResult {
         this.numberOfReadRegions = numberOfReadRegions;
         this.itemLSN = itemLSN;
         this.sessionToken = sessionToken;
+        this.isThroughputControlRequestRateTooLargeException = this.exception != null && Exceptions.isThroughputControlRequestRateTooLargeException(this.exception);
+        this.backendLatencyInMs = backendLatencyInMs;
+        this.retryAfterInMs = retryAfterInMs;
+    }
+
+    public StoreResponse getStoreResponse() {
+        return storeResponse;
     }
 
     public CosmosException getException() throws InternalServerErrorException {
@@ -116,87 +128,16 @@ public class StoreResult {
     private static void setRequestCharge(StoreResponse response, CosmosException cosmosException, double totalRequestCharge) {
         if (cosmosException != null) {
             cosmosException.getResponseHeaders().put(HttpConstants.HttpHeaders.REQUEST_CHARGE,
-                    Double.toString(totalRequestCharge));
+                Double.toString(totalRequestCharge));
         }
         // Set total charge as final charge for the response.
         else if (response.getResponseHeaderNames() != null) {
             for (int i = 0; i < response.getResponseHeaderNames().length; ++i) {
-                if (Strings.areEqualIgnoreCase(
-                        response.getResponseHeaderNames()[i],
-                        HttpConstants.HttpHeaders.REQUEST_CHARGE)) {
+                if (Strings.areEqualIgnoreCase(response.getResponseHeaderNames()[i], HttpConstants.HttpHeaders.REQUEST_CHARGE)) {
                     response.getResponseHeaderValues()[i] = Double.toString(totalRequestCharge);
                     break;
                 }
             }
-        }
-    }
-
-    @Override
-    public String toString() {
-        int statusCode = 0;
-        int subStatusCode = HttpConstants.SubStatusCodes.UNKNOWN;
-
-        if (this.storeResponse != null) {
-            statusCode = this.storeResponse.getStatus();
-            subStatusCode = this.storeResponse.getSubStatusCode();
-        } else if (this.exception != null) {
-            statusCode = this.exception.getStatusCode();
-            subStatusCode = this.exception.getSubStatusCode();
-        }
-
-        return "storePhysicalAddress: " + this.storePhysicalAddress +
-                ", lsn: " + this.lsn +
-                ", globalCommittedLsn: " + this.globalCommittedLSN +
-                ", partitionKeyRangeId: " + this.partitionKeyRangeId +
-                ", isValid: " + this.isValid +
-                ", statusCode: " + statusCode +
-                ", subStatusCode: " + subStatusCode +
-                ", isGone: " + this.isGoneException +
-                ", isNotFound: " + this.isNotFoundException +
-                ", isInvalidPartition: " + this.isInvalidPartitionException +
-                ", requestCharge: " + this.requestCharge +
-                ", itemLSN: " + this.itemLSN +
-                ", sessionToken: " + (this.sessionToken != null ? this.sessionToken.convertToString() : null) +
-                ", exception: " + BridgeInternal.getInnerErrorMessage(this.exception);
-    }
-    public static class StoreResultSerializer extends StdSerializer<StoreResult> {
-        private static final long serialVersionUID = 5315472126043077905L;
-
-        public StoreResultSerializer(){
-            super(StoreResult.class);
-        }
-
-        @Override
-        public void serialize(StoreResult storeResult,
-                              JsonGenerator jsonGenerator,
-                              SerializerProvider serializerProvider) throws IOException {
-            int statusCode = 0;
-            int subStatusCode = HttpConstants.SubStatusCodes.UNKNOWN;
-
-            if (storeResult.storeResponse != null) {
-                statusCode = storeResult.storeResponse.getStatus();
-                subStatusCode = storeResult.storeResponse.getSubStatusCode();
-            } else if (storeResult.exception != null) {
-                statusCode = storeResult.exception.getStatusCode();
-                subStatusCode = storeResult.exception.getSubStatusCode();
-            }
-            jsonGenerator.writeStartObject();
-            jsonGenerator.writeObjectField("storePhysicalAddress", storeResult.storePhysicalAddress);
-            jsonGenerator.writeNumberField("lsn", storeResult.lsn);
-            jsonGenerator.writeNumberField("globalCommittedLsn", storeResult.globalCommittedLSN);
-            jsonGenerator.writeStringField("partitionKeyRangeId", storeResult.partitionKeyRangeId);
-            jsonGenerator.writeBooleanField("isValid", storeResult.isValid);
-            jsonGenerator.writeNumberField("statusCode", statusCode);
-            jsonGenerator.writeNumberField("subStatusCode", subStatusCode);
-            jsonGenerator.writeBooleanField("isGone", storeResult.isGoneException);
-            jsonGenerator.writeBooleanField("isNotFound", storeResult.isNotFoundException);
-            jsonGenerator.writeBooleanField("isInvalidPartition", storeResult.isInvalidPartitionException);
-            jsonGenerator.writeNumberField("requestCharge", storeResult.requestCharge);
-            jsonGenerator.writeNumberField("itemLSN", storeResult.itemLSN);
-            jsonGenerator.writeStringField("sessionToken", (storeResult.sessionToken != null ? storeResult.sessionToken.convertToString() : null));
-            jsonGenerator.writeStringField("exception", BridgeInternal.getInnerErrorMessage(storeResult.exception));
-            jsonGenerator.writeObjectField("transportRequestTimeline", storeResult.storeResponse != null ? storeResult.storeResponse.getRequestTimeline() : null);
-            jsonGenerator.writeEndObject();
         }
     }
 }

@@ -4,6 +4,9 @@
 package com.azure.cosmos.implementation.directconnectivity.rntbd;
 
 import com.azure.cosmos.implementation.UserAgentContainer;
+import com.azure.cosmos.implementation.directconnectivity.AddressSelector;
+import com.azure.cosmos.implementation.directconnectivity.IAddressResolver;
+import com.azure.cosmos.implementation.directconnectivity.Uri;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micrometer.core.instrument.Tag;
@@ -13,6 +16,7 @@ import io.netty.handler.ssl.SslContext;
 
 import java.net.SocketAddress;
 import java.net.URI;
+import java.time.Instant;
 import java.util.stream.Stream;
 
 import static com.azure.cosmos.implementation.directconnectivity.RntbdTransportClient.Options;
@@ -22,25 +26,70 @@ public interface RntbdEndpoint extends AutoCloseable {
 
     // region Accessors
 
-    int channelsAcquired();
+    /**
+     * @return approximate number of acquired channels.
+     */
+    int channelsAcquiredMetric();
 
-    int channelsAvailable();
+    /**
+     * @return durable monotonic counters for total acquired/closed channels.
+     */
+    RntbdDurableEndpointMetrics durableEndpointMetrics();
+
+    /**
+     * @return approximate number of available channels.
+     */
+    int channelsAvailableMetric();
 
     int concurrentRequests();
+
+    /**
+     * @return returns approximate number of connections in the connecting mode.
+     */
+    int gettingEstablishedConnectionsMetrics();
+
+    Instant getCreatedTime();
+
+    long lastRequestNanoTime();
+
+    long lastSuccessfulRequestNanoTime();
+
+    int channelsMetrics();
+
+    int executorTaskQueueMetrics();
 
     long id();
 
     boolean isClosed();
 
+    int maxChannels();
+
     SocketAddress remoteAddress();
+
+    URI serverKey();
 
     int requestQueueLength();
 
     Tag tag();
 
+    Tag clientMetricTag();
+
     long usedDirectMemory();
 
     long usedHeapMemory();
+
+    URI serviceEndpoint();
+
+    void injectConnectionErrors(
+        String faultInjectionRuleId,
+        double threshold,
+        Class<?> eventType);
+
+    int getMinChannelsRequired();
+
+    void setMinChannelsRequired(int minChannelsRequired);
+
+    Uri getAddressUri();
 
     // endregion
 
@@ -50,6 +99,8 @@ public interface RntbdEndpoint extends AutoCloseable {
     void close();
 
     RntbdRequestRecord request(RntbdRequestArgs requestArgs);
+
+    OpenConnectionRntbdRequestRecord openConnection(RntbdRequestArgs requestArgs);
 
     // endregion
 
@@ -66,9 +117,20 @@ public interface RntbdEndpoint extends AutoCloseable {
 
         int evictions();
 
+        RntbdEndpoint createIfAbsent(
+            URI serviceEndpoint,
+            Uri addressUri,
+            ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor,
+            int minRequiredChannelsForEndpoint,
+            AddressSelector addressSelector);
+
         RntbdEndpoint get(URI physicalAddress);
 
+        IAddressResolver getAddressResolver();
+
         Stream<RntbdEndpoint> list();
+
+        boolean isClosed();
     }
 
     final class Config {
@@ -122,8 +184,18 @@ public interface RntbdEndpoint extends AutoCloseable {
         }
 
         @JsonProperty
+        public long idleConnectionTimerResolutionInNanos() {
+            return this.options.idleChannelTimerResolution().toNanos();
+        }
+
+        @JsonProperty
         public long idleEndpointTimeoutInNanos() {
             return this.options.idleEndpointTimeout().toNanos();
+        }
+
+        @JsonProperty()
+        public boolean isConnectionEndpointRediscoveryEnabled() {
+            return this.options.isConnectionEndpointRediscoveryEnabled();
         }
 
         @JsonProperty
@@ -142,13 +214,18 @@ public interface RntbdEndpoint extends AutoCloseable {
         }
 
         @JsonProperty
+        public int maxConcurrentRequestsPerEndpoint() {
+            return this.options.maxConcurrentRequestsPerEndpoint();
+        }
+
+        @JsonProperty
         public long receiveHangDetectionTimeInNanos() {
             return this.options.receiveHangDetectionTime().toNanos();
         }
 
         @JsonProperty
-        public long requestTimeoutInNanos() {
-            return this.options.requestTimeout().toNanos();
+        public long tcpNetworkRequestTimeoutInNanos() {
+            return this.options.tcpNetworkRequestTimeout().toNanos();
         }
 
         @JsonProperty
@@ -179,6 +256,73 @@ public interface RntbdEndpoint extends AutoCloseable {
         @JsonProperty
         public LogLevel wireLogLevel() {
             return this.wireLogLevel;
+        }
+
+        @JsonProperty
+        public boolean isChannelAcquisitionContextEnabled() { return this.options.isChannelAcquisitionContextEnabled(); }
+
+        @JsonProperty
+        public int tcpKeepIntvl() { return this.options.tcpKeepIntvl(); }
+
+        @JsonProperty
+        public int tcpKeepIdle() { return this.options.tcpKeepIdle(); }
+
+        @JsonProperty
+        public boolean preferTcpNative() { return this.options.preferTcpNative(); }
+
+        @JsonProperty
+        public long sslHandshakeTimeoutInMillis() {
+            return this.options.sslHandshakeTimeoutInMillis();
+        }
+
+        @JsonProperty
+        public boolean timeoutDetectionEnabled() {
+            return this.options.timeoutDetectionEnabled();
+        }
+
+        @JsonProperty
+        public double timeoutDetectionDisableCPUThreshold() {
+            return this.options.timeoutDetectionDisableCPUThreshold();
+        }
+
+        @JsonProperty
+        public long timeoutDetectionTimeLimitInNanos() {
+            return this.options.timeoutDetectionTimeLimit().toNanos();
+        }
+
+        @JsonProperty
+        public int timeoutDetectionHighFrequencyThreshold() {
+            return this.options.timeoutDetectionHighFrequencyThreshold();
+        }
+
+        @JsonProperty
+        public long timeoutDetectionHighFrequencyTimeLimitInNanos() {
+            return this.options.timeoutDetectionHighFrequencyTimeLimit().toNanos();
+        }
+
+        @JsonProperty
+        public int timeoutDetectionOnWriteThreshold() {
+            return this.options.timeoutDetectionOnWriteThreshold();
+        }
+
+        @JsonProperty
+        public long timeoutDetectionOnWriteTimeLimitInNanos() {
+            return this.options.timeoutDetectionOnWriteTimeLimit().toNanos();
+        }
+
+        @JsonProperty
+        public long nonRespondingChannelReadDelayTimeLimitInNanos() {
+            return this.options.nonRespondingChannelReadDelayTimeLimit().toNanos();
+        }
+
+        @JsonProperty
+        public int cancellationCountSinceLastReadThreshold() {
+            return this.options.cancellationCountSinceLastReadThreshold();
+        }
+
+        @JsonProperty
+        public int minConnectionPoolSizePerEndpoint() {
+            return this.options.minConnectionPoolSizePerEndpoint();
         }
 
         @Override

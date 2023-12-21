@@ -31,6 +31,10 @@ The following sections provide several code snippets covering some of the most c
 - [Conditional request a configuration setting][sample_conditional_request]
 - [AAD Authentication][sample_aad]
 - [HTTP client with proxy option][proxy_option]
+- [Feature Flag configuration setting][sample_feature_flag_setting]
+- [Secret Reference configuration setting][sample_secret_reference_setting]
+- [Create/Retrieve/Update a snapshot and retrieve settings in a snapshot][sample_snapshot_CRU_usage]
+- [Retrieve multiple snapshots][sample_list_snapshots]
 
 ## Troubleshooting
 Troubleshooting steps can be found [here][SDK_README_TROUBLESHOOTING].
@@ -43,17 +47,21 @@ This project welcomes contributions and suggestions. Find [more contributing][SD
 
 <!-- LINKS -->
 [KEYS_SDK_README]: ../../README.md
-[SDK_README_CONTRIBUTING]: ../../README.md#contributing
-[SDK_README_GETTING_STARTED]: ../../README.md#getting-started
-[SDK_README_TROUBLESHOOTING]: ../../README.md#troubleshooting
-[SDK_README_KEY_CONCEPTS]: ../../README.md#key-concepts
+[SDK_README_CONTRIBUTING]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/README.md#contributing
+[SDK_README_GETTING_STARTED]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/README.md#getting-started
+[SDK_README_TROUBLESHOOTING]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/README.md#troubleshooting
+[SDK_README_KEY_CONCEPTS]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/README.md#key-concepts
 [azconfig_docs]: https://docs.microsoft.com/azure/azure-app-configuration
-[proxy_option]: java/com/azure/data/appconfiguration/ProxyOptionsSample.java
-[sample_hello_world]: java/com/azure/data/appconfiguration/HelloWorld.java
-[sample_list_configuration_settings]: java/com/azure/data/appconfiguration/ConfigurationSets.java
-[sample_conditional_request]: java/com/azure/data/appconfiguration/ConditionalRequest.java
-[sample_read_only]: java/com/azure/data/appconfiguration/ReadOnlySample.java
-[sample_read_revision_history]: java/com/azure/data/appconfiguration/ReadRevisionHistory.java
-[sample_aad]: java/com/azure/data/appconfiguration/AadAuthentication.java
+[proxy_option]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ProxyOptionsSample.java
+[sample_hello_world]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/HelloWorld.java
+[sample_list_configuration_settings]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ConfigurationSets.java
+[sample_conditional_request]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ConditionalRequest.java
+[sample_read_only]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ReadOnlySample.java
+[sample_read_revision_history]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ReadRevisionHistory.java
+[sample_aad]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/AadAuthentication.java
+[sample_feature_flag_setting]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/FeatureFlagConfigurationSettingSample.java
+[sample_secret_reference_setting]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/SecretReferenceConfigurationSettingSample.java
+[sample_snapshot_CRU_usage]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/CreateSnapshot.java
+[sample_list_snapshots]: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/appconfiguration/azure-data-appconfiguration/src/samples/java/com/azure/data/appconfiguration/ListSnapshots.java
 
 ![Impressions](https://azure-sdk-impressions.azurewebsites.net/api/impressions/azure-sdk-for-java%2Fsdk%2Fappconfiguration%2Fazure-data-appconfiguration%2Fsrc%2Fsamples%2FREADME.png)

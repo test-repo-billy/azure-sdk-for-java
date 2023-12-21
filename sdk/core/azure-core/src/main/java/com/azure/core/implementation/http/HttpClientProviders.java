@@ -4,51 +4,45 @@ package com.azure.core.implementation.http;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpClientProvider;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ServiceLoader;
+import com.azure.core.implementation.util.Providers;
+import com.azure.core.util.ClientOptions;
+import com.azure.core.util.Configuration;
+import com.azure.core.util.HttpClientOptions;
+
+import static com.azure.core.util.Configuration.PROPERTY_AZURE_HTTP_CLIENT_IMPLEMENTATION;
 
 /**
  * This class handles loading available HTTP clients
  */
 public final class HttpClientProviders {
-    private static HttpClientProvider defaultProvider;
-    private static final String CANNOT_FIND_HTTP_CLIENT =
-        "Cannot find any HttpClient provider on the classpath - unable to create a default HttpClient instance";
+    private static final String NO_DEFAULT_PROVIDER_MESSAGE = "A request was made to load the default HttpClient provider "
+        + "but one could not be found on the classpath. If you are using a dependency manager, consider including a "
+        + "dependency on azure-core-http-netty or azure-core-http-okhttp. Depending on your existing dependencies, you "
+        + "have the choice of Netty or OkHttp implementations. Additionally, refer to "
+        + "https://aka.ms/azsdk/java/docs/custom-httpclient to learn about writing your own implementation.";
 
-    static {
-        ServiceLoader<HttpClientProvider> serviceLoader = ServiceLoader.load(HttpClientProvider.class);
-        // Use the first provider found in the service loader iterator.
-        Iterator<HttpClientProvider> it = serviceLoader.iterator();
-        if (it.hasNext()) {
-            defaultProvider = it.next();
-        }
-    }
+    private static final Providers<HttpClientProvider, HttpClient> HTTP_CLIENT_PROVIDERS = new Providers<>(HttpClientProvider.class,
+        Configuration.getGlobalConfiguration().get(PROPERTY_AZURE_HTTP_CLIENT_IMPLEMENTATION),
+        NO_DEFAULT_PROVIDER_MESSAGE);
 
     private HttpClientProviders() {
         // no-op
     }
 
     public static HttpClient createInstance() {
-        if (defaultProvider == null) {
-            throw new IllegalStateException(CANNOT_FIND_HTTP_CLIENT);
-        }
-        return defaultProvider.createInstance();
+        return createInstance(null);
     }
 
-    /**
-     * Returns a list of all {@link HttpClient HttpClients} that are discovered in the classpath.
-     *
-     * @return A list of all {@link HttpClient HttpClients} discovered in the classpath.
-     */
-    public static List<HttpClient> getAllHttpClients() {
-        ServiceLoader<HttpClientProvider> serviceLoader = ServiceLoader.load(HttpClientProvider.class);
-        Iterator<HttpClientProvider> iterator = serviceLoader.iterator();
-        List<HttpClient> allClients = new ArrayList<>();
-        while (iterator.hasNext()) {
-            allClients.add(iterator.next().createInstance());
+    public static HttpClient createInstance(ClientOptions clientOptions) {
+        Class<? extends HttpClientProvider> selectedImplementation = null;
+        final HttpClientOptions httpClientOptions;
+        if (clientOptions instanceof HttpClientOptions) {
+            httpClientOptions = (HttpClientOptions) clientOptions;
+            selectedImplementation = httpClientOptions.getHttpClientProvider();
+        } else {
+            httpClientOptions = null;
         }
-        return allClients;
+
+        return HTTP_CLIENT_PROVIDERS.create(p -> p.createInstance(httpClientOptions), null, selectedImplementation);
     }
 }

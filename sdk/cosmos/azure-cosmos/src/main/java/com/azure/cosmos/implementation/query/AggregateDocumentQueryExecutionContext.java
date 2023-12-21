@@ -3,21 +3,16 @@
 
 package com.azure.cosmos.implementation.query;
 
-import com.azure.cosmos.implementation.query.aggregation.AggregateOperator;
-import com.azure.cosmos.implementation.query.aggregation.Aggregator;
-import com.azure.cosmos.implementation.query.aggregation.AverageAggregator;
-import com.azure.cosmos.implementation.query.aggregation.CountAggregator;
-import com.azure.cosmos.implementation.query.aggregation.MaxAggregator;
-import com.azure.cosmos.implementation.query.aggregation.MinAggregator;
-import com.azure.cosmos.implementation.query.aggregation.SumAggregator;
 import com.azure.cosmos.BridgeInternal;
+import com.azure.cosmos.implementation.ClientSideRequestStatistics;
+import com.azure.cosmos.implementation.DistinctClientSideRequestStatisticsCollection;
 import com.azure.cosmos.implementation.Document;
-import com.azure.cosmos.models.FeedResponse;
-import com.azure.cosmos.implementation.Resource;
-import com.azure.cosmos.implementation.Undefined;
-import com.azure.cosmos.implementation.Constants;
 import com.azure.cosmos.implementation.HttpConstants;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.QueryMetrics;
+import com.azure.cosmos.implementation.query.aggregation.AggregateOperator;
+import com.azure.cosmos.models.FeedResponse;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
@@ -27,105 +22,144 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
-public class AggregateDocumentQueryExecutionContext<T extends Resource> implements IDocumentQueryExecutionComponent<T>{
+public class AggregateDocumentQueryExecutionContext
+    implements IDocumentQueryExecutionComponent<Document>{
 
-    private IDocumentQueryExecutionComponent<T> component;
-    private Aggregator aggregator;
-    private ConcurrentMap<String, QueryMetrics> queryMetricsMap = new ConcurrentHashMap<>();
+    private final static
+    ImplementationBridgeHelpers.CosmosDiagnosticsHelper.CosmosDiagnosticsAccessor diagnosticsAccessor =
+        ImplementationBridgeHelpers.CosmosDiagnosticsHelper.getCosmosDiagnosticsAccessor();
+
+    private static final ImplementationBridgeHelpers.FeedResponseHelper.FeedResponseAccessor feedResponseAccessor =
+        ImplementationBridgeHelpers.FeedResponseHelper.getFeedResponseAccessor();
+    public static final String PAYLOAD_PROPERTY_NAME = "payload";
+    private final boolean isValueAggregateQuery;
+    private final IDocumentQueryExecutionComponent<Document> component;
+    private final ConcurrentMap<String, QueryMetrics> queryMetricsMap = new ConcurrentHashMap<>();
+    private final SingleGroupAggregator singleGroupAggregator;
 
     //QueryInfo class used in PipelinedDocumentQueryExecutionContext returns a Collection of AggregateOperators
-    //while Multiple aggregates are allowed in queries targeted at a single partition, only a single aggregate is allowed in x-partition queries (currently)
-    public AggregateDocumentQueryExecutionContext (IDocumentQueryExecutionComponent<T> component, Collection<AggregateOperator> aggregateOperators) {
+    public AggregateDocumentQueryExecutionContext(IDocumentQueryExecutionComponent<Document> component,
+                                                  List<AggregateOperator> aggregateOperators,
+                                                  Map<String, AggregateOperator> groupByAliasToAggregateType,
+                                                  List<String> orderedAliases,
+                                                  boolean hasSelectValue,
+                                                  String continuationToken) {
 
         this.component = component;
-        AggregateOperator aggregateOperator = aggregateOperators.iterator().next();
+        this.isValueAggregateQuery = hasSelectValue;
 
-        switch (aggregateOperator) {
-            case Average:
-                this.aggregator = new AverageAggregator();
-                break;
-            case Count:
-                this.aggregator = new CountAggregator();
-                break;
-            case Max:
-                this.aggregator = new MaxAggregator();
-                break;
-            case Min:
-                this.aggregator = new MinAggregator();
-                break;
-            case Sum:
-                this.aggregator = new SumAggregator();
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + aggregateOperator.toString());
-            }
-        }
+        this.singleGroupAggregator = SingleGroupAggregator.create(aggregateOperators,
+                                                                  groupByAliasToAggregateType,
+                                                                  orderedAliases,
+                                                                  hasSelectValue,
+                                                                  continuationToken);
+    }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Flux<FeedResponse<T>> drainAsync(int maxPageSize) {
+    public Flux<FeedResponse<Document>> drainAsync(int maxPageSize) {
 
         return this.component.drainAsync(maxPageSize)
                 .collectList()
                 .map( superList -> {
 
                     double requestCharge = 0;
-                    List<Document> aggregateResults = new ArrayList<Document>();
-                    HashMap<String, String> headers = new HashMap<String, String>();
+                    List<Document> aggregateResults = new ArrayList<>();
+                    HashMap<String, String> headers = new HashMap<>();
+                    Collection<ClientSideRequestStatistics> diagnosticsList = new DistinctClientSideRequestStatisticsCollection();
 
-                    for(FeedResponse<T> page : superList) {
+                    for(FeedResponse<Document> page : superList) {
+                        diagnosticsList.addAll(
+                            diagnosticsAccessor.getClientSideRequestStatisticsForQueryPipelineAggregations(page.getCosmosDiagnostics()));
 
                         if (page.getResults().size() == 0) {
                             headers.put(HttpConstants.HttpHeaders.REQUEST_CHARGE, Double.toString(requestCharge));
-                            FeedResponse<Document> frp = BridgeInternal.createFeedResponse(aggregateResults, headers);
-                            return (FeedResponse<T>) frp;
+                            FeedResponse<Document> frp = feedResponseAccessor.createFeedResponse(
+                                aggregateResults, headers, null);
+                            diagnosticsAccessor.addClientSideDiagnosticsToFeed(
+                                frp.getCosmosDiagnostics(), diagnosticsList);
+                            return frp;
                         }
 
-                        Document doc = ((Document)page.getResults().get(0));
                         requestCharge += page.getRequestCharge();
-                        QueryItem values = new QueryItem(doc.toJson());
-                        this.aggregator.aggregate(values.getItem());
-                        for(String key : BridgeInternal.queryMetricsFromFeedResponse(page).keySet()) {
-                            if (queryMetricsMap.containsKey(key)) {
-                                QueryMetrics qm = BridgeInternal.queryMetricsFromFeedResponse(page).get(key);
-                                queryMetricsMap.get(key).add(qm);
-                            } else {
-                                queryMetricsMap.put(key, BridgeInternal.queryMetricsFromFeedResponse(page).get(key));
-                            }
+
+                        for (Document d : page.getResults()) {
+                            RewrittenAggregateProjections rewrittenAggregateProjections =
+                                new RewrittenAggregateProjections(this.isValueAggregateQuery,
+                                    d); //d is always a Document
+                            this.singleGroupAggregator.addValues(rewrittenAggregateProjections.getPayload());
                         }
+
+                        QueryMetrics.mergeQueryMetricsMap(this.queryMetricsMap, BridgeInternal.queryMetricsFromFeedResponse(page));
                     }
 
-                    if (this.aggregator.getResult() == null || !this.aggregator.getResult().equals(Undefined.value())) {
-                        Document aggregateDocument = new Document();
-                        BridgeInternal.setProperty(aggregateDocument, Constants.Properties.VALUE, this.aggregator.getResult());
+                    Document aggregateDocument = this.singleGroupAggregator.getResult();
+                    if (aggregateDocument != null) {
                         aggregateResults.add(aggregateDocument);
                     }
 
                     headers.put(HttpConstants.HttpHeaders.REQUEST_CHARGE, Double.toString(requestCharge));
-                    FeedResponse<Document> frp = BridgeInternal.createFeedResponse(aggregateResults, headers);
+                    FeedResponse<Document> frp = feedResponseAccessor.createFeedResponse(
+                        aggregateResults, headers, null);
                     if(!queryMetricsMap.isEmpty()) {
                         for(Map.Entry<String, QueryMetrics> entry: queryMetricsMap.entrySet()) {
                             BridgeInternal.putQueryMetricsIntoMap(frp, entry.getKey(), entry.getValue());
                         }
                     }
-                    return (FeedResponse<T>) frp;
+                    diagnosticsAccessor.addClientSideDiagnosticsToFeed(
+                        frp.getCosmosDiagnostics(), diagnosticsList);
+                    return frp;
                 }).flux();
     }
 
-    public static <T extends Resource>  Flux<IDocumentQueryExecutionComponent<T>> createAsync(
-            Function<String, Flux<IDocumentQueryExecutionComponent<T>>> createSourceComponentFunction,
-            Collection<AggregateOperator> aggregates,
-            String continuationToken) {
+    public static Flux<IDocumentQueryExecutionComponent<Document>> createAsync(
+        BiFunction<String, PipelinedDocumentQueryParams<Document>, Flux<IDocumentQueryExecutionComponent<Document>>> createSourceComponentFunction,
+        Collection<AggregateOperator> aggregates,
+        Map<String, AggregateOperator> groupByAliasToAggregateType,
+        List<String> groupByAliases,
+        boolean hasSelectValue,
+        String continuationToken,
+        PipelinedDocumentQueryParams<Document> documentQueryParams) {
 
         return createSourceComponentFunction
-                .apply(continuationToken)
-                .map( component -> { return new AggregateDocumentQueryExecutionContext<T>(component, aggregates);});
+                   .apply(continuationToken, documentQueryParams)
+                   .map(component -> new AggregateDocumentQueryExecutionContext(component,
+                                                                        new ArrayList<>(aggregates),
+                                                                        groupByAliasToAggregateType,
+                                                                        groupByAliases,
+                                                                        hasSelectValue,
+                                                                        continuationToken));
     }
 
-    public IDocumentQueryExecutionComponent<T> getComponent() {
+    public IDocumentQueryExecutionComponent<Document> getComponent() {
         return this.component;
+    }
+
+    static final class RewrittenAggregateProjections {
+        private Document payload;
+
+        public RewrittenAggregateProjections(boolean isValueAggregateQuery, Document document) {
+            if (document == null) {
+                throw new IllegalArgumentException("document cannot be null");
+            }
+
+            if (isValueAggregateQuery) {
+                this.payload = new Document(document.getPropertyBag());
+            } else {
+                if (!document.has(PAYLOAD_PROPERTY_NAME)) {
+                    throw new IllegalStateException("Underlying object does not have an 'payload' field.");
+                }
+
+                if (document.get(PAYLOAD_PROPERTY_NAME) instanceof ObjectNode) {
+                    this.payload = new Document((ObjectNode) document.get(PAYLOAD_PROPERTY_NAME));
+                }
+            }
+        }
+
+        public Document getPayload() {
+            return payload;
+        }
     }
 
 }

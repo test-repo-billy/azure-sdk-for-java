@@ -47,11 +47,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 
 import static com.azure.core.util.AuthorizationChallengeHandler.PROXY_AUTHENTICATE;
 import static com.azure.core.util.AuthorizationChallengeHandler.PROXY_AUTHENTICATION_INFO;
 import static com.azure.core.util.AuthorizationChallengeHandler.PROXY_AUTHORIZATION;
+import static com.azure.core.util.AuthorizationChallengeHandler.parseAuthenticationOrAuthorizationHeader;
 
 /**
  * This class handles authorizing requests being sent through a proxy which require authentication.
@@ -71,8 +71,6 @@ public final class HttpProxyHandler extends ProxyHandler {
     private static final String AUTH_BASIC = "basic";
     private static final String AUTH_DIGEST = "digest";
 
-    private static final Pattern AUTH_SCHEME_PATTERN = Pattern.compile("^" + AUTH_DIGEST, Pattern.CASE_INSENSITIVE);
-
     /*
      * Proxies use 'CONNECT' as the HTTP method.
      */
@@ -86,9 +84,11 @@ public final class HttpProxyHandler extends ProxyHandler {
     /*
      * Digest authentication to a proxy uses the 'CONNECT' method, these can't have a request body.
      */
-    private static final Supplier<byte[]> NO_BODY = () -> new byte[0];
+    private static final byte[] NO_BYTES = new byte[0];
+    private static final Supplier<byte[]> NO_BODY = () -> NO_BYTES;
 
-    private final ClientLogger logger = new ClientLogger(HttpProxyHandler.class);
+    // HttpProxyHandler will be created for each network request that is using proxy, use a static logger.
+    private static final ClientLogger LOGGER = new ClientLogger(HttpProxyHandler.class);
 
     private final AuthorizationChallengeHandler challengeHandler;
     private final AtomicReference<ChallengeHolder> proxyChallengeHolderReference;
@@ -96,6 +96,7 @@ public final class HttpProxyHandler extends ProxyHandler {
 
     private String authScheme = null;
     private HttpResponseStatus status;
+    private HttpHeaders innerHeaders;
 
     public HttpProxyHandler(InetSocketAddress proxyAddress, AuthorizationChallengeHandler challengeHandler,
         AtomicReference<ChallengeHolder> proxyChallengeHolderReference) {
@@ -103,7 +104,6 @@ public final class HttpProxyHandler extends ProxyHandler {
 
         this.challengeHandler = challengeHandler;
         this.proxyChallengeHolderReference = proxyChallengeHolderReference;
-
         this.codec = new HttpClientCodec();
     }
 
@@ -139,7 +139,7 @@ public final class HttpProxyHandler extends ProxyHandler {
         String hostString = HttpUtil.formatHostnameForHttp(destinationAddress);
         int port = destinationAddress.getPort();
         String url = hostString + ":" + port;
-        String hostHeader = (port != 80 && port != 443) ? url : hostString;
+        String hostHeader = (port == 80 || port == 443) ? url : hostString;
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.CONNECT, url,
             Unpooled.EMPTY_BUFFER, false);
 
@@ -150,7 +150,8 @@ public final class HttpProxyHandler extends ProxyHandler {
             String authorizationHeader = createAuthorizationHeader();
 
             if (!CoreUtils.isNullOrEmpty(authorizationHeader)) {
-                authScheme = AUTH_SCHEME_PATTERN.matcher(authorizationHeader).find() ? AUTH_DIGEST : AUTH_BASIC;
+                // Checks if the authorization header begins with 'digest' using a case-insensitive match.
+                authScheme = AUTH_DIGEST.regionMatches(true, 0, authorizationHeader, 0, 6) ? AUTH_DIGEST : AUTH_BASIC;
                 request.headers().set(PROXY_AUTHORIZATION, authorizationHeader);
                 ctx.channel().attr(PROXY_AUTHORIZATION_KEY).set(authorizationHeader);
             }
@@ -207,11 +208,12 @@ public final class HttpProxyHandler extends ProxyHandler {
     protected boolean handleResponse(ChannelHandlerContext ctx, Object o) throws ProxyConnectException {
         if (o instanceof HttpResponse) {
             if (status != null) {
-                throw logger.logExceptionAsWarning(new RuntimeException("Received too many responses for a request"));
+                throw LOGGER.logExceptionAsWarning(new RuntimeException("Received too many responses for a request"));
             }
 
             HttpResponse response = (HttpResponse) o;
             status = response.status();
+            innerHeaders = response.headers();
 
             if (response.status().code() == 407) {
                 /*
@@ -233,12 +235,9 @@ public final class HttpProxyHandler extends ProxyHandler {
         }
 
         boolean responseComplete = o instanceof LastHttpContent;
-        if (responseComplete) {
-            if (status == null) {
-                throw new ProxyConnectException("Never received response for CONNECT request.");
-            } else if (status.code() != 200) {
-                throw new ProxyConnectException("Failed to connect to proxy.");
-            }
+        if (responseComplete && status == null) {
+            throw new io.netty.handler.proxy.HttpProxyHandler.HttpProxyConnectException(
+                "Never received response for CONNECT request.", innerHeaders);
         }
 
         return responseComplete;
@@ -252,30 +251,29 @@ public final class HttpProxyHandler extends ProxyHandler {
         List<Map<String, String>> digestChallenges = new ArrayList<>();
 
         for (String proxyAuthenticationHeader : headers.getAll(PROXY_AUTHENTICATE)) {
-            String[] typeValuePair = proxyAuthenticationHeader.split(" ", 2);
-
-            String challengeType = typeValuePair[0].trim();
-            if (challengeType.equalsIgnoreCase(AUTH_BASIC)) {
+            if (AUTH_BASIC.regionMatches(true, 0, proxyAuthenticationHeader, 0, 5)) {
                 /*
                  * Proxy-Authenticate is requesting Basic authorization, this only needs a flag as Basic authentication
                  * is always the same.
                  */
                 hasBasicChallenge = true;
-            } else if (challengeType.equalsIgnoreCase(AUTH_DIGEST)) {
+            } else if (AUTH_DIGEST.regionMatches(true, 0, proxyAuthenticationHeader, 0, 6)) {
                 /*
                  * Proxy-Authenticate is requesting Digest authorization, this needs to be parsed for the challenge
                  * information as Digest authentication always changes.
                  */
                 Map<String, String> digestChallenge = new HashMap<>();
-                for (String challengePiece : typeValuePair[1].split(",")) {
-                    String[] kvp = challengePiece.split("=", 2);
+                String challengePieces = proxyAuthenticationHeader.substring(7);
+                for (String challengePiece : challengePieces.split(",")) {
+                    int indexOfEqual = challengePiece.indexOf('=');
 
                     // Skip challenge information that has no value.
-                    if (kvp.length != 2) {
+                    if (indexOfEqual < 0) {
                         continue;
                     }
 
-                    digestChallenge.put(kvp[0].trim(), kvp[1].trim().replace("\"", ""));
+                    digestChallenge.put(challengePiece.substring(0, indexOfEqual).trim(),
+                        challengePiece.substring(indexOfEqual + 1).trim().replace("\"", ""));
                 }
 
                 digestChallenges.add(digestChallenge);
@@ -295,10 +293,8 @@ public final class HttpProxyHandler extends ProxyHandler {
             return;
         }
 
-        Map<String, String> authenticationInfoPieces = AuthorizationChallengeHandler
-            .parseAuthenticationOrAuthorizationHeader(infoHeader);
-        Map<String, String> authorizationPieces = AuthorizationChallengeHandler
-            .parseAuthenticationOrAuthorizationHeader(authorizationHeader);
+        Map<String, String> authenticationInfoPieces = parseAuthenticationOrAuthorizationHeader(infoHeader);
+        Map<String, String> authorizationPieces = parseAuthenticationOrAuthorizationHeader(authorizationHeader);
 
         /*
          * If the authentication info response contains a cnonce or nc value it MUST match the value sent in the
@@ -316,14 +312,14 @@ public final class HttpProxyHandler extends ProxyHandler {
      * 'Proxy-Authorization' header. If the values don't match an 'IllegalStateException' will be thrown with a message
      * outlining that the values didn't match.
      */
-    private void validateProxyAuthenticationInfoValue(String name, Map<String, String> authenticationInfoPieces,
+    private static void validateProxyAuthenticationInfoValue(String name, Map<String, String> authenticationInfoPieces,
         Map<String, String> authorizationPieces) {
         if (authenticationInfoPieces.containsKey(name)) {
             String sentValue = authorizationPieces.get(name);
             String receivedValue = authenticationInfoPieces.get(name);
 
             if (!receivedValue.equalsIgnoreCase(sentValue)) {
-                throw logger.logExceptionAsError(new IllegalStateException(
+                throw LOGGER.logExceptionAsError(new IllegalStateException(
                     String.format(VALIDATION_ERROR_TEMPLATE, name, sentValue, receivedValue)));
             }
         }

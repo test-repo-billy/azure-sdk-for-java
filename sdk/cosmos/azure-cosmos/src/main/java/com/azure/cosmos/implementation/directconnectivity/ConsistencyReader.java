@@ -6,17 +6,21 @@ package com.azure.cosmos.implementation.directconnectivity;
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.implementation.GoneException;
-import com.azure.cosmos.implementation.ISessionContainer;
-import com.azure.cosmos.implementation.NotFoundException;
-import com.azure.cosmos.implementation.RequestTimeoutException;
+import com.azure.cosmos.SessionRetryOptions;
+import com.azure.cosmos.implementation.BackoffRetryUtility;
 import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.implementation.DiagnosticsClientContext;
+import com.azure.cosmos.implementation.GoneException;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.IAuthorizationTokenProvider;
+import com.azure.cosmos.implementation.ISessionContainer;
 import com.azure.cosmos.implementation.ISessionToken;
+import com.azure.cosmos.implementation.NotFoundException;
 import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.RequestChargeTracker;
+import com.azure.cosmos.implementation.RequestTimeoutException;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
+import com.azure.cosmos.implementation.SessionTokenMismatchRetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -143,29 +147,30 @@ import static com.azure.cosmos.implementation.Utils.ValueHolder;
  * For SESSION and EVENTUAL Consistency, it directly uses the store reader.
  */
 public class ConsistencyReader {
-    private final static int MAX_NUMBER_OF_SECONDARY_READ_RETRIES = 3;
     private final static Logger logger = LoggerFactory.getLogger(ConsistencyReader.class);
 
-    private final AddressSelector addressSelector;
+    private final DiagnosticsClientContext diagnosticsClientContext;
     private final GatewayServiceConfigurationReader serviceConfigReader;
-    private final IAuthorizationTokenProvider authorizationTokenProvider;
     private final StoreReader storeReader;
     private final QuorumReader quorumReader;
     private final Configs configs;
+    private final SessionRetryOptions sessionRetryOptions;
 
     public ConsistencyReader(
+        DiagnosticsClientContext diagnosticsClientContext,
         Configs configs,
         AddressSelector addressSelector,
         ISessionContainer sessionContainer,
         TransportClient transportClient,
         GatewayServiceConfigurationReader serviceConfigReader,
-        IAuthorizationTokenProvider authorizationTokenProvider) {
+        IAuthorizationTokenProvider authorizationTokenProvider,
+        SessionRetryOptions sessionRetryOptions) {
+        this.diagnosticsClientContext = diagnosticsClientContext;
         this.configs = configs;
-        this.addressSelector = addressSelector;
         this.serviceConfigReader = serviceConfigReader;
-        this.authorizationTokenProvider = authorizationTokenProvider;
         this.storeReader = createStoreReader(transportClient, addressSelector, sessionContainer);
         this.quorumReader = createQuorumReader(transportClient, addressSelector, this.storeReader, serviceConfigReader, authorizationTokenProvider);
+        this.sessionRetryOptions = sessionRetryOptions;
     }
 
     public Mono<StoreResponse> readAsync(RxDocumentServiceRequest entity,
@@ -190,7 +195,7 @@ public class ConsistencyReader {
         }
 
         if(entity.requestContext.cosmosDiagnostics == null) {
-            entity.requestContext.cosmosDiagnostics = BridgeInternal.createCosmosDiagnostics();
+            entity.requestContext.cosmosDiagnostics = entity.createCosmosDiagnostics();
         }
 
         entity.requestContext.forceRefreshAddressCache = forceRefresh;
@@ -211,12 +216,7 @@ public class ConsistencyReader {
                 return this.readPrimaryAsync(entity, useSessionToken.v);
 
             case Strong:
-                entity.requestContext.performLocalRefreshOnGoneException = true;
-                return this.quorumReader.readStrongAsync(entity, readQuorumValue, desiredReadMode);
-
             case BoundedStaleness:
-                entity.requestContext.performLocalRefreshOnGoneException = true;
-
                 // for bounded staleness, we are defaulting to read strong for local region reads.
                 // this can be done since we are always running with majority quorum w = 3 (or 2 during quorum downshift).
                 // This means that the primary will always be part of the write quorum, and
@@ -227,11 +227,17 @@ public class ConsistencyReader {
                 // we always contact two secondary replicas and exclude primary.
                 // However, this model significantly reduces availability and available throughput for serving reads for bounded staleness during reconfiguration.
                 // Therefore, to ensure monotonic read guarantee from any replica set we will just use regular quorum read(R=2) since our write quorum is always majority(W=3)
-                return this.quorumReader.readStrongAsync(entity, readQuorumValue, desiredReadMode);
+
+                entity.requestContext.performLocalRefreshOnGoneException = true;
+                return this.quorumReader.readStrongAsync(this.diagnosticsClientContext, entity, readQuorumValue, desiredReadMode);
 
             case Any:
                 if (targetConsistencyLevel.v == ConsistencyLevel.SESSION) {
-                    return this.readSessionAsync(entity, desiredReadMode);
+                    return BackoffRetryUtility.executeRetry(
+                        () -> this.readSessionAsync(entity, desiredReadMode),
+                        new SessionTokenMismatchRetryPolicy(
+                            BridgeInternal.getRetryContext(entity.requestContext.cosmosDiagnostics),
+                            sessionRetryOptions));
                 } else {
                     return this.readAnyAsync(entity, desiredReadMode);
                 }
@@ -270,7 +276,8 @@ public class ConsistencyReader {
         return responsesObs.flatMap(
                 responses -> {
             if (responses.size() == 0) {
-                        return Mono.error(new GoneException(RMResources.Gone));
+                        return Mono.error(new GoneException(RMResources.Gone,
+                            HttpConstants.SubStatusCodes.NO_VALID_STORE_RESPONSE));
             }
 
             try {
@@ -346,11 +353,7 @@ public class ConsistencyReader {
 
         switch (targetConsistencyLevel.v) {
             case EVENTUAL:
-                return ReadMode.Any;
-
             case CONSISTENT_PREFIX:
-                return ReadMode.Any;
-
             case SESSION:
                 return ReadMode.Any;
 
@@ -396,7 +399,8 @@ public class ConsistencyReader {
                                     StoreReader storeReader,
                                     GatewayServiceConfigurationReader serviceConfigurationReader,
                                     IAuthorizationTokenProvider authorizationTokenProvider) {
-        return new QuorumReader(transportClient,
+        return new QuorumReader(this.diagnosticsClientContext,
+            transportClient,
             addressSelector,
             storeReader,
             serviceConfigurationReader,

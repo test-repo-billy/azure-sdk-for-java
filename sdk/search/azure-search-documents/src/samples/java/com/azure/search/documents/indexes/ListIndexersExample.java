@@ -7,7 +7,6 @@ import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.rest.PagedResponse;
 import com.azure.core.util.Configuration;
 import com.azure.search.documents.indexes.models.SearchIndexer;
-import com.azure.search.documents.models.RequestOptions;
 
 import java.util.List;
 
@@ -35,16 +34,16 @@ public class ListIndexersExample {
     }
 
     private static void listIndexers(SearchIndexerAsyncClient indexerAsyncClient) {
-        PagedResponse<SearchIndexer> response = indexerAsyncClient.listIndexers(new RequestOptions(), null)
+        PagedResponse<SearchIndexer> response = indexerAsyncClient.listIndexers()
             .byPage().blockFirst();
 
         if (response != null) {
-            System.out.println(String.format("Response code: %s", response.getStatusCode()));
+            System.out.printf("Response code: %s%n", response.getStatusCode());
 
             List<SearchIndexer> indexers = response.getValue();
             System.out.println("Found the following indexers:");
             for (SearchIndexer indexer : indexers) {
-                System.out.println(String.format("Indexer name: %s, ETag: %s", indexer.getName(), indexer.getETag()));
+                System.out.printf("Indexer name: %s, ETag: %s%n", indexer.getName(), indexer.getETag());
             }
         }
     }

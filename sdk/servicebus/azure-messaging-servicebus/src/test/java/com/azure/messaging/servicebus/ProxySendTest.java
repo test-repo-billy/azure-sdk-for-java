@@ -8,6 +8,7 @@ import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.jproxy.ProxyServer;
 import com.azure.messaging.servicebus.jproxy.SimpleProxy;
+import org.apache.qpid.proton.engine.SslDomain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +38,6 @@ public class ProxySendTest extends IntegrationTestBase {
 
     @BeforeEach
     public void initialize() throws Exception {
-        StepVerifier.setDefaultTimeout(Duration.ofSeconds(30));
-
         proxyServer = new SimpleProxy(PROXY_PORT);
         proxyServer.start(error -> logger.error("Exception occurred in proxy.", error));
 
@@ -58,8 +57,6 @@ public class ProxySendTest extends IntegrationTestBase {
 
     @AfterEach
     public void cleanup() throws Exception {
-        StepVerifier.resetDefaultTimeout();
-
         ProxySelector.setDefault(defaultProxySelector);
 
         if (proxyServer != null) {
@@ -73,7 +70,7 @@ public class ProxySendTest extends IntegrationTestBase {
     @Test
     public void sendEvents() {
         // Arrange
-        final String queueName = getQueueName(9);
+        final String queueName = getQueueName(TestUtils.USE_CASE_PROXY);
 
         Assertions.assertNotNull(queueName, "'queueName' is not set in environment variable.");
 
@@ -83,24 +80,22 @@ public class ProxySendTest extends IntegrationTestBase {
         final ServiceBusSenderAsyncClient sender = new ServiceBusClientBuilder()
             .connectionString(getConnectionString())
             .transportType(AmqpTransportType.AMQP_WEB_SOCKETS)
+            .verifyMode(SslDomain.VerifyMode.ANONYMOUS_PEER)
             .retryOptions(new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(10)))
             .sender()
             .queueName(queueName)
             .buildAsyncClient();
+        toClose(sender);
+        // Act & Assert
+        StepVerifier.create(sender.createMessageBatch()
+            .flatMap(batch -> {
+                for (int i = 0; i < messages.size(); i++) {
+                    Assertions.assertTrue(batch.tryAddMessage(messages.get(i)), "Unable to add message: " + i);
+                }
 
-        try {
-            // Act & Assert
-            StepVerifier.create(sender.createBatch()
-                .flatMap(batch -> {
-                    for (int i = 0; i < messages.size(); i++) {
-                        Assertions.assertTrue(batch.tryAdd(messages.get(i)), "Unable to add message: " + i);
-                    }
-
-                    return sender.send(batch);
-                }))
-                .verifyComplete();
-        } finally {
-            dispose(sender);
-        }
+                return sender.sendMessages(batch);
+            }))
+            .expectComplete()
+            .verify(Duration.ofSeconds(30));
     }
 }

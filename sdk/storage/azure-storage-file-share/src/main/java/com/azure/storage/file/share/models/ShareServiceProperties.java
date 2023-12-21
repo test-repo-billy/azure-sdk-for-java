@@ -12,22 +12,18 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Storage service properties.
- */
+/** Storage service properties. */
 @JacksonXmlRootElement(localName = "StorageServiceProperties")
 @Fluent
 public final class ShareServiceProperties {
     /*
-     * A summary of request statistics grouped by API in hourly aggregates for
-     * files.
+     * A summary of request statistics grouped by API in hourly aggregates for files.
      */
     @JsonProperty(value = "HourMetrics")
     private ShareMetrics hourMetrics;
 
     /*
-     * A summary of request statistics grouped by API in minute aggregates for
-     * files.
+     * A summary of request statistics grouped by API in minute aggregates for files.
      */
     @JsonProperty(value = "MinuteMetrics")
     private ShareMetrics minuteMetrics;
@@ -48,9 +44,17 @@ public final class ShareServiceProperties {
     @JsonProperty(value = "Cors")
     private CorsWrapper cors;
 
+    /*
+     * Protocol settings
+     */
+    @JsonProperty(value = "ProtocolSettings")
+    private ShareProtocolSettings protocol;
+
+    /** Creates an instance of ShareServiceProperties class. */
+    public ShareServiceProperties() {}
+
     /**
-     * Get the hourMetrics property: A summary of request statistics grouped by
-     * API in hourly aggregates for files.
+     * Get the hourMetrics property: A summary of request statistics grouped by API in hourly aggregates for files.
      *
      * @return the hourMetrics value.
      */
@@ -59,8 +63,7 @@ public final class ShareServiceProperties {
     }
 
     /**
-     * Set the hourMetrics property: A summary of request statistics grouped by
-     * API in hourly aggregates for files.
+     * Set the hourMetrics property: A summary of request statistics grouped by API in hourly aggregates for files.
      *
      * @param hourMetrics the hourMetrics value to set.
      * @return the ShareServiceProperties object itself.
@@ -71,8 +74,7 @@ public final class ShareServiceProperties {
     }
 
     /**
-     * Get the minuteMetrics property: A summary of request statistics grouped
-     * by API in minute aggregates for files.
+     * Get the minuteMetrics property: A summary of request statistics grouped by API in minute aggregates for files.
      *
      * @return the minuteMetrics value.
      */
@@ -81,8 +83,7 @@ public final class ShareServiceProperties {
     }
 
     /**
-     * Set the minuteMetrics property: A summary of request statistics grouped
-     * by API in minute aggregates for files.
+     * Set the minuteMetrics property: A summary of request statistics grouped by API in minute aggregates for files.
      *
      * @param minuteMetrics the minuteMetrics value to set.
      * @return the ShareServiceProperties object itself.
@@ -112,6 +113,26 @@ public final class ShareServiceProperties {
      */
     public ShareServiceProperties setCors(List<ShareCorsRule> cors) {
         this.cors = new CorsWrapper(cors);
+        return this;
+    }
+
+    /**
+     * Get the protocol property: Protocol settings.
+     *
+     * @return the protocol value.
+     */
+    public ShareProtocolSettings getProtocol() {
+        return this.protocol;
+    }
+
+    /**
+     * Set the protocol property: Protocol settings.
+     *
+     * @param protocol the protocol value to set.
+     * @return the ShareServiceProperties object itself.
+     */
+    public ShareServiceProperties setProtocol(ShareProtocolSettings protocol) {
+        this.protocol = protocol;
         return this;
     }
 }

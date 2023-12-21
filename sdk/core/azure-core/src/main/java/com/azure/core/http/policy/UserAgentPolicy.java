@@ -3,25 +3,25 @@
 
 package com.azure.core.http.policy;
 
+import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
+import com.azure.core.http.HttpPipelineNextSyncPolicy;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.Context;
 import com.azure.core.util.CoreUtils;
 import com.azure.core.util.ServiceVersion;
+import com.azure.core.util.UserAgentUtil;
 import reactor.core.publisher.Mono;
 
 /**
  * Pipeline policy that adds "User-Agent" header to a request.
- *
+ * <p>
  * The format for the "User-Agent" string is outlined in
  * <a href="https://azure.github.io/azure-sdk/general_azurecore.html#telemetry-policy">Azure Core: Telemetry policy</a>.
  */
 public class UserAgentPolicy implements HttpPipelinePolicy {
-    private static final String USER_AGENT = "User-Agent";
-    private static final String DEFAULT_USER_AGENT_HEADER = "azsdk-java";
-
     /**
      * Key for {@link Context} to add a value which will override the User-Agent supplied in this policy in an ad-hoc
      * manner.
@@ -34,18 +34,34 @@ public class UserAgentPolicy implements HttpPipelinePolicy {
      */
     public static final String APPEND_USER_AGENT_CONTEXT_KEY = "Append-User-Agent";
 
-    /*
-     * The base User-Agent header format is azsdk-java-<client_lib>/<sdk_version>. Additional information such as the
-     * application ID will be prepended and platform telemetry will be appended, a fully configured User-Agent header
-     * format is <application_id> azsdk-java-<client_lib>/<sdk_version> <platform_info>.
-     */
-    private static final String DEFAULT_USER_AGENT_FORMAT = DEFAULT_USER_AGENT_HEADER + "-%s/%s";
-
-    // From the design guidelines, the platform info format is:
-    // <language runtime>; <os name> <os version>
-    private static final String PLATFORM_INFO_FORMAT = "%s; %s %s";
-
     private final String userAgent;
+    private final HttpPipelineSyncPolicy inner = new HttpPipelineSyncPolicy() {
+        /**
+         * Updates the "User-Agent" header with the value supplied in the policy.
+         *
+         * <p>The {@code context} will be checked for {@code Override-User-Agent} and {@code Append-User-Agent}.
+         * {@code Override-User-Agent} will take precedence over the value supplied in the policy,
+         * {@code Append-User-Agent} will be appended to the value supplied in the policy.</p>
+         *
+         * @param context request context
+         */
+        @Override
+        protected void beforeSendingRequest(HttpPipelineCallContext context) {
+            String overrideUserAgent = (String) context.getData(OVERRIDE_USER_AGENT_CONTEXT_KEY).orElse(null);
+            String appendUserAgent = (String) context.getData(APPEND_USER_AGENT_CONTEXT_KEY).orElse(null);
+
+            String userAgentValue;
+            if (!CoreUtils.isNullOrEmpty(overrideUserAgent)) {
+                userAgentValue = overrideUserAgent;
+            } else if (!CoreUtils.isNullOrEmpty(appendUserAgent)) {
+                userAgentValue = userAgent + " " + appendUserAgent;
+            } else {
+                userAgentValue = userAgent;
+            }
+
+            context.getHttpRequest().setHeader(HttpHeaderName.USER_AGENT, userAgentValue);
+        }
+    };
 
     /**
      * Creates a {@link UserAgentPolicy} with a default user agent string.
@@ -61,10 +77,11 @@ public class UserAgentPolicy implements HttpPipelinePolicy {
      * @param userAgent The user agent string to add to request headers.
      */
     public UserAgentPolicy(String userAgent) {
+        // TODO: should a custom useragent string be allowed?
         if (userAgent != null) {
             this.userAgent = userAgent;
         } else {
-            this.userAgent = DEFAULT_USER_AGENT_HEADER;
+            this.userAgent = UserAgentUtil.DEFAULT_USER_AGENT_HEADER;
         }
     }
 
@@ -82,7 +99,7 @@ public class UserAgentPolicy implements HttpPipelinePolicy {
      * Configuration#getGlobalConfiguration() global configuration} will be checked.
      */
     public UserAgentPolicy(String applicationId, String sdkName, String sdkVersion, Configuration configuration) {
-        this.userAgent = buildUserAgent(applicationId, sdkName, sdkVersion, configuration);
+        this.userAgent = UserAgentUtil.toUserAgentString(applicationId, sdkName, sdkVersion, configuration);
     }
 
     /**
@@ -97,9 +114,11 @@ public class UserAgentPolicy implements HttpPipelinePolicy {
      * @param configuration Configuration store that will be checked for {@link
      * Configuration#PROPERTY_AZURE_TELEMETRY_DISABLED}. If {@code null} is passed the {@link
      * Configuration#getGlobalConfiguration() global configuration} will be checked.
+     * @deprecated Use {@link UserAgentPolicy#UserAgentPolicy(String, String, String, Configuration)} instead.
      */
+    @Deprecated
     public UserAgentPolicy(String sdkName, String sdkVersion, Configuration configuration, ServiceVersion version) {
-        this.userAgent = buildUserAgent(null, sdkName, sdkVersion, configuration);
+        this.userAgent = UserAgentUtil.toUserAgentString(null, sdkName, sdkVersion, configuration);
     }
 
     /**
@@ -115,66 +134,22 @@ public class UserAgentPolicy implements HttpPipelinePolicy {
      */
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        String overrideUserAgent = (String) context.getData(OVERRIDE_USER_AGENT_CONTEXT_KEY).orElse(null);
-        String appendUserAgent = (String) context.getData(APPEND_USER_AGENT_CONTEXT_KEY).orElse(null);
-
-        String userAgentValue;
-        if (!CoreUtils.isNullOrEmpty(overrideUserAgent)) {
-            userAgentValue = overrideUserAgent;
-        } else if (!CoreUtils.isNullOrEmpty(appendUserAgent)) {
-            userAgentValue = userAgent + " " + appendUserAgent;
-        } else {
-            userAgentValue = userAgent;
-        }
-
-        context.getHttpRequest().getHeaders().put(USER_AGENT, userAgentValue);
-        return next.process();
+        return inner.process(context, next);
     }
 
-    /*
-     * Builds the User-Agent header, at minimum this will create a User-Agent header with the DEFAULT_USER_AGENT_FORMAT.
+    /**
+     * Updates the "User-Agent" header with the value supplied in the policy synchronously.
+     *
+     * <p>The {@code context} will be checked for {@code Override-User-Agent} and {@code Append-User-Agent}.
+     * {@code Override-User-Agent} will take precedence over the value supplied in the policy,
+     * {@code Append-User-Agent} will be appended to the value supplied in the policy.</p>
+     *
+     * @param context request context
+     * @param next The next policy to invoke.
+     * @return A response.
      */
-    private static String buildUserAgent(String applicationId, String sdkName, String sdkVersion,
-        Configuration configuration) {
-        StringBuilder userAgentBuilder = new StringBuilder();
-
-        // Only add the application ID if it is present as it is optional.
-        if (applicationId != null) {
-            userAgentBuilder.append(applicationId).append(" ");
-        }
-
-        // Add the required default User-Agent string.
-        userAgentBuilder.append(String.format(DEFAULT_USER_AGENT_FORMAT, sdkName, sdkVersion));
-
-        // Only add the platform telemetry if it is allowed as it is optional.
-        if (!telemetryDisabled(configuration)) {
-            userAgentBuilder.append(" ")
-                .append("(")
-                .append(getPlatformInfo())
-                .append(")");
-        }
-
-        return userAgentBuilder.toString();
-    }
-
-    /*
-     * Retrieves the platform information telemetry that is appended to the User-Agent header.
-     */
-    private static String getPlatformInfo() {
-        String javaVersion = Configuration.getGlobalConfiguration().get("java.version");
-        String osName = Configuration.getGlobalConfiguration().get("os.name");
-        String osVersion = Configuration.getGlobalConfiguration().get("os.version");
-
-        return String.format(PLATFORM_INFO_FORMAT, javaVersion, osName, osVersion);
-    }
-
-    /*
-     * Retrieves the telemetry disabled flag from the passed configuration if it isn't {@code null} otherwise it will
-     * check in the global configuration.
-     */
-    private static boolean telemetryDisabled(Configuration configuration) {
-        return (configuration == null)
-            ? Configuration.getGlobalConfiguration().get(Configuration.PROPERTY_AZURE_TELEMETRY_DISABLED, false)
-            : configuration.get(Configuration.PROPERTY_AZURE_TELEMETRY_DISABLED, false);
+    @Override
+    public HttpResponse processSync(HttpPipelineCallContext context, HttpPipelineNextSyncPolicy next) {
+        return inner.processSync(context, next);
     }
 }

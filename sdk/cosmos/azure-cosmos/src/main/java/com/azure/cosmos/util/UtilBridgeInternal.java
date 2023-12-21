@@ -3,7 +3,6 @@
 
 package com.azure.cosmos.util;
 
-import com.azure.core.util.paging.ContinuablePagedFlux;
 import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
 import com.azure.cosmos.implementation.Warning;
 import com.azure.cosmos.models.FeedResponse;
@@ -24,13 +23,17 @@ public final class UtilBridgeInternal {
     private UtilBridgeInternal() {}
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
-    public static <T> CosmosPagedFlux<T> createCosmosPagedFlux(Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> pagedFluxOptionsFluxFunction, boolean isTracerEnabled) {
-        return new CosmosPagedFlux<>(pagedFluxOptionsFluxFunction, isTracerEnabled);
+    public static <T> CosmosPagedFlux<T> createCosmosPagedFlux(Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> pagedFluxOptionsFluxFunction) {
+        return new CosmosPagedFlux<>(pagedFluxOptionsFluxFunction);
     }
 
+    @Warning(value = INTERNAL_USE_ONLY_WARNING)
+    public static <T> CosmosPagedIterable<T> createCosmosPagedIterable(CosmosPagedFlux<T> cosmosPagedFlux) {
+        return new CosmosPagedIterable<>(cosmosPagedFlux);
+    }
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
-    public static <T> CosmosPagedIterable<T> createCosmosPagedIterable(ContinuablePagedFlux<String, T, FeedResponse<T>> pagedFlux) {
-        return new CosmosPagedIterable<>(pagedFlux);
+    public static void  initializeAllAccessors() {
+        CosmosPagedFlux.initialize();
     }
 }

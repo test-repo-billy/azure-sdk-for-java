@@ -9,16 +9,14 @@ import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.blob.implementation.util.ModelHelper;
 import com.azure.storage.blob.sas.BlobServiceSasQueryParameters;
 import com.azure.storage.common.Utility;
+import com.azure.storage.common.implementation.SasImplUtils;
 import com.azure.storage.common.sas.CommonSasQueryParameters;
 import com.azure.storage.common.implementation.Constants;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * This class represents the components that make up an Azure Storage Container/Blob URL. You may parse an
@@ -26,13 +24,14 @@ import java.util.TreeMap;
  * #toUrl()}.
  */
 public final class BlobUrlParts {
-    private final ClientLogger logger = new ClientLogger(BlobUrlParts.class);
+    private static final ClientLogger LOGGER = new ClientLogger(BlobUrlParts.class);
 
     private String scheme;
     private String host;
     private String containerName;
     private String blobName;
     private String snapshot;
+    private String versionId;
     private String accountName;
     private boolean isIpUrl;
     private CommonSasQueryParameters commonSasQueryParameters;
@@ -66,7 +65,7 @@ public final class BlobUrlParts {
     }
 
     /**
-     * Gets the URL scheme, ex. "https://".
+     * Gets the URL scheme, ex. "https".
      *
      * @return the URL scheme.
      */
@@ -75,7 +74,7 @@ public final class BlobUrlParts {
     }
 
     /**
-     * Sets the URL scheme, ex. "https://".
+     * Sets the URL scheme, ex. "https".
      *
      * @param scheme The URL scheme.
      * @return the updated BlobUrlParts object.
@@ -105,8 +104,8 @@ public final class BlobUrlParts {
         try {
             this.isIpUrl = ModelHelper.determineAuthorityIsIpStyle(host);
         } catch (MalformedURLException e) {
-            throw logger.logExceptionAsError(new IllegalStateException("Authority is malformed. Host: "
-                + host));
+            throw LOGGER.logExceptionAsError(new IllegalStateException("Authority is malformed. Host: "
+                + host, e));
         }
         return this;
     }
@@ -143,7 +142,8 @@ public final class BlobUrlParts {
     /**
      * Sets the blob name that will be used as part of the URL path.
      *
-     * @param blobName The blob name.
+     * @param blobName The blob name. If the blob name contains special characters, pass in the url encoded version
+     * of the blob name.
      * @return the updated BlobUrlParts object.
      */
     public BlobUrlParts setBlobName(String blobName) {
@@ -172,6 +172,26 @@ public final class BlobUrlParts {
     }
 
     /**
+     * Gets the version identifier that will be used as part of the query string if set.
+     *
+     * @return the version identifier.
+     */
+    public String getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * Sets the version identifier that will be used as part of the query string if set.
+     *
+     * @param versionId The version identifier.
+     * @return the updated BlobUrlParts object.
+     */
+    public BlobUrlParts setVersionId(String versionId) {
+        this.versionId = versionId;
+        return this;
+    }
+
+    /**
      * Gets the {@link BlobServiceSasQueryParameters} representing the SAS query parameters
      *
      * @return the {@link BlobServiceSasQueryParameters} of the URL
@@ -180,7 +200,7 @@ public final class BlobUrlParts {
     @Deprecated
     public BlobServiceSasQueryParameters getSasQueryParameters() {
         String encodedSas = commonSasQueryParameters.encode();
-        return new BlobServiceSasQueryParameters(parseQueryString(encodedSas), true);
+        return new BlobServiceSasQueryParameters(SasImplUtils.parseQueryString(encodedSas), true);
     }
 
     /**
@@ -193,7 +213,8 @@ public final class BlobUrlParts {
     @Deprecated
     public BlobUrlParts setSasQueryParameters(BlobServiceSasQueryParameters blobServiceSasQueryParameters) {
         String encodedBlobSas = blobServiceSasQueryParameters.encode();
-        this.commonSasQueryParameters = new CommonSasQueryParameters(parseQueryString(encodedBlobSas), true);
+        this.commonSasQueryParameters = new CommonSasQueryParameters(SasImplUtils.parseQueryString(encodedBlobSas),
+            true);
         return this;
     }
 
@@ -227,7 +248,7 @@ public final class BlobUrlParts {
      * @return the updated BlobUrlParts object.
      */
     public BlobUrlParts parseSasQueryParameters(String queryParams) {
-        this.commonSasQueryParameters = new CommonSasQueryParameters(parseQueryString(queryParams), true);
+        this.commonSasQueryParameters = new CommonSasQueryParameters(SasImplUtils.parseQueryString(queryParams), true);
         return this;
     }
 
@@ -283,6 +304,9 @@ public final class BlobUrlParts {
         if (this.snapshot != null) {
             url.setQueryParameter(Constants.UrlConstants.SNAPSHOT_QUERY_PARAMETER, this.snapshot);
         }
+        if (this.versionId != null) {
+            url.setQueryParameter(Constants.UrlConstants.VERSIONID_QUERY_PARAMETER, this.versionId);
+        }
         if (this.commonSasQueryParameters != null) {
             String encodedSAS = this.commonSasQueryParameters.encode();
             if (encodedSAS.length() != 0) {
@@ -299,7 +323,7 @@ public final class BlobUrlParts {
         try {
             return url.toUrl();
         } catch (MalformedURLException ex) {
-            throw logger.logExceptionAsError(new IllegalStateException("The URL parts created a malformed URL.", ex));
+            throw LOGGER.logExceptionAsError(new IllegalStateException("The URL parts created a malformed URL.", ex));
         }
     }
 
@@ -322,7 +346,7 @@ public final class BlobUrlParts {
         try {
             return parse(new URL(url));
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Invalid URL format. URL: " + url);
+            throw new IllegalArgumentException("Invalid URL format. URL: " + url, e);
         }
     }
 
@@ -350,15 +374,20 @@ public final class BlobUrlParts {
                 parseNonIpUrl(url, parts);
             }
         } catch (MalformedURLException e) {
-            throw parts.logger.logExceptionAsError(new IllegalStateException("Authority is malformed. Host: "
-                + url.getAuthority()));
+            throw LOGGER.logExceptionAsError(new IllegalStateException("Authority is malformed. Host: "
+                + url.getAuthority(), e));
         }
 
-        Map<String, String[]> queryParamsMap = parseQueryString(url.getQuery());
+        Map<String, String[]> queryParamsMap = SasImplUtils.parseQueryString(url.getQuery());
 
         String[] snapshotArray = queryParamsMap.remove("snapshot");
         if (snapshotArray != null) {
             parts.setSnapshot(snapshotArray[0]);
+        }
+
+        String[] versionIdArray = queryParamsMap.remove("versionid");
+        if (versionIdArray != null) {
+            parts.setVersionId(versionIdArray[0]);
         }
 
         CommonSasQueryParameters commonSasQueryParameters = new CommonSasQueryParameters(queryParamsMap, true);
@@ -372,23 +401,33 @@ public final class BlobUrlParts {
      */
     private static void parseIpUrl(URL url, BlobUrlParts parts) {
         parts.setHost(url.getAuthority());
+        parts.isIpUrl = true;
 
         String path = url.getPath();
-        if (path.charAt(0) == '/') {
-            path = path.substring(1);
+        int previousIndex = 0;
+        if (!path.isEmpty() && path.charAt(0) == '/') {
+            previousIndex = 1;
         }
 
-        String[] pathPieces = path.split("/", 3);
-        parts.setAccountName(pathPieces[0]);
-
-        if (pathPieces.length >= 3) {
-            parts.setContainerName(pathPieces[1]);
-            parts.setBlobName(pathPieces[2]);
-        } else if (pathPieces.length == 2) {
-            parts.setContainerName(pathPieces[1]);
+        int index = path.indexOf('/', previousIndex);
+        if (index == -1) {
+            // The entire path is the account name.
+            parts.setAccountName(path.substring(previousIndex));
+            return;
         }
 
-        parts.isIpUrl = true;
+        parts.setAccountName(path.substring(previousIndex, index));
+        previousIndex = index + 1;
+
+        index = path.indexOf('/', previousIndex);
+        if (index == -1) {
+            // Container name was the last part of the path, substring the rest of the path and return.
+            parts.setContainerName(path.substring(previousIndex));
+            return;
+        }
+
+        parts.setContainerName(path.substring(previousIndex, index));
+        parts.setBlobName(path.substring(index + 1));
     }
 
     /*
@@ -431,49 +470,5 @@ public final class BlobUrlParts {
         }
 
         parts.isIpUrl = false;
-    }
-
-    /**
-     * Parses a query string into a one to many TreeMap.
-     *
-     * @param queryParams The string of query params to parse.
-     * @return A {@code HashMap<String, String[]>} of the key values.
-     */
-    private static TreeMap<String, String[]> parseQueryString(String queryParams) {
-        final TreeMap<String, String[]> retVals = new TreeMap<>(Comparator.naturalOrder());
-
-        if (CoreUtils.isNullOrEmpty(queryParams)) {
-            return retVals;
-        }
-
-        // split name value pairs by splitting on the '&' character
-        final String[] valuePairs = queryParams.split("&");
-
-        // for each field value pair parse into appropriate map entries
-        for (String valuePair : valuePairs) {
-            // Getting key and value for a single query parameter
-            final int equalDex = valuePair.indexOf("=");
-            String key = Utility.urlDecode(valuePair.substring(0, equalDex)).toLowerCase(Locale.ROOT);
-            String value = Utility.urlDecode(valuePair.substring(equalDex + 1));
-
-            // add to map
-            String[] keyValues = retVals.get(key);
-
-            // check if map already contains key
-            if (keyValues == null) {
-                // map does not contain this key
-                keyValues = new String[]{value};
-            } else {
-                // map contains this key already so append
-                final String[] newValues = new String[keyValues.length + 1];
-                System.arraycopy(keyValues, 0, newValues, 0, keyValues.length);
-
-                newValues[newValues.length - 1] = value;
-                keyValues = newValues;
-            }
-            retVals.put(key, keyValues);
-        }
-
-        return retVals;
     }
 }

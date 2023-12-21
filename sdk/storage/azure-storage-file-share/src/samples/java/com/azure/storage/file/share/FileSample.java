@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -22,7 +23,8 @@ import java.util.concurrent.TimeoutException;
  * Sample demonstrates how to create, copy and delete a file and how to get and set properties.
  */
 public class FileSample {
-    private static final String ENDPOINT = Configuration.getGlobalConfiguration().get("AZURE_STORAGE_FILE_ENDPOINT");
+    private static final String ENDPOINT = Configuration.getGlobalConfiguration().get("PRIMARY_STORAGE_FILE_ENDPOINT");
+    private static final String CONNECTION_STRING = Configuration.getGlobalConfiguration().get("PRIMARY_STORAGE_CONNECTION_STRING");
 
     // This is the helper method to generate random name.
     private static String generateRandomName() {
@@ -37,14 +39,14 @@ public class FileSample {
      */
     public static void main(String[] args) {
         String shareName = generateRandomName();
-        ShareClient shareClient = new ShareClientBuilder().endpoint(ENDPOINT).shareName(shareName).buildClient();
+        ShareClient shareClient = new ShareClientBuilder().connectionString(CONNECTION_STRING).endpoint(ENDPOINT).shareName(shareName).buildClient();
         shareClient.create();
         String parentDirName = generateRandomName();
         shareClient.createDirectory(parentDirName);
 
         // Create a source file client
         String srcFileName = generateRandomName();
-        ShareFileClient srcFileClient = new ShareFileClientBuilder().endpoint(ENDPOINT).shareName(shareName)
+        ShareFileClient srcFileClient = new ShareFileClientBuilder().connectionString(CONNECTION_STRING).endpoint(ENDPOINT).shareName(shareName)
             .resourcePath(parentDirName + "/" + srcFileName).buildFileClient();
 
         // Create a source file
@@ -64,16 +66,16 @@ public class FileSample {
         }
         // Create a destination file client.
         String destFileName = generateRandomName();
-        ShareFileClient destFileClient = new ShareFileClientBuilder().endpoint(ENDPOINT).shareName(shareName)
+        ShareFileClient destFileClient = new ShareFileClientBuilder().connectionString(CONNECTION_STRING).endpoint(ENDPOINT).shareName(shareName)
             .resourcePath(parentDirName + "/" + destFileName).buildFileClient();
         destFileClient.create(1024);
 
         // Copy the file from source file to destination file.
         String clientURL = srcFileClient.getFileUrl();
 
-        String sourceURL = clientURL + "/" + shareName + "/" + parentDirName + "/" + srcFileName;
+        String sourceURL = clientURL;
         Duration pollInterval = Duration.ofSeconds(2);
-        SyncPoller<ShareFileCopyInfo, Void> poller = destFileClient.beginCopy(sourceURL, null, pollInterval);
+        SyncPoller<ShareFileCopyInfo, Void> poller = destFileClient.beginCopy(sourceURL, (Map<String, String>) null, pollInterval);
 
         try {
             poller.waitForCompletion(Duration.ofMinutes(15));
@@ -107,6 +109,7 @@ public class FileSample {
         } catch (IOException e) {
             throw new RuntimeException("Failed to create new upload file.");
         }
+        downloadFile.delete();
         try {
             srcFileClient.downloadToFile(downloadPath);
         } catch (ShareStorageException e) {

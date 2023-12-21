@@ -3,21 +3,21 @@
 package com.azure.cosmos.implementation.query;
 
 import com.azure.cosmos.BridgeInternal;
+import com.azure.cosmos.implementation.DiagnosticsClientContext;
 import com.azure.cosmos.implementation.DocumentClientRetryPolicy;
+import com.azure.cosmos.implementation.DocumentCollection;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.PartitionKeyRange;
-import com.azure.cosmos.implementation.Resource;
 import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.Strings;
+import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.implementation.routing.PartitionKeyInternal;
-import com.azure.cosmos.implementation.routing.Range;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.models.SqlQuerySpec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.JsonNode;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,35 +26,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * While this class is public, but it is not part of our published public APIs.
  * This is meant to be internally used only by our sdk.
  */
-public abstract class ParallelDocumentQueryExecutionContextBase<T extends Resource>
+public abstract class ParallelDocumentQueryExecutionContextBase<T>
         extends DocumentQueryExecutionContextBase<T> implements IDocumentQueryExecutionComponent<T> {
 
-    protected final Logger logger;
     protected final List<DocumentProducer<T>> documentProducers;
-    protected final List<PartitionKeyRange> partitionKeyRanges;
     protected final SqlQuerySpec querySpec;
-    protected int pageSize;
     protected int top = -1;
+    private final Function<JsonNode, T> factoryMethod;
 
-    protected ParallelDocumentQueryExecutionContextBase(IDocumentQueryClient client,
-                                                        List<PartitionKeyRange> partitionKeyRanges, ResourceType resourceTypeEnum, Class<T> resourceType,
+    protected ParallelDocumentQueryExecutionContextBase(DiagnosticsClientContext diagnosticsClientContext,
+                                                        IDocumentQueryClient client,
+                                                        ResourceType resourceTypeEnum, Class<T> resourceType,
                                                         SqlQuerySpec query, CosmosQueryRequestOptions cosmosQueryRequestOptions, String resourceLink, String rewrittenQuery,
-                                                        boolean isContinuationExpected, boolean getLazyFeedResponse, UUID correlatedActivityId) {
-        super(client, resourceTypeEnum, resourceType, query, cosmosQueryRequestOptions, resourceLink, getLazyFeedResponse,
-                correlatedActivityId);
+                                                        UUID correlatedActivityId, boolean shouldUnwrapSelectValue, AtomicBoolean isQueryCancelledOnTimeout) {
+        super(diagnosticsClientContext, client, resourceTypeEnum, resourceType, query, cosmosQueryRequestOptions, resourceLink, correlatedActivityId, isQueryCancelledOnTimeout);
 
-        logger = LoggerFactory.getLogger(this.getClass());
+        this.factoryMethod =  DocumentQueryExecutionContextBase.getEffectiveFactoryMethod(
+            this.cosmosQueryRequestOptions, shouldUnwrapSelectValue, resourceType);
         documentProducers = new ArrayList<>();
-
-        this.partitionKeyRanges = partitionKeyRanges;
-
         if (!Strings.isNullOrEmpty(rewrittenQuery)) {
             this.querySpec = new SqlQuerySpec(rewrittenQuery, super.query.getParameters());
         } else {
@@ -62,84 +59,68 @@ public abstract class ParallelDocumentQueryExecutionContextBase<T extends Resour
         }
     }
 
-    protected void initialize(String collectionRid,
-            Map<PartitionKeyRange, String> partitionKeyRangeToContinuationTokenMap, int initialPageSize,
-            SqlQuerySpec querySpecForInit) {
-        this.pageSize = initialPageSize;
+    protected void initialize(
+        DocumentCollection collection,
+        Map<FeedRangeEpkImpl, String> feedRangeToContinuationTokenMap,
+        int initialPageSize,
+        SqlQuerySpec querySpecForInit) {
         Map<String, String> commonRequestHeaders = createCommonHeadersAsync(this.getFeedOptions(null, null));
-
-        for (Map.Entry<PartitionKeyRange, String> entry : partitionKeyRangeToContinuationTokenMap.entrySet()) {
-            TriFunction<PartitionKeyRange, String, Integer, RxDocumentServiceRequest> createRequestFunc = (partitionKeyRange,
-                                                                                                     continuationToken, pageSize) -> {
+        for (Map.Entry<FeedRangeEpkImpl, String> entry : feedRangeToContinuationTokenMap.entrySet()) {
+            TriFunction<FeedRangeEpkImpl, String, Integer, RxDocumentServiceRequest> createRequestFunc = (feedRange,
+                                                                                                           continuationToken, pageSize) -> {
                 Map<String, String> headers = new HashMap<>(commonRequestHeaders);
                 headers.put(HttpConstants.HttpHeaders.CONTINUATION, continuationToken);
                 headers.put(HttpConstants.HttpHeaders.PAGE_SIZE, Strings.toString(pageSize));
+                headers.put(HttpConstants.HttpHeaders.CORRELATED_ACTIVITY_ID, correlatedActivityId.toString());
 
                 PartitionKeyInternal partitionKeyInternal = null;
                 if (cosmosQueryRequestOptions.getPartitionKey() != null && cosmosQueryRequestOptions.getPartitionKey() != PartitionKey.NONE) {
-                    partitionKeyInternal = BridgeInternal.getPartitionKeyInternal(cosmosQueryRequestOptions.getPartitionKey());
-                    headers.put(HttpConstants.HttpHeaders.PARTITION_KEY,
-                        partitionKeyInternal.toJson());
-
+                    // the next if statement is for the method `createDocumentServiceRequestWithFeedRange` below
+                    // with this added logic we don't have to remove the header (since the header never gets set) and
+                    // partitionKeyInternal gets passed as null which avoids the feedRange normalization.
+                    if (!PartitionKeyInternal.isPartialPartitionKeyQuery(collection, cosmosQueryRequestOptions.getPartitionKey())) {
+                        partitionKeyInternal = BridgeInternal.getPartitionKeyInternal(cosmosQueryRequestOptions.getPartitionKey());
+                        headers.put(HttpConstants.HttpHeaders.PARTITION_KEY, partitionKeyInternal.toJson());
+                    }
                 }
-                return this.createDocumentServiceRequest(headers, querySpecForInit, partitionKeyInternal, partitionKeyRange, collectionRid);
+
+                return this.createDocumentServiceRequestWithFeedRange(headers, querySpecForInit, partitionKeyInternal, feedRange,
+                                                         collection.getResourceId(), cosmosQueryRequestOptions.getThroughputControlGroupName());
             };
 
-            Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc = (request) -> {
-                return this.executeRequestAsync(request);
-            };
-
-            final PartitionKeyRange targetRange = entry.getKey();
+            Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc = (request) ->  this.executeRequestAsync(
+                    this.factoryMethod,
+                    request);
+            final FeedRangeEpkImpl targetRange = entry.getKey();
             final String continuationToken = entry.getValue();
-            DocumentProducer<T> dp = createDocumentProducer(collectionRid, targetRange,
-                continuationToken, initialPageSize, cosmosQueryRequestOptions,
-                querySpecForInit, commonRequestHeaders, createRequestFunc, executeFunc,
-                () -> client.getResetSessionTokenRetryPolicy().getRequestPolicy());
+            DocumentProducer<T> dp =
+                createDocumentProducer(
+                    collection.getResourceId(),
+                    continuationToken,
+                    initialPageSize,
+                    cosmosQueryRequestOptions,
+                    querySpecForInit,
+                    commonRequestHeaders,
+                    createRequestFunc,
+                    executeFunc,
+                    () -> client.getResetSessionTokenRetryPolicy().getRequestPolicy(this.diagnosticsClientContext),
+                    targetRange);
 
             documentProducers.add(dp);
         }
     }
 
-    protected <TContinuationToken> int findTargetRangeAndExtractContinuationTokens(
-            List<PartitionKeyRange> partitionKeyRanges, Range<String> range) {
-        if (partitionKeyRanges == null) {
-            throw new IllegalArgumentException("partitionKeyRanges can not be null.");
-        }
-
-        if (partitionKeyRanges.size() < 1) {
-            throw new IllegalArgumentException("partitionKeyRanges must have atleast one element.");
-        }
-
-        for (PartitionKeyRange partitionKeyRange : partitionKeyRanges) {
-            if (partitionKeyRange == null) {
-                throw new IllegalArgumentException("partitionKeyRanges can not have null elements.");
-            }
-        }
-
-        // Find the minimum index.
-        PartitionKeyRange needle = new PartitionKeyRange(/* id */ null, range.getMin(), range.getMax());
-        int minIndex;
-        for (minIndex = 0; minIndex < partitionKeyRanges.size(); minIndex++) {
-            if (needle.getMinInclusive().equals(partitionKeyRanges.get(minIndex).getMinInclusive())) {
-                break;
-            }
-        }
-
-        if (minIndex == partitionKeyRanges.size()) {
-            throw BridgeInternal.createCosmosException(HttpConstants.StatusCodes.BADREQUEST,
-                    String.format("Could not find partition key range for continuation token: {0}", needle));
-        }
-
-        return minIndex;
-    }
-
-    abstract protected DocumentProducer<T> createDocumentProducer(String collectionRid, PartitionKeyRange targetRange,
-                                                                  String initialContinuationToken
-        , int initialPageSize, CosmosQueryRequestOptions cosmosQueryRequestOptions, SqlQuerySpec querySpecForInit,
+    abstract protected DocumentProducer<T> createDocumentProducer(String collectionRid,
+                                                                  String initialContinuationToken,
+                                                                  int initialPageSize,
+                                                                  CosmosQueryRequestOptions cosmosQueryRequestOptions,
+                                                                  SqlQuerySpec querySpecForInit,
                                                                   Map<String, String> commonRequestHeaders,
-                                                                  TriFunction<PartitionKeyRange, String, Integer, RxDocumentServiceRequest> createRequestFunc,
-                                                                  Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc,
-                                                                  Callable<DocumentClientRetryPolicy> createRetryPolicyFunc);
+                                                                  TriFunction<FeedRangeEpkImpl, String, Integer, RxDocumentServiceRequest> createRequestFunc,
+                                                                  Function<RxDocumentServiceRequest,
+                                                                  Mono<FeedResponse<T>>> executeFunc,
+                                                                  Supplier<DocumentClientRetryPolicy> createRetryPolicyFunc,
+                                                                  FeedRangeEpkImpl feedRange);
 
     @Override
     abstract public Flux<FeedResponse<T>> drainAsync(int maxPageSize);
@@ -153,41 +134,46 @@ public abstract class ParallelDocumentQueryExecutionContextBase<T extends Resour
     }
 
     protected void initializeReadMany(
-        IDocumentQueryClient queryClient, String collectionResourceId, SqlQuerySpec sqlQuerySpec,
         Map<PartitionKeyRange, SqlQuerySpec> rangeQueryMap,
         CosmosQueryRequestOptions cosmosQueryRequestOptions,
-        UUID activityId,
         String collectionRid) {
         Map<String, String> commonRequestHeaders = createCommonHeadersAsync(this.getFeedOptions(null, null));
 
         for (Map.Entry<PartitionKeyRange, SqlQuerySpec> entry : rangeQueryMap.entrySet()) {
             final PartitionKeyRange targetRange = entry.getKey();
+            final FeedRangeEpkImpl feedRangeEpk = new FeedRangeEpkImpl(targetRange.toRange());
             final SqlQuerySpec querySpec = entry.getValue();
-            TriFunction<PartitionKeyRange, String, Integer, RxDocumentServiceRequest> createRequestFunc = (
+            TriFunction<FeedRangeEpkImpl, String, Integer, RxDocumentServiceRequest> createRequestFunc = (
                 partitionKeyRange,
                 continuationToken, pageSize) -> {
                 Map<String, String> headers = new HashMap<>(commonRequestHeaders);
                 headers.put(HttpConstants.HttpHeaders.CONTINUATION, continuationToken);
                 headers.put(HttpConstants.HttpHeaders.PAGE_SIZE, Strings.toString(pageSize));
 
-                return this.createDocumentServiceRequest(headers,
+                return this.createDocumentServiceRequestWithFeedRange(headers,
                     querySpec,
                     null,
                     partitionKeyRange,
-                    collectionRid);
+                    collectionRid,
+                    cosmosQueryRequestOptions.getThroughputControlGroupName());
             };
 
-            Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc = (request) -> {
-                return this.executeRequestAsync(request);
-            };
+            Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc = (request) -> this.executeRequestAsync(
+                    this.factoryMethod,
+                    request);
 
-            // TODO: Review pagesize -1
-            DocumentProducer<T> dp = createDocumentProducer(collectionRid, targetRange,
-                                                            null, -1, cosmosQueryRequestOptions,
-                                                            querySpec,
-                                                            commonRequestHeaders, createRequestFunc, executeFunc,
-                                                            () -> client.getResetSessionTokenRetryPolicy()
-                                                                      .getRequestPolicy());
+            DocumentProducer<T> dp =
+                createDocumentProducer(
+                    collectionRid,
+                    null,
+                    -1,
+                    cosmosQueryRequestOptions,
+                    querySpec,
+                    commonRequestHeaders,
+                    createRequestFunc,
+                    executeFunc,
+                    () -> client.getResetSessionTokenRetryPolicy().getRequestPolicy(this.diagnosticsClientContext),
+                    feedRangeEpk);
 
             documentProducers.add(dp);
         }

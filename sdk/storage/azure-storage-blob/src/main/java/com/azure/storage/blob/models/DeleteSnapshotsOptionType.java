@@ -7,23 +7,15 @@ package com.azure.storage.blob.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Defines values for DeleteSnapshotsOptionType.
- */
+/** Defines values for DeleteSnapshotsOptionType. */
 public enum DeleteSnapshotsOptionType {
-    /**
-     * Enum value include.
-     */
+    /** Enum value include. */
     INCLUDE("include"),
 
-    /**
-     * Enum value only.
-     */
+    /** Enum value only. */
     ONLY("only");
 
-    /**
-     * The actual serialized value for a DeleteSnapshotsOptionType instance.
-     */
+    /** The actual serialized value for a DeleteSnapshotsOptionType instance. */
     private final String value;
 
     DeleteSnapshotsOptionType(String value) {
@@ -38,6 +30,9 @@ public enum DeleteSnapshotsOptionType {
      */
     @JsonCreator
     public static DeleteSnapshotsOptionType fromString(String value) {
+        if (value == null) {
+            return null;
+        }
         DeleteSnapshotsOptionType[] items = DeleteSnapshotsOptionType.values();
         for (DeleteSnapshotsOptionType item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -47,6 +42,7 @@ public enum DeleteSnapshotsOptionType {
         return null;
     }
 
+    /** {@inheritDoc} */
     @JsonValue
     @Override
     public String toString() {

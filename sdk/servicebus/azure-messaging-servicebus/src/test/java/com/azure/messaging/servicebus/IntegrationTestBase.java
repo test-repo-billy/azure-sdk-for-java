@@ -7,40 +7,49 @@ import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.amqp.ProxyAuthenticationType;
 import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.amqp.implementation.ConnectionStringProperties;
+import com.azure.core.amqp.models.AmqpMessageBody;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.experimental.util.tracing.LoggingTracerProvider;
 import com.azure.core.test.TestBase;
 import com.azure.core.test.TestMode;
+import com.azure.core.test.utils.TestConfigurationSource;
+import com.azure.core.util.AsyncCloseable;
+import com.azure.core.util.ClientOptions;
 import com.azure.core.util.Configuration;
+import com.azure.core.util.ConfigurationBuilder;
 import com.azure.core.util.CoreUtils;
+import com.azure.core.util.IterableStream;
 import com.azure.core.util.logging.ClientLogger;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder.ServiceBusReceiverClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder.ServiceBusSenderClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder;
 import com.azure.messaging.servicebus.implementation.DispositionStatus;
 import com.azure.messaging.servicebus.implementation.MessagingEntityType;
-import org.junit.jupiter.api.AfterAll;
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.provider.Arguments;
-import org.mockito.Mockito;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-import reactor.test.StepVerifier;
 
 import java.io.Closeable;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.azure.core.amqp.ProxyOptions.PROXY_PASSWORD;
 import static com.azure.core.amqp.ProxyOptions.PROXY_USERNAME;
+import static com.azure.messaging.servicebus.TestUtils.MESSAGE_POSITION_ID;
 import static com.azure.messaging.servicebus.TestUtils.getEntityName;
 import static com.azure.messaging.servicebus.TestUtils.getQueueBaseName;
 import static com.azure.messaging.servicebus.TestUtils.getSessionQueueBaseName;
@@ -55,10 +64,10 @@ public abstract class IntegrationTestBase extends TestBase {
     protected static final Duration TIMEOUT = Duration.ofSeconds(60);
     protected static final AmqpRetryOptions RETRY_OPTIONS = new AmqpRetryOptions().setTryTimeout(TIMEOUT);
     protected final ClientLogger logger;
-
+    protected ClientOptions optionsWithTracing;
     private static final String PROXY_AUTHENTICATION_TYPE = "PROXY_AUTHENTICATION_TYPE";
-
-    private ConnectionStringProperties properties;
+    private static final Configuration GLOBAL_CONFIGURATION = TestUtils.getGlobalConfiguration();
+    private List<AutoCloseable> toClose = new ArrayList<>();
     private String testName;
     private final Scheduler scheduler = Schedulers.parallel();
 
@@ -73,39 +82,29 @@ public abstract class IntegrationTestBase extends TestBase {
 
     @BeforeEach
     public void setupTest(TestInfo testInfo) {
-        logger.info("========= SET-UP [{}] =========", testInfo.getDisplayName());
+        Method testMethod = testInfo.getTestMethod().orElseGet(null);
+        testName = String.format("%s-%s",
+            testMethod == null ? "unknown" : testMethod.getName(),
+            testInfo.getDisplayName());
 
-        testName = testInfo.getDisplayName();
+        logger.info("========= SET-UP [{}] =========", testName);
+
         assumeTrue(getTestMode() == TestMode.RECORD);
 
-        properties = new ConnectionStringProperties(getConnectionString());
-
-        StepVerifier.setDefaultTimeout(TIMEOUT);
-
+        toClose = new ArrayList<>();
+        optionsWithTracing = new ClientOptions().setTracingOptions(new LoggingTracerProvider.LoggingTracingOptions());
         beforeTest();
-    }
-
-    @BeforeAll
-    static void beforeAll() {
-        StepVerifier.setDefaultTimeout(Duration.ofSeconds(30));
-    }
-
-    @AfterAll
-    static void afterAll() {
-        StepVerifier.resetDefaultTimeout();
     }
 
     // These are overridden because we don't use the Interceptor Manager.
     @Override
     @AfterEach
     public void teardownTest(TestInfo testInfo) {
-        logger.info("========= TEARDOWN [{}] =========", testInfo.getDisplayName());
-        StepVerifier.resetDefaultTimeout();
+        logger.info("========= TEARDOWN [{}] =========", testName);
         afterTest();
 
-        // Tear down any inline mocks to avoid memory leaks.
-        // https://github.com/mockito/mockito/wiki/What's-new-in-Mockito-2#mockito-2250
-        Mockito.framework().clearInlineMocks();
+        logger.info("Disposing of subscriptions, consumers and clients.");
+        dispose();
     }
 
     /**
@@ -121,8 +120,20 @@ public abstract class IntegrationTestBase extends TestBase {
         return CoreUtils.isNullOrEmpty(getConnectionString()) ? TestMode.PLAYBACK : TestMode.RECORD;
     }
 
-    public String getConnectionString() {
-        return TestUtils.getConnectionString();
+    public static String getConnectionString() {
+        return TestUtils.getConnectionString(false);
+    }
+
+    public static String getConnectionString(boolean withSas) {
+        return TestUtils.getConnectionString(withSas);
+    }
+
+    protected static ConnectionStringProperties getConnectionStringProperties() {
+        return new ConnectionStringProperties(getConnectionString(false));
+    }
+
+    protected static ConnectionStringProperties getConnectionStringProperties(boolean withSas) {
+        return new ConnectionStringProperties(getConnectionString(withSas));
     }
 
     public String getFullyQualifiedDomainName() {
@@ -149,33 +160,15 @@ public abstract class IntegrationTestBase extends TestBase {
      *
      * @return Name of the topic.
      */
-    public String getTopicName() {
-        return TestUtils.getTopicName();
-    }
-
-    /**
-     * Gets the name of the first subscription.
-     *
-     * @return Name of the first subscription.
-     */
-    public String getSubscriptionName(int index) {
-        return getEntityName(getSubscriptionBaseName(), index);
-    }
-
-    /**
-     * Gets the name of the first session-enabled subscription.
-     *
-     * @return Name of the first session-enabled subscription.
-     */
-    public String getSessionSubscriptionName(int index) {
-        return getEntityName(getSessionSubscriptionBaseName(), index);
+    public String getTopicName(int index) {
+        return getEntityName(TestUtils.getTopicBaseName(), index);
     }
 
     /**
      * Gets the configured ProxyConfiguration from environment variables.
      */
     public ProxyOptions getProxyConfiguration() {
-        final String address = System.getenv(Configuration.PROPERTY_HTTP_PROXY);
+        final String address = GLOBAL_CONFIGURATION.get(Configuration.PROPERTY_HTTP_PROXY);
 
         if (address == null) {
             return null;
@@ -192,25 +185,21 @@ public abstract class IntegrationTestBase extends TestBase {
         final int port = Integer.parseInt(host[1]);
         final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(hostname, port));
 
-        final String username = System.getenv(PROXY_USERNAME);
+        final String username = GLOBAL_CONFIGURATION.get(PROXY_USERNAME);
 
         if (username == null) {
             logger.info("Environment variable '{}' is not set. No authentication used.");
             return new ProxyOptions(ProxyAuthenticationType.NONE, proxy, null, null);
         }
 
-        final String password = System.getenv(PROXY_PASSWORD);
-        final String authentication = System.getenv(PROXY_AUTHENTICATION_TYPE);
+        final String password = GLOBAL_CONFIGURATION.get(PROXY_PASSWORD);
+        final String authentication = GLOBAL_CONFIGURATION.get(PROXY_AUTHENTICATION_TYPE);
 
         final ProxyAuthenticationType authenticationType = CoreUtils.isNullOrEmpty(authentication)
             ? ProxyAuthenticationType.NONE
             : ProxyAuthenticationType.valueOf(authentication);
 
         return new ProxyOptions(authenticationType, proxy, username, password);
-    }
-
-    public ConnectionStringProperties getConnectionStringProperties() {
-        return properties;
     }
 
     /**
@@ -230,22 +219,21 @@ public abstract class IntegrationTestBase extends TestBase {
         final ServiceBusClientBuilder builder = new ServiceBusClientBuilder()
             .proxyOptions(ProxyOptions.SYSTEM_DEFAULTS)
             .retryOptions(RETRY_OPTIONS)
+            .clientOptions(optionsWithTracing)
             .transportType(AmqpTransportType.AMQP)
-            .scheduler(scheduler);
+            .scheduler(scheduler)
+            .configuration(v1OrV2(false)); // // Disabling v2 to begin with.
 
+        logger.info("Getting Builder using credentials : [{}] ", useCredentials);
         if (useCredentials) {
             final String fullyQualifiedDomainName = getFullyQualifiedDomainName();
 
             assumeTrue(fullyQualifiedDomainName != null && !fullyQualifiedDomainName.isEmpty(),
                 "AZURE_SERVICEBUS_FULLY_QUALIFIED_DOMAIN_NAME variable needs to be set when using credentials.");
 
-            final ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                .clientId(System.getenv("AZURE_CLIENT_ID"))
-                .clientSecret(System.getenv("AZURE_CLIENT_SECRET"))
-                .tenantId(System.getenv("AZURE_TENANT_ID"))
-                .build();
+            final TokenCredential tokenCredential = new DefaultAzureCredentialBuilder().build();
 
-            return builder.credential(fullyQualifiedDomainName, clientSecretCredential);
+            return builder.credential(fullyQualifiedDomainName, tokenCredential);
         } else {
             return builder.connectionString(getConnectionString());
         }
@@ -255,7 +243,6 @@ public abstract class IntegrationTestBase extends TestBase {
         int entityIndex, boolean isSessionAware, boolean sharedConnection) {
 
         ServiceBusClientBuilder builder = getBuilder(useCredentials, sharedConnection);
-
         switch (entityType) {
             case QUEUE:
                 final String queueName = isSessionAware ? getSessionQueueName(entityIndex) : getQueueName(entityIndex);
@@ -263,43 +250,40 @@ public abstract class IntegrationTestBase extends TestBase {
                 return builder.sender()
                     .queueName(queueName);
             case SUBSCRIPTION:
-                final String topicName = getTopicName();
+                final String topicName = getTopicName(entityIndex);
                 assertNotNull(topicName, "'topicName' cannot be null.");
 
                 return builder.sender().topicName(topicName);
             default:
                 throw logger.logExceptionAsError(new IllegalArgumentException("Unknown entity type: " + entityType));
         }
-
     }
 
     protected ServiceBusReceiverClientBuilder getReceiverBuilder(boolean useCredentials, MessagingEntityType entityType,
-        int entityIndex, Function<ServiceBusClientBuilder, ServiceBusClientBuilder> onBuilderCreate, boolean sharedConnection) {
+        int entityIndex, boolean sharedConnection) {
 
         ServiceBusClientBuilder builder = getBuilder(useCredentials, sharedConnection);
-
-        builder = onBuilderCreate.apply(builder);
         switch (entityType) {
             case QUEUE:
                 final String queueName = getQueueName(entityIndex);
                 assertNotNull(queueName, "'queueName' cannot be null.");
 
-                return builder.receiver().queueName(queueName);
+                return builder.receiver().receiveMode(ServiceBusReceiveMode.PEEK_LOCK).queueName(queueName);
             case SUBSCRIPTION:
-                final String topicName = getTopicName();
-                final String subscriptionName = getSubscriptionName(entityIndex);
+                final String topicName = getTopicName(entityIndex);
+                final String subscriptionName = getSubscriptionBaseName();
                 assertNotNull(topicName, "'topicName' cannot be null.");
                 assertNotNull(subscriptionName, "'subscriptionName' cannot be null.");
 
-                return builder.receiver().topicName(topicName).subscriptionName(subscriptionName);
+                return builder.receiver().receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
+                    .topicName(topicName).subscriptionName(subscriptionName);
             default:
                 throw logger.logExceptionAsError(new IllegalArgumentException("Unknown entity type: " + entityType));
         }
     }
 
     protected ServiceBusSessionReceiverClientBuilder getSessionReceiverBuilder(boolean useCredentials,
-        MessagingEntityType entityType, int entityIndex, Function<ServiceBusClientBuilder, ServiceBusClientBuilder> onBuilderCreate,
-        boolean sharedConnection) {
+        MessagingEntityType entityType, int entityIndex, boolean sharedConnection, AmqpRetryOptions retryOptions) {
 
         ServiceBusClientBuilder builder = getBuilder(useCredentials, sharedConnection);
 
@@ -307,43 +291,25 @@ public abstract class IntegrationTestBase extends TestBase {
             case QUEUE:
                 final String queueName = getSessionQueueName(entityIndex);
                 assertNotNull(queueName, "'queueName' cannot be null.");
-                return onBuilderCreate.apply(builder)
+                return builder
+                    .retryOptions(retryOptions)
                     .sessionReceiver()
+                    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
                     .queueName(queueName);
 
             case SUBSCRIPTION:
-                final String topicName = getTopicName();
-                final String subscriptionName = getSessionSubscriptionName(entityIndex);
+                final String topicName = getTopicName(entityIndex);
+                final String subscriptionName = getSessionSubscriptionBaseName();
                 assertNotNull(topicName, "'topicName' cannot be null.");
                 assertNotNull(subscriptionName, "'subscriptionName' cannot be null.");
-                return onBuilderCreate.apply(builder)
+                return builder
+                    .retryOptions(retryOptions)
                     .sessionReceiver()
+                    .receiveMode(ServiceBusReceiveMode.PEEK_LOCK)
                     .topicName(topicName).subscriptionName(subscriptionName);
             default:
                 throw logger.logExceptionAsError(new IllegalArgumentException("Unknown entity type: " + entityType));
         }
-    }
-
-    protected static Stream<Arguments> messagingEntityProviderWithTransaction() {
-        return Stream.of(
-            Arguments.of(MessagingEntityType.QUEUE, true),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true),
-            Arguments.of(MessagingEntityType.QUEUE, false),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false)
-        );
-    }
-
-    protected static Stream<Arguments> messagingEntityWithSessionsWithTransaction() {
-        return Stream.of(
-            Arguments.of(MessagingEntityType.QUEUE, false, true),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, true),
-            Arguments.of(MessagingEntityType.QUEUE, true, true),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, true),
-            Arguments.of(MessagingEntityType.QUEUE, false, false),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, false),
-            Arguments.of(MessagingEntityType.QUEUE, true, false),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, false)
-        );
     }
 
     protected static Stream<Arguments> messagingEntityProvider() {
@@ -362,46 +328,6 @@ public abstract class IntegrationTestBase extends TestBase {
         );
     }
 
-    protected static Stream<Arguments> messagingEntityAndDisposition() {
-        return Stream.of(
-            // The data corresponds to :entityType, dispositionStatus
-            Arguments.of(MessagingEntityType.QUEUE, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.QUEUE, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.QUEUE, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.QUEUE, DispositionStatus.DEFERRED),
-
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.DEFERRED)
-        );
-    }
-
-    protected static Stream<Arguments> messagingEntityTransactionAndDisposition() {
-        return Stream.of(
-            // The data corresponds to :entityType, commit, dispositionStatus
-            Arguments.of(MessagingEntityType.QUEUE, true, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.QUEUE, true, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.QUEUE, true, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.QUEUE, true, DispositionStatus.DEFERRED),
-
-            Arguments.of(MessagingEntityType.QUEUE, false, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.QUEUE, false, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.QUEUE, false, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.QUEUE, false, DispositionStatus.DEFERRED),
-
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, true, DispositionStatus.DEFERRED),
-
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, DispositionStatus.COMPLETED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, DispositionStatus.ABANDONED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, DispositionStatus.SUSPENDED),
-            Arguments.of(MessagingEntityType.SUBSCRIPTION, false, DispositionStatus.DEFERRED)
-        );
-    }
-
     protected static Stream<Arguments> receiveDeferredMessageBySequenceNumber() {
         return Stream.of(
             Arguments.of(MessagingEntityType.QUEUE, DispositionStatus.COMPLETED),
@@ -411,6 +337,24 @@ public abstract class IntegrationTestBase extends TestBase {
             Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.COMPLETED),
             Arguments.of(MessagingEntityType.SUBSCRIPTION, DispositionStatus.SUSPENDED)
         );
+    }
+
+    protected <T extends AutoCloseable> T toClose(T closeable) {
+        toClose.add(closeable);
+        return closeable;
+    }
+
+    protected Disposable toClose(Disposable closeable) {
+        toClose.add(() -> closeable.dispose());
+        return closeable;
+    }
+
+    /**
+     * Disposes of registered with {@code toClose} method resources.
+     */
+    protected void dispose() {
+        dispose(toClose.toArray(new AutoCloseable[0]));
+        toClose.clear();
     }
 
     /**
@@ -423,58 +367,116 @@ public abstract class IntegrationTestBase extends TestBase {
             return;
         }
 
+        final List<Mono<Void>> closeableMonos = new ArrayList<>();
+
         for (final AutoCloseable closeable : closeables) {
             if (closeable == null) {
                 continue;
             }
 
+            if (closeable instanceof AsyncCloseable) {
+                final Mono<Void> voidMono = ((AsyncCloseable) closeable).closeAsync();
+                closeableMonos.add(voidMono);
+
+                voidMono.subscribe();
+            }
+
             try {
                 closeable.close();
             } catch (Exception error) {
-                logger.error(String.format("[%s]: %s didn't close properly.", testName,
-                    closeable.getClass().getSimpleName()), error);
+                logger.error("[{}]: {} didn't close properly.", testName, closeable.getClass().getSimpleName(), error);
             }
         }
+
+        Mono.when(closeableMonos).block(TIMEOUT);
+    }
+
+    protected ServiceBusMessage getMessage(String messageId, boolean isSessionEnabled, AmqpMessageBody amqpMessageBody) {
+        final ServiceBusMessage message = new ServiceBusMessage(amqpMessageBody);
+        message.setMessageId(messageId);
+        return isSessionEnabled ? message.setSessionId(sessionId) : message;
     }
 
     protected ServiceBusMessage getMessage(String messageId, boolean isSessionEnabled) {
         final ServiceBusMessage message = TestUtils.getServiceBusMessage(CONTENTS_BYTES, messageId);
-        logger.verbose("Message id {}.", messageId);
+        message.setMessageId(messageId);
         return isSessionEnabled ? message.setSessionId(sessionId) : message;
     }
 
-    protected void assertMessageEquals(ServiceBusReceivedMessageContext context, String messageId, boolean isSessionEnabled) {
-        Assertions.assertNotNull(context);
-        Assertions.assertNotNull(context.getMessage());
-        assertMessageEquals(context.getMessage(), messageId, isSessionEnabled);
+    protected void logMessage(ServiceBusMessage message, String entity, String description) {
+        logMessage(message.getMessageId(), -1, message.getApplicationProperties().get(MESSAGE_POSITION_ID), entity, description);
+    }
+
+    protected void logMessage(ServiceBusReceivedMessage message, String entity, String description) {
+        if (message == null) {
+            logMessage(null, -1, entity, null, description);
+        } else {
+            logMessage(message.getMessageId(), message.getSequenceNumber(), message.getApplicationProperties().get(MESSAGE_POSITION_ID), entity, description);
+        }
+    }
+
+    private void logMessage(String id, long seqNo, Object positionId, String entity, String description) {
+        logger.atInfo()
+            .addKeyValue("test", testName)
+            .addKeyValue("entity", entity)
+            .addKeyValue("sequenceNo", seqNo)
+            .addKeyValue("messageId", id)
+            .addKeyValue("positionId", positionId)
+            .log(description == null ? "logging messages" : description);
+    }
+
+    protected void logMessages(List<ServiceBusMessage> messages, String entity, String description) {
+        messages.forEach(m -> logMessage(m.getMessageId(), -1, m.getApplicationProperties().get(MESSAGE_POSITION_ID), entity, description));
+    }
+
+    protected List<ServiceBusReceivedMessage> logReceivedMessages(IterableStream<ServiceBusReceivedMessage> messages, String entity, String description) {
+        List<ServiceBusReceivedMessage> list = messages.stream().collect(Collectors.toList());
+        list.forEach(m -> logMessage(m.getMessageId(), m.getSequenceNumber(), m.getApplicationProperties().get(MESSAGE_POSITION_ID), entity, description));
+        return list;
     }
 
     protected void assertMessageEquals(ServiceBusReceivedMessage message, String messageId, boolean isSessionEnabled) {
-        assertArrayEquals(CONTENTS_BYTES, message.getBody());
+        assertNotNull(message, "'message' cannot be null.");
+        assertArrayEquals(CONTENTS_BYTES, message.getBody().toBytes());
 
         // Disabling message ID assertion. Since we do multiple operations on the same queue/topic, it's possible
         // the queue or topic contains messages from previous test cases.
-        assertNotNull(message.getMessageId());
+        assertNotNull(message.getMessageId(), "'messageId' cannot be null.");
         //assertEquals(messageId, message.getMessageId());
 
         if (isSessionEnabled) {
-            assertNotNull(message.getSessionId());
+            assertNotNull(message.getSessionId(), "'sessionId' cannot be null.");
             // Disabling session ID exact match assertion. Since we do multiple operations on the same queue/topic, it's possible
             // the queue or topic contains messages from previous test cases.
             // assertEquals(sessionId, message.getSessionId());
         }
     }
 
-    private ServiceBusClientBuilder getBuilder(boolean useCredentials, boolean sharedConnection) {
+    protected ServiceBusClientBuilder getBuilder(boolean useCredentials, boolean sharedConnection) {
         ServiceBusClientBuilder builder;
         if (sharedConnection && sharedBuilder == null) {
             sharedBuilder = getBuilder(useCredentials);
             builder = sharedBuilder;
-        } else if (sharedConnection && sharedBuilder != null) {
+        } else if (sharedConnection) {
             builder = sharedBuilder;
         } else {
             builder = getBuilder(useCredentials);
         }
         return builder;
+    }
+
+    protected final Configuration v1OrV2(boolean isV2) {
+        final TestConfigurationSource configSource = new TestConfigurationSource();
+        if (isV2) {
+            configSource.put("com.azure.messaging.servicebus.nonSession.asyncReceive.v2", "true");
+            configSource.put("com.azure.messaging.servicebus.nonSession.syncReceive.v2", "true");
+            configSource.put("com.azure.messaging.servicebus.sendAndManageRules.v2", "true");
+        } else {
+            configSource.put("com.azure.messaging.servicebus.nonSession.asyncReceive.v2", "false");
+            configSource.put("com.azure.messaging.servicebus.nonSession.syncReceive.v2", "false");
+            configSource.put("com.azure.messaging.servicebus.sendAndManageRules.v2", "false");
+        }
+        return new ConfigurationBuilder(configSource)
+            .build();
     }
 }

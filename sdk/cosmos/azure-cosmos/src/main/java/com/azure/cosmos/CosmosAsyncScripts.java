@@ -3,6 +3,11 @@
 package com.azure.cosmos;
 
 import com.azure.core.util.Context;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.OperationType;
+import com.azure.cosmos.implementation.QueryFeedOperationState;
+import com.azure.cosmos.implementation.RequestOptions;
+import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.StoredProcedure;
 import com.azure.cosmos.implementation.Trigger;
 import com.azure.cosmos.implementation.UserDefinedFunction;
@@ -21,13 +26,18 @@ import com.azure.cosmos.util.UtilBridgeInternal;
 import reactor.core.publisher.Mono;
 
 import static com.azure.core.util.FluxUtil.withContext;
-import static com.azure.cosmos.implementation.Utils.setContinuationTokenAndMaxItemCount;
 
 /**
  * The type Cosmos async scripts. This contains async methods to operate on cosmos scripts like UDFs, StoredProcedures
  * and Triggers
  */
 public class CosmosAsyncScripts {
+    private static final ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor queryOptionsAccessor =
+        ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.getCosmosQueryRequestOptionsAccessor();
+
+    private static final ImplementationBridgeHelpers.FeedResponseHelper.FeedResponseAccessor feedResponseAccessor =
+        ImplementationBridgeHelpers.FeedResponseHelper.getFeedResponseAccessor();
+
     private final CosmosAsyncContainer container;
     private final CosmosAsyncDatabase database;
 
@@ -73,10 +83,6 @@ public class CosmosAsyncScripts {
         StoredProcedure sProc = new StoredProcedure();
         sProc.setId(properties.getId());
         sProc.setBody(properties.getBody());
-        if (!container.getDatabase().getClient().getTracerProvider().isEnabled()) {
-            return createStoredProcedureInternal(sProc, options);
-        }
-
         final CosmosStoredProcedureRequestOptions requestOptions = options;
         return withContext(context -> createStoredProcedureInternal(sProc, requestOptions, context));
     }
@@ -113,17 +119,30 @@ public class CosmosAsyncScripts {
     CosmosPagedFlux<CosmosStoredProcedureProperties> readAllStoredProcedures(CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "readAllStoredProcedures." + this.container.getId();
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.StoredProcedure,
+                OperationType.ReadFeed,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .readStoredProcedures(container.getLink(), options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .readStoredProcedures(container.getLink(), state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosStoredProcedurePropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     /**
@@ -142,6 +161,10 @@ public class CosmosAsyncScripts {
     public CosmosPagedFlux<CosmosStoredProcedureProperties> queryStoredProcedures(
         String query,
             CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryStoredProceduresInternal(new SqlQuerySpec(query), options);
     }
 
@@ -161,6 +184,10 @@ public class CosmosAsyncScripts {
     public CosmosPagedFlux<CosmosStoredProcedureProperties> queryStoredProcedures(
         SqlQuerySpec querySpec,
         CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryStoredProceduresInternal(querySpec, options);
     }
 
@@ -192,10 +219,6 @@ public class CosmosAsyncScripts {
         UserDefinedFunction udf = new UserDefinedFunction();
         udf.setId(properties.getId());
         udf.setBody(properties.getBody());
-        if (!container.getDatabase().getClient().getTracerProvider().isEnabled()) {
-            return createUserDefinedFunctionInternal(udf);
-        }
-
         return withContext(context -> createUserDefinedFunctionInternal(udf, context));
     }
 
@@ -229,17 +252,30 @@ public class CosmosAsyncScripts {
     CosmosPagedFlux<CosmosUserDefinedFunctionProperties> readAllUserDefinedFunctions(CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "readAllUserDefinedFunctions." + this.container.getId();
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.UserDefinedFunction,
+                OperationType.ReadFeed,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .readUserDefinedFunctions(container.getLink(), options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .readUserDefinedFunctions(container.getLink(), state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosUserDefinedFunctionPropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     /**
@@ -259,6 +295,10 @@ public class CosmosAsyncScripts {
     public CosmosPagedFlux<CosmosUserDefinedFunctionProperties> queryUserDefinedFunctions(
         String query,
         CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryUserDefinedFunctions(new SqlQuerySpec(query), options);
     }
 
@@ -279,6 +319,10 @@ public class CosmosAsyncScripts {
     public CosmosPagedFlux<CosmosUserDefinedFunctionProperties> queryUserDefinedFunctions(
         SqlQuerySpec querySpec,
         CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryUserDefinedFunctionsInternal(querySpec, options);
     }
 
@@ -305,10 +349,6 @@ public class CosmosAsyncScripts {
      * @return an {@link Mono} containing the single resource response with the created trigger or an error.
      */
     public Mono<CosmosTriggerResponse> createTrigger(CosmosTriggerProperties properties) {
-        if (!container.getDatabase().getClient().getTracerProvider().isEnabled()) {
-            return createTriggerInternal(properties);
-        }
-
         return withContext(context -> createTriggerInternal(properties, context));
     }
 
@@ -344,17 +384,30 @@ public class CosmosAsyncScripts {
     CosmosPagedFlux<CosmosTriggerProperties> readAllTriggers(CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "readAllTriggers." + this.container.getId();
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.Trigger,
+                OperationType.ReadFeed,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .readTriggers(container.getLink(), options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .readTriggers(container.getLink(), state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosTriggerPropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     /**
@@ -370,6 +423,10 @@ public class CosmosAsyncScripts {
      * error.
      */
     public CosmosPagedFlux<CosmosTriggerProperties> queryTriggers(String query, CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryTriggersInternal(false, new SqlQuerySpec(query), options);
     }
 
@@ -388,6 +445,10 @@ public class CosmosAsyncScripts {
     public CosmosPagedFlux<CosmosTriggerProperties> queryTriggers(
         SqlQuerySpec querySpec,
         CosmosQueryRequestOptions options) {
+        if (options == null) {
+            options = new CosmosQueryRequestOptions();
+        }
+
         return queryTriggersInternal(true, querySpec, options);
     }
 
@@ -406,17 +467,30 @@ public class CosmosAsyncScripts {
         CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "queryStoredProcedures." + this.container.getId();
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.StoredProcedure,
+                OperationType.Query,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .queryStoredProcedures(container.getLink(), querySpec, options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .queryStoredProcedures(container.getLink(), querySpec, state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosStoredProcedurePropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     private CosmosPagedFlux<CosmosUserDefinedFunctionProperties> queryUserDefinedFunctionsInternal(
@@ -424,17 +498,30 @@ public class CosmosAsyncScripts {
         CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "queryUserDefinedFunctions." + this.container.getId();
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.UserDefinedFunction,
+                OperationType.Query,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .queryUserDefinedFunctions(container.getLink(), querySpec, options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .queryUserDefinedFunctions(container.getLink(), querySpec, state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosUserDefinedFunctionPropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     private CosmosPagedFlux<CosmosTriggerProperties> queryTriggersInternal(
@@ -449,35 +536,63 @@ public class CosmosAsyncScripts {
                 spanName = "queryTriggers." + this.container.getId();
             }
 
-            pagedFluxOptions.setTracerInformation(this.container.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.container.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.container.getDatabase().getClient().getServiceEndpoint(),
-                this.container.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.container.getDatabase().getId(),
+                this.container.getId(),
+                ResourceType.Trigger,
+                OperationType.Query,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return database.getDocClientWrapper()
-                .queryTriggers(container.getLink(), querySpec, options)
-                .map(response -> BridgeInternal.createFeedResponse(
+                .queryTriggers(container.getLink(), querySpec, state)
+                .map(response -> feedResponseAccessor.createFeedResponse(
                     ModelBridgeInternal.getCosmosTriggerPropertiesFromV2Results(response.getResults()),
-                    response.getResponseHeaders()));
-        }, this.container.getDatabase().getClient().getTracerProvider().isEnabled());
+                    response.getResponseHeaders(),
+                    response.getCosmosDiagnostics()));
+        });
     }
 
     private Mono<CosmosStoredProcedureResponse> createStoredProcedureInternal(StoredProcedure sProc,
                                                                            CosmosStoredProcedureRequestOptions options,
                                                                            Context context) {
         String spanName = "createStoredProcedure." + container.getId();
-        Mono<CosmosStoredProcedureResponse> responseMono = createStoredProcedureInternal(sProc, options);
-        return this.container.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono,
+        RequestOptions nonNullRequestOptions = options != null
+            ? ModelBridgeInternal.toRequestOptions(options)
+            : new RequestOptions();
+        Mono<CosmosStoredProcedureResponse> responseMono = createStoredProcedureInternal(sProc, nonNullRequestOptions);
+        CosmosAsyncClient client = database.getClient();
+
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
             context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
+            this.container.getId(),
+            client,
+            null,
+            OperationType.Create,
+            ResourceType.StoredProcedure,
+            nonNullRequestOptions);
     }
 
     private Mono<CosmosStoredProcedureResponse> createStoredProcedureInternal(StoredProcedure sProc,
-                                                                           CosmosStoredProcedureRequestOptions options) {
+                                                                           RequestOptions nonNullRequestOptions) {
         return database.getDocClientWrapper()
-            .createStoredProcedure(container.getLink(), sProc, ModelBridgeInternal.toRequestOptions(options)).map(response -> ModelBridgeInternal.createCosmosStoredProcedureResponse(response))
+            .createStoredProcedure(
+                container.getLink(),
+                sProc,
+                nonNullRequestOptions)
+            .map(ModelBridgeInternal::createCosmosStoredProcedureResponse)
             .single();
     }
 
@@ -486,34 +601,54 @@ public class CosmosAsyncScripts {
         Context context) {
         String spanName = "createUserDefinedFunction." + container.getId();
         Mono<CosmosUserDefinedFunctionResponse> responseMono = createUserDefinedFunctionInternal(udf);
-        return this.container.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono,
+
+        CosmosAsyncClient client = database.getClient();
+
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
             context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
+            this.container.getId(),
+            client,
+            null,
+            OperationType.Create,
+            ResourceType.UserDefinedFunction,
+            null);
     }
 
     private Mono<CosmosUserDefinedFunctionResponse> createUserDefinedFunctionInternal(
         UserDefinedFunction udf) {
         return database.getDocClientWrapper()
-            .createUserDefinedFunction(container.getLink(), udf, null).map(response -> ModelBridgeInternal.createCosmosUserDefinedFunctionResponse(response)).single();
+                       .createUserDefinedFunction(container.getLink(), udf, null)
+                       .map(ModelBridgeInternal::createCosmosUserDefinedFunctionResponse).single();
     }
 
     private Mono<CosmosTriggerResponse> createTriggerInternal(CosmosTriggerProperties properties, Context context) {
         String spanName = "createTrigger." + container.getId();
         Mono<CosmosTriggerResponse> responseMono = createTriggerInternal(properties);
-        return this.container.getDatabase().getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono,
+
+        CosmosAsyncClient client = database.getClient();
+
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
             context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
+            this.container.getId(),
+            client,
+            null,
+            OperationType.Create,
+            ResourceType.Trigger,
+            null);
     }
 
     private Mono<CosmosTriggerResponse> createTriggerInternal(CosmosTriggerProperties properties) {
-        Trigger trigger = new Trigger(ModelBridgeInternal.toJsonFromJsonSerializable(ModelBridgeInternal.getResource(properties)));
+        Trigger trigger = new Trigger(
+            ModelBridgeInternal.toJsonFromJsonSerializable(ModelBridgeInternal.getResource(properties)));
         return database.getDocClientWrapper()
             .createTrigger(container.getLink(), trigger, null)
-            .map(response -> ModelBridgeInternal.createCosmosTriggerResponse(response))
+            .map(ModelBridgeInternal::createCosmosTriggerResponse)
             .single();
     }
 

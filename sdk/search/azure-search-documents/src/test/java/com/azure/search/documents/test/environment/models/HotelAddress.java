@@ -2,29 +2,35 @@
 // Licensed under the MIT License.
 package com.azure.search.documents.test.environment.models;
 
-import com.azure.search.documents.indexes.SearchableFieldProperty;
-import com.azure.search.documents.indexes.SimpleFieldProperty;
+import com.azure.search.documents.indexes.SearchableField;
+import com.azure.search.documents.indexes.SimpleField;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class HotelAddress {
-    @SimpleFieldProperty(isFacetable = true)
+    @SimpleField(isFacetable = true)
     @JsonProperty(value = "StreetAddress")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String streetAddress;
 
-    @SearchableFieldProperty(isFilterable = true)
+    @SearchableField(isFilterable = true)
     @JsonProperty(value = "City")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String city;
 
-    @SearchableFieldProperty
+    @SearchableField
     @JsonProperty(value = "StateProvince")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String stateProvince;
 
-    @SearchableFieldProperty(synonymMapNames = {"fieldbuilder"})
+    @SearchableField(synonymMapNames = {"fieldbuilder"})
     @JsonProperty(value = "Country")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String country;
 
-    @SimpleFieldProperty
+    @SimpleField
     @JsonProperty(value = "PostalCode")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String postalCode;
 
 

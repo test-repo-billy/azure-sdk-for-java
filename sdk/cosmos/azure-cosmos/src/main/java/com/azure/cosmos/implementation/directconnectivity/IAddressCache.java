@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.Utils;
+import com.azure.cosmos.implementation.directconnectivity.rntbd.ProactiveOpenConnectionsProcessor;
 import com.azure.cosmos.implementation.routing.PartitionKeyRangeIdentity;
 import reactor.core.publisher.Mono;
 
@@ -24,4 +25,7 @@ public interface IAddressCache {
             RxDocumentServiceRequest request,
             PartitionKeyRangeIdentity partitionKeyRangeIdentity,
             boolean forceRefreshPartitionAddresses);
+
+
+    void setOpenConnectionsProcessor(ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor);
 }

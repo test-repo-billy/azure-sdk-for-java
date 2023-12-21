@@ -3,13 +3,13 @@
 
 package com.azure.search.documents.implementation.converters;
 
-import com.azure.core.util.serializer.JacksonAdapter;
-import com.azure.search.documents.implementation.SerializationUtil;
-import com.azure.search.documents.implementation.util.PrivateFieldAccessHelper;
+import com.azure.core.util.serializer.ObjectSerializer;
+import com.azure.json.JsonProviders;
+import com.azure.json.JsonReader;
 import com.azure.search.documents.models.IndexAction;
-import com.azure.search.documents.models.IndexActionType;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 /**
@@ -23,49 +23,47 @@ public final class IndexActionConverter {
         if (obj == null) {
             return null;
         }
-        IndexAction<T> indexAction = new IndexAction<T>();
 
-        if (obj.getActionType() != null) {
-            IndexActionType actionType = IndexActionTypeConverter.map(obj.getActionType());
-            indexAction.setActionType(actionType);
-        }
+        IndexAction<T> indexAction = new IndexAction<>();
+        indexAction.setActionType(obj.getActionType());
 
         if (obj.getAdditionalProperties() != null) {
             Map<String, Object> properties = obj.getAdditionalProperties();
-            PrivateFieldAccessHelper.set(indexAction, "properties", properties);
+            IndexActionHelper.setProperties(indexAction, properties);
         }
+
         return indexAction;
     }
 
     /**
      * Maps from {@link IndexAction} to {@link com.azure.search.documents.implementation.models.IndexAction}.
      */
-    @SuppressWarnings("unchecked")
-    public static <T> com.azure.search.documents.implementation.models.IndexAction map(IndexAction<T> obj) {
+    public static <T> com.azure.search.documents.implementation.models.IndexAction map(IndexAction<T> obj,
+        ObjectSerializer serializer) {
         if (obj == null) {
             return null;
         }
         com.azure.search.documents.implementation.models.IndexAction indexAction =
-            new com.azure.search.documents.implementation.models.IndexAction();
+            new com.azure.search.documents.implementation.models.IndexAction().setActionType(obj.getActionType());
 
-        if (obj.getActionType() != null) {
-            com.azure.search.documents.implementation.models.IndexActionType actionType =
-                IndexActionTypeConverter.map(obj.getActionType());
-            indexAction.setActionType(actionType);
+        // Attempt to get the document as the Map<String, Object> properties.
+        Object document = IndexActionHelper.getProperties(obj);
+        if (document == null) {
+            // If ths document wasn't a Map type, get the generic document type.
+            document = obj.getDocument();
         }
 
-        T document = obj.getDocument();
+        // Convert the document to the JSON representation.
+        byte[] documentJson = serializer.serializeToBytes(document);
 
-        ObjectMapper mapper = new JacksonAdapter().serializer();
-        SerializationUtil.configureMapper(mapper);
-        Map<String, Object> additionalProperties = mapper.convertValue(document, Map.class);
-
-        indexAction.setAdditionalProperties(additionalProperties);
-
-        if (obj.getParamMap() != null) {
-            Map<String, Object> properties = obj.getParamMap();
-            PrivateFieldAccessHelper.set(indexAction, "additionalProperties", properties);
+        if (documentJson != null) {
+            try (JsonReader reader = JsonProviders.createReader(documentJson)) {
+                indexAction.setAdditionalProperties(reader.readMap(JsonReader::readUntyped));
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
         }
+
         return indexAction;
     }
 

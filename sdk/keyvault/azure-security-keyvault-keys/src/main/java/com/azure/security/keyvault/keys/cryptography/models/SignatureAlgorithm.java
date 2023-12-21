@@ -3,10 +3,9 @@
 
 package com.azure.security.keyvault.keys.cryptography.models;
 
-import java.util.Collection;
-
 import com.azure.core.util.ExpandableStringEnum;
-import com.fasterxml.jackson.annotation.JsonCreator;
+
+import java.util.Collection;
 
 
 /**
@@ -15,54 +14,66 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public final class SignatureAlgorithm extends ExpandableStringEnum<SignatureAlgorithm> {
 
     /**
-     * Static value RSA_OAEP for SignatureAlgorithm.
+     * Static value PS256 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm PS256 = fromString("PS256");
 
     /**
-     * Static value RSA_OAEP_256 for SignatureAlgorithm.
+     * Static value PS384 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm PS384 = fromString("PS384");
 
     /**
-     * Static value RSA1_5 for SignatureAlgorithm.
+     * Static value PS512 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm PS512 = fromString("PS512");
 
     /**
-     * Static value A256CBC_HS512 for SignatureAlgorithm.
+     * Static value RS256 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm RS256 = fromString("RS256");
 
     /**
-     * Static value A128CBC_HS256 for SignatureAlgorithm.
+     * Static value RS384 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm RS384 = fromString("RS384");
 
     /**
-     * Static value A192CBC_HS384 for SignatureAlgorithm.
+     * Static value RS512 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm RS512 = fromString("RS512");
 
     /**
-     * Static value A256CBC for SignatureAlgorithm.
+     * Static value ES256 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm ES256 = fromString("ES256");
 
     /**
-     * Static value A192CBC for SignatureAlgorithm.
+     * Static value ES384 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm ES384 = fromString("ES384");
 
     /**
-     * Static value A128CBC for SignatureAlgorithm.
+     * Static value ES512 for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm ES512 = fromString("ES512");
 
     /**
-     * Static value A128CBC for SignatureAlgorithm.
+     * Static value ES256K for SignatureAlgorithm.
      */
     public static final SignatureAlgorithm ES256K = fromString("ES256K");
+
+    /**
+     * Creates a new instance of {@link SignatureAlgorithm} without a {@link #toString()} value.
+     * <p>
+     * This constructor shouldn't be called as it will produce a {@link SignatureAlgorithm} which doesn't
+     * have a String enum value.
+     *
+     * @deprecated Use the {@link #fromString(String)} factory method.
+     */
+    @Deprecated
+    public SignatureAlgorithm() {
+    }
 
     /**
      * Creates or finds a SignatureAlgorithm from its string representation.
@@ -70,12 +81,13 @@ public final class SignatureAlgorithm extends ExpandableStringEnum<SignatureAlgo
      * @param name a name to look for.
      * @return the corresponding SignatureAlgorithm.
      */
-    @JsonCreator
     public static SignatureAlgorithm fromString(String name) {
         return fromString(name, SignatureAlgorithm.class);
     }
 
     /**
+     * Gets the known SignatureAlgorithm values.
+     *
      * @return known SignatureAlgorithm values.
      */
     public static Collection<SignatureAlgorithm> values() {

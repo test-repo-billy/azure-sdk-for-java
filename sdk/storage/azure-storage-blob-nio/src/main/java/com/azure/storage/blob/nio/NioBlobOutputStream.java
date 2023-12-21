@@ -8,21 +8,25 @@ import com.azure.storage.blob.specialized.BlobOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
 
 /**
  * Provides an OutputStream to write to a file stored as an Azure Blob.
  */
-public class NioBlobOutputStream extends OutputStream {
-    private final ClientLogger logger = new ClientLogger(NioBlobOutputStream.class);
+public final class NioBlobOutputStream extends OutputStream {
+    private static final ClientLogger LOGGER = new ClientLogger(NioBlobOutputStream.class);
 
     private final BlobOutputStream blobOutputStream;
+    private final Path path;
 
-    NioBlobOutputStream(BlobOutputStream blobOutputStream) {
+    NioBlobOutputStream(BlobOutputStream blobOutputStream, Path path) {
         this.blobOutputStream = blobOutputStream;
+        this.path = path;
     }
 
     @Override
     public synchronized void write(int i) throws IOException {
+        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobOutputStream.write(i);
             /*
@@ -30,12 +34,13 @@ public class NioBlobOutputStream extends OutputStream {
             so we can't do any better than re-wrapping it in an IOException.
              */
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(logger, new IOException(e));
+            throw LoggingUtility.logError(LOGGER, new IOException(e));
         }
     }
 
     @Override
     public synchronized void write(byte[] b) throws IOException {
+        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobOutputStream.write(b);
             /*
@@ -43,12 +48,13 @@ public class NioBlobOutputStream extends OutputStream {
             so we can't do any better than re-wrapping it in an IOException.
              */
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(logger, new IOException(e));
+            throw LoggingUtility.logError(LOGGER, new IOException(e));
         }
     }
 
     @Override
     public synchronized void write(byte[] b, int off, int len) throws IOException {
+        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobOutputStream.write(b, off, len);
             /*
@@ -57,14 +63,15 @@ public class NioBlobOutputStream extends OutputStream {
              */
         } catch (RuntimeException e) {
             if (e instanceof IndexOutOfBoundsException) {
-                throw LoggingUtility.logError(logger, e);
+                throw LoggingUtility.logError(LOGGER, e);
             }
-            throw LoggingUtility.logError(logger, new IOException(e));
+            throw LoggingUtility.logError(LOGGER, new IOException(e));
         }
     }
 
     @Override
     public synchronized void flush() throws IOException {
+        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobOutputStream.flush();
             /*
@@ -72,12 +79,13 @@ public class NioBlobOutputStream extends OutputStream {
             so we can't do any better than re-wrapping it in an IOException.
              */
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(logger, new IOException(e));
+            throw LoggingUtility.logError(LOGGER, new IOException(e));
         }
     }
 
     @Override
     public synchronized void close() throws IOException {
+        AzurePath.ensureFileSystemOpen(path);
         try {
             this.blobOutputStream.close();
             /*
@@ -85,7 +93,7 @@ public class NioBlobOutputStream extends OutputStream {
             so we can't do any better than re-wrapping it in an IOException.
              */
         } catch (RuntimeException e) {
-            throw LoggingUtility.logError(logger, new IOException(e));
+            throw LoggingUtility.logError(LOGGER, new IOException(e));
         }
     }
 }

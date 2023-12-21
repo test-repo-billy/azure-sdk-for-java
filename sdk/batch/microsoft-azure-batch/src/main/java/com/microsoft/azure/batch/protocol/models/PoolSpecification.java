@@ -59,13 +59,13 @@ public class PoolSpecification {
     private VirtualMachineConfiguration virtualMachineConfiguration;
 
     /**
-     * The maximum number of Tasks that can run concurrently on a single
-     * Compute Node in the Pool.
+     * The number of task slots that can be used to run concurrent tasks on a
+     * single compute node in the pool.
      * The default value is 1. The maximum value is the smaller of 4 times the
-     * number of cores of the vmSize of the Pool or 256.
+     * number of cores of the vmSize of the pool or 256.
      */
-    @JsonProperty(value = "maxTasksPerNode")
-    private Integer maxTasksPerNode;
+    @JsonProperty(value = "taskSlotsPerNode")
+    private Integer taskSlotsPerNode;
 
     /**
      * How Tasks are distributed across Compute Nodes in a Pool.
@@ -95,7 +95,7 @@ public class PoolSpecification {
     private Integer targetDedicatedNodes;
 
     /**
-     * The desired number of low-priority Compute Nodes in the Pool.
+     * The desired number of Spot/Low-priority Compute Nodes in the Pool.
      * This property must not be specified if enableAutoScale is set to true.
      * If enableAutoScale is set to false, then you must set either
      * targetDedicatedNodes, targetLowPriorityNodes, or both.
@@ -105,10 +105,10 @@ public class PoolSpecification {
 
     /**
      * Whether the Pool size should automatically adjust over time.
-     * If false, at least one of targetDedicateNodes and targetLowPriorityNodes
-     * must be specified. If true, the autoScaleFormula element is required.
-     * The Pool automatically resizes according to the formula. The default
-     * value is false.
+     * If false, at least one of targetDedicatedNodes and
+     * targetLowPriorityNodes must be specified. If true, the autoScaleFormula
+     * element is required. The Pool automatically resizes according to the
+     * formula. The default value is false.
      */
     @JsonProperty(value = "enableAutoScale")
     private Boolean enableAutoScale;
@@ -169,12 +169,20 @@ public class PoolSpecification {
      * 'remoteUser', a 'certs' directory is created in the user's home
      * directory (e.g., /home/{user-name}/certs) and Certificates are placed in
      * that directory.
+     *
+     * Warning: This property is deprecated and will be removed after February,
+     * 2024. Please use the [Azure KeyVault
+     * Extension](https://learn.microsoft.com/azure/batch/batch-certificate-migration-guide)
+     * instead.
      */
     @JsonProperty(value = "certificateReferences")
     private List<CertificateReference> certificateReferences;
 
     /**
      * The list of Packages to be installed on each Compute Node in the Pool.
+     * When creating a pool, the package's application ID must be fully
+     * qualified
+     * (/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Batch/batchAccounts/{accountName}/applications/{applicationName}).
      * Changes to Package references affect all new Nodes joining the Pool, but
      * do not affect Compute Nodes that are already in the Pool until they are
      * rebooted or reimaged. There is a maximum of 10 Package references on any
@@ -216,6 +224,14 @@ public class PoolSpecification {
      */
     @JsonProperty(value = "mountConfiguration")
     private List<MountConfiguration> mountConfiguration;
+
+    /**
+     * The desired node communication mode for the pool.
+     * If omitted, the default value is Default. Possible values include:
+     * 'default', 'classic', 'simplified'.
+     */
+    @JsonProperty(value = "targetNodeCommunicationMode")
+    private NodeCommunicationMode targetNodeCommunicationMode;
 
     /**
      * Get the display name need not be unique and can contain any Unicode characters up to a maximum length of 1024.
@@ -298,22 +314,22 @@ public class PoolSpecification {
     }
 
     /**
-     * Get the default value is 1. The maximum value is the smaller of 4 times the number of cores of the vmSize of the Pool or 256.
+     * Get the default value is 1. The maximum value is the smaller of 4 times the number of cores of the vmSize of the pool or 256.
      *
-     * @return the maxTasksPerNode value
+     * @return the taskSlotsPerNode value
      */
-    public Integer maxTasksPerNode() {
-        return this.maxTasksPerNode;
+    public Integer taskSlotsPerNode() {
+        return this.taskSlotsPerNode;
     }
 
     /**
-     * Set the default value is 1. The maximum value is the smaller of 4 times the number of cores of the vmSize of the Pool or 256.
+     * Set the default value is 1. The maximum value is the smaller of 4 times the number of cores of the vmSize of the pool or 256.
      *
-     * @param maxTasksPerNode the maxTasksPerNode value to set
+     * @param taskSlotsPerNode the taskSlotsPerNode value to set
      * @return the PoolSpecification object itself.
      */
-    public PoolSpecification withMaxTasksPerNode(Integer maxTasksPerNode) {
-        this.maxTasksPerNode = maxTasksPerNode;
+    public PoolSpecification withTaskSlotsPerNode(Integer taskSlotsPerNode) {
+        this.taskSlotsPerNode = taskSlotsPerNode;
         return this;
     }
 
@@ -398,7 +414,7 @@ public class PoolSpecification {
     }
 
     /**
-     * Get if false, at least one of targetDedicateNodes and targetLowPriorityNodes must be specified. If true, the autoScaleFormula element is required. The Pool automatically resizes according to the formula. The default value is false.
+     * Get if false, at least one of targetDedicatedNodes and targetLowPriorityNodes must be specified. If true, the autoScaleFormula element is required. The Pool automatically resizes according to the formula. The default value is false.
      *
      * @return the enableAutoScale value
      */
@@ -407,7 +423,7 @@ public class PoolSpecification {
     }
 
     /**
-     * Set if false, at least one of targetDedicateNodes and targetLowPriorityNodes must be specified. If true, the autoScaleFormula element is required. The Pool automatically resizes according to the formula. The default value is false.
+     * Set if false, at least one of targetDedicatedNodes and targetLowPriorityNodes must be specified. If true, the autoScaleFormula element is required. The Pool automatically resizes according to the formula. The default value is false.
      *
      * @param enableAutoScale the enableAutoScale value to set
      * @return the PoolSpecification object itself.
@@ -519,6 +535,7 @@ public class PoolSpecification {
 
     /**
      * Get for Windows Nodes, the Batch service installs the Certificates to the specified Certificate store and location. For Linux Compute Nodes, the Certificates are stored in a directory inside the Task working directory and an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the Task to query for this location. For Certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory (e.g., /home/{user-name}/certs) and Certificates are placed in that directory.
+     Warning: This property is deprecated and will be removed after February, 2024. Please use the [Azure KeyVault Extension](https://learn.microsoft.com/azure/batch/batch-certificate-migration-guide) instead.
      *
      * @return the certificateReferences value
      */
@@ -528,6 +545,7 @@ public class PoolSpecification {
 
     /**
      * Set for Windows Nodes, the Batch service installs the Certificates to the specified Certificate store and location. For Linux Compute Nodes, the Certificates are stored in a directory inside the Task working directory and an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the Task to query for this location. For Certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory (e.g., /home/{user-name}/certs) and Certificates are placed in that directory.
+     Warning: This property is deprecated and will be removed after February, 2024. Please use the [Azure KeyVault Extension](https://learn.microsoft.com/azure/batch/batch-certificate-migration-guide) instead.
      *
      * @param certificateReferences the certificateReferences value to set
      * @return the PoolSpecification object itself.
@@ -538,7 +556,7 @@ public class PoolSpecification {
     }
 
     /**
-     * Get changes to Package references affect all new Nodes joining the Pool, but do not affect Compute Nodes that are already in the Pool until they are rebooted or reimaged. There is a maximum of 10 Package references on any given Pool.
+     * Get when creating a pool, the package's application ID must be fully qualified (/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Batch/batchAccounts/{accountName}/applications/{applicationName}). Changes to Package references affect all new Nodes joining the Pool, but do not affect Compute Nodes that are already in the Pool until they are rebooted or reimaged. There is a maximum of 10 Package references on any given Pool.
      *
      * @return the applicationPackageReferences value
      */
@@ -547,7 +565,7 @@ public class PoolSpecification {
     }
 
     /**
-     * Set changes to Package references affect all new Nodes joining the Pool, but do not affect Compute Nodes that are already in the Pool until they are rebooted or reimaged. There is a maximum of 10 Package references on any given Pool.
+     * Set when creating a pool, the package's application ID must be fully qualified (/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Batch/batchAccounts/{accountName}/applications/{applicationName}). Changes to Package references affect all new Nodes joining the Pool, but do not affect Compute Nodes that are already in the Pool until they are rebooted or reimaged. There is a maximum of 10 Package references on any given Pool.
      *
      * @param applicationPackageReferences the applicationPackageReferences value to set
      * @return the PoolSpecification object itself.
@@ -634,6 +652,26 @@ public class PoolSpecification {
      */
     public PoolSpecification withMountConfiguration(List<MountConfiguration> mountConfiguration) {
         this.mountConfiguration = mountConfiguration;
+        return this;
+    }
+
+    /**
+     * Get if omitted, the default value is Default. Possible values include: 'default', 'classic', 'simplified'.
+     *
+     * @return the targetNodeCommunicationMode value
+     */
+    public NodeCommunicationMode targetNodeCommunicationMode() {
+        return this.targetNodeCommunicationMode;
+    }
+
+    /**
+     * Set if omitted, the default value is Default. Possible values include: 'default', 'classic', 'simplified'.
+     *
+     * @param targetNodeCommunicationMode the targetNodeCommunicationMode value to set
+     * @return the PoolSpecification object itself.
+     */
+    public PoolSpecification withTargetNodeCommunicationMode(NodeCommunicationMode targetNodeCommunicationMode) {
+        this.targetNodeCommunicationMode = targetNodeCommunicationMode;
         return this;
     }
 

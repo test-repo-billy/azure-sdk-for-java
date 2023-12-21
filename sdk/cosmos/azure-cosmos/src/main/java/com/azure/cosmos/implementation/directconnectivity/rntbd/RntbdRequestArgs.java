@@ -4,18 +4,16 @@
 package com.azure.cosmos.implementation.directconnectivity.rntbd;
 
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
+import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
+import com.azure.cosmos.implementation.directconnectivity.Uri;
+import com.azure.cosmos.implementation.guava25.base.Stopwatch;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.azure.cosmos.implementation.guava25.base.Stopwatch;
 import io.micrometer.core.instrument.Timer;
 import io.netty.channel.ChannelHandlerContext;
-import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import org.slf4j.Logger;
 
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -40,20 +38,20 @@ public final class RntbdRequestArgs {
     private final long nanoTimeCreated;
     private final Stopwatch lifetime;
     private final String origin;
-    private final URI physicalAddress;
+    private final Uri physicalAddressUri;
     private final String replicaPath;
     private final RxDocumentServiceRequest serviceRequest;
     private final long transportRequestId;
 
-    public RntbdRequestArgs(final RxDocumentServiceRequest serviceRequest, final URI physicalAddress) {
+    public RntbdRequestArgs(final RxDocumentServiceRequest serviceRequest, final Uri physicalAddressUri) {
         this.sample = Timer.start();
         this.activityId = serviceRequest.getActivityId();
         this.timeCreated = Instant.now();
         this.nanoTimeCreated = System.nanoTime();
         this.lifetime = Stopwatch.createStarted();
-        this.origin = physicalAddress.getScheme() + "://" + physicalAddress.getAuthority();
-        this.physicalAddress = physicalAddress;
-        this.replicaPath = StringUtils.stripEnd(physicalAddress.getPath(), "/");
+        this.origin = physicalAddressUri.getURI().getScheme() + "://" + physicalAddressUri.getURI().getAuthority();
+        this.physicalAddressUri = physicalAddressUri;
+        this.replicaPath = StringUtils.stripEnd(physicalAddressUri.getURI().getPath(), "/");
         this.serviceRequest = serviceRequest;
         this.transportRequestId = instanceCount.incrementAndGet();
     }
@@ -65,7 +63,6 @@ public final class RntbdRequestArgs {
         return this.activityId;
     }
 
-    @JsonSerialize(using = ToStringSerializer.class)
     @JsonProperty
     public Duration lifetime() {
         return this.lifetime.elapsed();
@@ -82,8 +79,8 @@ public final class RntbdRequestArgs {
     }
 
     @JsonIgnore
-    public URI physicalAddress() {
-        return this.physicalAddress;
+    public Uri physicalAddressUri() {
+        return this.physicalAddressUri;
     }
 
     @JsonProperty
@@ -110,10 +107,20 @@ public final class RntbdRequestArgs {
 
     // region Methods
 
-    public long stop(Timer requests, Timer responses) {
+    public void stop() {
         this.lifetime.stop();
-        this.sample.stop(requests);
-        return this.sample.stop(responses);
+    }
+
+    public void stop(Timer requests, Timer responses) {
+        this.lifetime.stop();
+
+        if (requests != null) {
+            this.sample.stop(requests);
+        }
+
+        if (responses != null) {
+            this.sample.stop(responses);
+        }
     }
 
     @Override

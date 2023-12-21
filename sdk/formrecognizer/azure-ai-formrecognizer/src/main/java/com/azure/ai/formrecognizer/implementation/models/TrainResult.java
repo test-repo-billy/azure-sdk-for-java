@@ -4,44 +4,56 @@
 
 package com.azure.ai.formrecognizer.implementation.models;
 
-import com.azure.ai.formrecognizer.models.ErrorInformation;
 import com.azure.core.annotation.Fluent;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.azure.json.JsonReader;
+import com.azure.json.JsonSerializable;
+import com.azure.json.JsonToken;
+import com.azure.json.JsonWriter;
+import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
-/** The TrainResult model. */
+/**
+ * Custom model training result.
+ */
 @Fluent
-public final class TrainResult {
+public final class TrainResult implements JsonSerializable<TrainResult> {
     /*
-     * List of the documents used to train the model and any errors reported in
-     * each document.
+     * List of the documents used to train the model and any errors reported in each document.
      */
-    @JsonProperty(value = "trainingDocuments", required = true)
     private List<TrainingDocumentInfo> trainingDocuments;
 
     /*
-     * List of fields used to train the model and the train operation error
-     * reported by each.
+     * List of fields used to train the model and the train operation error reported by each.
      */
-    @JsonProperty(value = "fields")
     private List<FormFieldsReport> fields;
 
     /*
      * Average accuracy.
      */
-    @JsonProperty(value = "averageModelAccuracy")
     private Float averageModelAccuracy;
+
+    /*
+     * Model identifier.
+     */
+    private UUID modelId;
 
     /*
      * Errors returned during the training operation.
      */
-    @JsonProperty(value = "errors")
     private List<ErrorInformation> errors;
 
     /**
-     * Get the trainingDocuments property: List of the documents used to train the model and any errors reported in each
-     * document.
-     *
+     * Creates an instance of TrainResult class.
+     */
+    public TrainResult() {
+    }
+
+    /**
+     * Get the trainingDocuments property: List of the documents used to train the model and any errors reported in
+     * each document.
+     * 
      * @return the trainingDocuments value.
      */
     public List<TrainingDocumentInfo> getTrainingDocuments() {
@@ -49,9 +61,9 @@ public final class TrainResult {
     }
 
     /**
-     * Set the trainingDocuments property: List of the documents used to train the model and any errors reported in each
-     * document.
-     *
+     * Set the trainingDocuments property: List of the documents used to train the model and any errors reported in
+     * each document.
+     * 
      * @param trainingDocuments the trainingDocuments value to set.
      * @return the TrainResult object itself.
      */
@@ -62,7 +74,7 @@ public final class TrainResult {
 
     /**
      * Get the fields property: List of fields used to train the model and the train operation error reported by each.
-     *
+     * 
      * @return the fields value.
      */
     public List<FormFieldsReport> getFields() {
@@ -71,7 +83,7 @@ public final class TrainResult {
 
     /**
      * Set the fields property: List of fields used to train the model and the train operation error reported by each.
-     *
+     * 
      * @param fields the fields value to set.
      * @return the TrainResult object itself.
      */
@@ -82,7 +94,7 @@ public final class TrainResult {
 
     /**
      * Get the averageModelAccuracy property: Average accuracy.
-     *
+     * 
      * @return the averageModelAccuracy value.
      */
     public Float getAverageModelAccuracy() {
@@ -91,7 +103,7 @@ public final class TrainResult {
 
     /**
      * Set the averageModelAccuracy property: Average accuracy.
-     *
+     * 
      * @param averageModelAccuracy the averageModelAccuracy value to set.
      * @return the TrainResult object itself.
      */
@@ -101,8 +113,28 @@ public final class TrainResult {
     }
 
     /**
+     * Get the modelId property: Model identifier.
+     * 
+     * @return the modelId value.
+     */
+    public UUID getModelId() {
+        return this.modelId;
+    }
+
+    /**
+     * Set the modelId property: Model identifier.
+     * 
+     * @param modelId the modelId value to set.
+     * @return the TrainResult object itself.
+     */
+    public TrainResult setModelId(UUID modelId) {
+        this.modelId = modelId;
+        return this;
+    }
+
+    /**
      * Get the errors property: Errors returned during the training operation.
-     *
+     * 
      * @return the errors value.
      */
     public List<ErrorInformation> getErrors() {
@@ -111,12 +143,64 @@ public final class TrainResult {
 
     /**
      * Set the errors property: Errors returned during the training operation.
-     *
+     * 
      * @param errors the errors value to set.
      * @return the TrainResult object itself.
      */
     public TrainResult setErrors(List<ErrorInformation> errors) {
         this.errors = errors;
         return this;
+    }
+
+    @Override
+    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
+        jsonWriter.writeStartObject();
+        jsonWriter.writeArrayField("trainingDocuments", this.trainingDocuments,
+            (writer, element) -> writer.writeJson(element));
+        jsonWriter.writeArrayField("fields", this.fields, (writer, element) -> writer.writeJson(element));
+        jsonWriter.writeNumberField("averageModelAccuracy", this.averageModelAccuracy);
+        jsonWriter.writeStringField("modelId", Objects.toString(this.modelId, null));
+        jsonWriter.writeArrayField("errors", this.errors, (writer, element) -> writer.writeJson(element));
+        return jsonWriter.writeEndObject();
+    }
+
+    /**
+     * Reads an instance of TrainResult from the JsonReader.
+     * 
+     * @param jsonReader The JsonReader being read.
+     * @return An instance of TrainResult if the JsonReader was pointing to an instance of it, or null if it was
+     * pointing to JSON null.
+     * @throws IllegalStateException If the deserialized JSON object was missing any required properties.
+     * @throws IOException If an error occurs while reading the TrainResult.
+     */
+    public static TrainResult fromJson(JsonReader jsonReader) throws IOException {
+        return jsonReader.readObject(reader -> {
+            TrainResult deserializedTrainResult = new TrainResult();
+            while (reader.nextToken() != JsonToken.END_OBJECT) {
+                String fieldName = reader.getFieldName();
+                reader.nextToken();
+
+                if ("trainingDocuments".equals(fieldName)) {
+                    List<TrainingDocumentInfo> trainingDocuments
+                        = reader.readArray(reader1 -> TrainingDocumentInfo.fromJson(reader1));
+                    deserializedTrainResult.trainingDocuments = trainingDocuments;
+                } else if ("fields".equals(fieldName)) {
+                    List<FormFieldsReport> fields = reader.readArray(reader1 -> FormFieldsReport.fromJson(reader1));
+                    deserializedTrainResult.fields = fields;
+                } else if ("averageModelAccuracy".equals(fieldName)) {
+                    deserializedTrainResult.averageModelAccuracy = reader.getNullable(JsonReader::getFloat);
+                } else if ("modelId".equals(fieldName)) {
+                    deserializedTrainResult.modelId
+                        = reader.getNullable(nonNullReader -> UUID.fromString(nonNullReader.getString()));
+                } else if ("errors".equals(fieldName)) {
+                    List<ErrorInformation> errors = reader.readArray(reader1 -> ErrorInformation.fromJson(reader1));
+                    deserializedTrainResult.errors = errors;
+                } else {
+                    reader.skipChildren();
+                }
+            }
+
+            return deserializedTrainResult;
+        });
     }
 }

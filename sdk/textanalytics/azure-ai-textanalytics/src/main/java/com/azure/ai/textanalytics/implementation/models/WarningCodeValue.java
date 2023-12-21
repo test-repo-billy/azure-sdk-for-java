@@ -4,52 +4,41 @@
 
 package com.azure.ai.textanalytics.implementation.models;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.azure.core.util.ExpandableStringEnum;
+import java.util.Collection;
 
-/**
- * Defines values for WarningCodeValue.
- */
-public enum WarningCodeValue {
-    /**
-     * Enum value LongWordsInDocument.
-     */
-    LONG_WORDS_IN_DOCUMENT("LongWordsInDocument"),
+/** Error code. */
+public final class WarningCodeValue extends ExpandableStringEnum<WarningCodeValue> {
+    /** Static value LongWordsInDocument for WarningCodeValue. */
+    public static final WarningCodeValue LONG_WORDS_IN_DOCUMENT = fromString("LongWordsInDocument");
 
-    /**
-     * Enum value DocumentTruncated.
-     */
-    DOCUMENT_TRUNCATED("DocumentTruncated");
+    /** Static value DocumentTruncated for WarningCodeValue. */
+    public static final WarningCodeValue DOCUMENT_TRUNCATED = fromString("DocumentTruncated");
 
     /**
-     * The actual serialized value for a WarningCodeValue instance.
+     * Creates a new instance of WarningCodeValue value.
+     *
+     * @deprecated Use the {@link #fromString(String)} factory method.
      */
-    private final String value;
+    @Deprecated
+    public WarningCodeValue() {}
 
-    WarningCodeValue(String value) {
-        this.value = value;
+    /**
+     * Creates or finds a WarningCodeValue from its string representation.
+     *
+     * @param name a name to look for.
+     * @return the corresponding WarningCodeValue.
+     */
+    public static WarningCodeValue fromString(String name) {
+        return fromString(name, WarningCodeValue.class);
     }
 
     /**
-     * Parses a serialized value to a WarningCodeValue instance.
-     * 
-     * @param value the serialized value to parse.
-     * @return the parsed WarningCodeValue object, or null if unable to parse.
+     * Gets known WarningCodeValue values.
+     *
+     * @return known WarningCodeValue values.
      */
-    @JsonCreator
-    public static WarningCodeValue fromString(String value) {
-        WarningCodeValue[] items = WarningCodeValue.values();
-        for (WarningCodeValue item : items) {
-            if (item.toString().equalsIgnoreCase(value)) {
-                return item;
-            }
-        }
-        return null;
-    }
-
-    @JsonValue
-    @Override
-    public String toString() {
-        return this.value;
+    public static Collection<WarningCodeValue> values() {
+        return values(WarningCodeValue.class);
     }
 }

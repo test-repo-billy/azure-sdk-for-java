@@ -4,27 +4,38 @@
 package com.azure.cosmos;
 
 import com.azure.core.util.Context;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.Paths;
 import com.azure.cosmos.implementation.Permission;
-import com.azure.cosmos.models.CosmosPermissionResponse;
-import com.azure.cosmos.models.CosmosUserResponse;
+import com.azure.cosmos.implementation.QueryFeedOperationState;
+import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.models.CosmosPermissionProperties;
 import com.azure.cosmos.models.CosmosPermissionRequestOptions;
-import com.azure.cosmos.models.CosmosUserProperties;
+import com.azure.cosmos.models.CosmosPermissionResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
+import com.azure.cosmos.models.CosmosUserProperties;
+import com.azure.cosmos.models.CosmosUserResponse;
 import com.azure.cosmos.models.ModelBridgeInternal;
 import com.azure.cosmos.util.CosmosPagedFlux;
 import com.azure.cosmos.util.UtilBridgeInternal;
 import reactor.core.publisher.Mono;
 
 import static com.azure.core.util.FluxUtil.withContext;
-import static com.azure.cosmos.implementation.Utils.setContinuationTokenAndMaxItemCount;
 
 /**
  * The type Cosmos async user.
  */
 public class CosmosAsyncUser {
+    private static final ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor queryOptionsAccessor =
+        ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.getCosmosQueryRequestOptionsAccessor();
+
+    private static final ImplementationBridgeHelpers.FeedResponseHelper.FeedResponseAccessor feedResponseAccessor =
+        ImplementationBridgeHelpers.FeedResponseHelper.getFeedResponseAccessor();
+
     private final CosmosAsyncDatabase database;
+
+    @SuppressWarnings("EnforceFinalFields")
     private String id;
 
     CosmosAsyncUser(String id, CosmosAsyncDatabase database) {
@@ -58,11 +69,7 @@ public class CosmosAsyncUser {
      * @return a {@link Mono} containing the single resource response with the read user or an error.
      */
     public Mono<CosmosUserResponse> read() {
-        if (!database.getClient().getTracerProvider().isEnabled()) {
-            return readInternal();
-        }
-
-        return withContext(context -> readInternal(context));
+        return withContext(this::readInternal);
     }
 
     /**
@@ -72,10 +79,6 @@ public class CosmosAsyncUser {
      * @return a {@link Mono} containing the single resource response with the replaced user or an error.
      */
     public Mono<CosmosUserResponse> replace(CosmosUserProperties userProperties) {
-        if (!database.getClient().getTracerProvider().isEnabled()) {
-            return replaceInternal(userProperties);
-        }
-
         return withContext(context -> replaceInternal(userProperties, context));
     }
 
@@ -85,11 +88,7 @@ public class CosmosAsyncUser {
      * @return a {@link Mono} containing the single resource response with the deleted user or an error.
      */
     public Mono<CosmosUserResponse> delete() {
-        if (!database.getClient().getTracerProvider().isEnabled()) {
-            return deleteInternal();
-        }
-
-        return withContext(context -> deleteInternal(context));
+        return withContext(this::deleteInternal);
     }
 
     /**
@@ -106,17 +105,9 @@ public class CosmosAsyncUser {
     public Mono<CosmosPermissionResponse> createPermission(
         CosmosPermissionProperties permissionProperties,
         CosmosPermissionRequestOptions options) {
-        if (options == null) {
-            options = new CosmosPermissionRequestOptions();
-        }
-
+        final CosmosPermissionRequestOptions requestOptions = options == null ? new CosmosPermissionRequestOptions() : options;
         Permission permission = ModelBridgeInternal.getPermission(permissionProperties, database.getId());
-        if (!database.getClient().getTracerProvider().isEnabled()) {
-            return createPermissionInternal(permission, options);
-        }
-
-        final CosmosPermissionRequestOptions requesOptions = options;
-        return withContext(context -> createPermissionInternal(permission, requesOptions, context));
+        return withContext(context -> createPermissionInternal(permission, requestOptions, context));
     }
 
     /**
@@ -134,15 +125,7 @@ public class CosmosAsyncUser {
         CosmosPermissionProperties permissionProperties,
         CosmosPermissionRequestOptions options) {
         Permission permission = ModelBridgeInternal.getPermission(permissionProperties, database.getId());
-        if (options == null) {
-            options = new CosmosPermissionRequestOptions();
-        }
-
-        if (!database.getClient().getTracerProvider().isEnabled()) {
-            return upsertPermissionInternal(permission, options);
-        }
-
-        final CosmosPermissionRequestOptions requestOptions = options;
+        final CosmosPermissionRequestOptions requestOptions = options == null ? new CosmosPermissionRequestOptions() : options;
         return withContext(context -> upsertPermissionInternal(permission, requestOptions, context));
     }
 
@@ -175,17 +158,30 @@ public class CosmosAsyncUser {
     CosmosPagedFlux<CosmosPermissionProperties> readAllPermissions(CosmosQueryRequestOptions options) {
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "readAllPermissions." + this.getId();
-            pagedFluxOptions.setTracerInformation(this.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.getDatabase().getClient();
+            CosmosQueryRequestOptions nonNullOptions = options != null ? options : new CosmosQueryRequestOptions();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.getDatabase().getClient().getServiceEndpoint(),
-                this.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.getDatabase().getId(),
+                null,
+                ResourceType.Permission,
+                OperationType.ReadFeed,
+                queryOptionsAccessor.getQueryNameOrDefault(nonNullOptions, spanName),
+                nonNullOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return getDatabase().getDocClientWrapper()
-                       .readPermissions(getLink(), options)
-                       .map(response -> BridgeInternal.createFeedResponse(
+                       .readPermissions(getLink(), state)
+                       .map(response -> feedResponseAccessor.createFeedResponse(
                            ModelBridgeInternal.getCosmosPermissionPropertiesFromResults(response.getResults()),
-                           response.getResponseHeaders()));
-        }, this.getDatabase().getClient().getTracerProvider().isEnabled());
+                           response.getResponseHeaders(),
+                           response.getCosmosDiagnostics()));
+        });
     }
 
     /**
@@ -216,19 +212,32 @@ public class CosmosAsyncUser {
      * an error.
      */
     public CosmosPagedFlux<CosmosPermissionProperties> queryPermissions(String query, CosmosQueryRequestOptions options) {
+        CosmosQueryRequestOptions requestOptions = options == null ? new CosmosQueryRequestOptions() : options;
         return UtilBridgeInternal.createCosmosPagedFlux(pagedFluxOptions -> {
             String spanName = "queryPermissions." + this.getId();
-            pagedFluxOptions.setTracerInformation(this.getDatabase().getClient().getTracerProvider(),
+            CosmosAsyncClient client = this.getDatabase().getClient();
+
+            QueryFeedOperationState state = new QueryFeedOperationState(
+                client,
                 spanName,
-                this.getDatabase().getClient().getServiceEndpoint(),
-                this.getDatabase().getId());
-            setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+                this.getDatabase().getId(),
+                null,
+                ResourceType.Permission,
+                OperationType.Query,
+                queryOptionsAccessor.getQueryNameOrDefault(requestOptions, spanName),
+                requestOptions,
+                pagedFluxOptions
+            );
+
+            pagedFluxOptions.setFeedOperationState(state);
+
             return getDatabase().getDocClientWrapper()
-                       .queryPermissions(getLink(), query, options)
-                       .map(response -> BridgeInternal.createFeedResponse(
+                       .queryPermissions(getLink(), query, state)
+                       .map(response -> feedResponseAccessor.createFeedResponse(
                            ModelBridgeInternal.getCosmosPermissionPropertiesFromResults(response.getResults()),
-                           response.getResponseHeaders()));
-        }, this.getDatabase().getClient().getTracerProvider().isEnabled());
+                           response.getResponseHeaders(),
+                           response.getCosmosDiagnostics()));
+        });
     }
 
     /**
@@ -250,13 +259,11 @@ public class CosmosAsyncUser {
     }
 
     String getLink() {
-        StringBuilder builder = new StringBuilder();
-        builder.append(getParentLink());
-        builder.append("/");
-        builder.append(getURIPathSegment());
-        builder.append("/");
-        builder.append(getId());
-        return builder.toString();
+        return getParentLink()
+            + "/"
+            + getURIPathSegment()
+            + "/"
+            + getId();
     }
 
     /**
@@ -270,47 +277,60 @@ public class CosmosAsyncUser {
 
     private Mono<CosmosUserResponse> readInternal(Context context) {
         String spanName = "readUser." + getId();
-        Mono<CosmosUserResponse> responseMono = readInternal();
-        return database.getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+        Mono<CosmosUserResponse> responseMono = this.database.getDocClientWrapper()
+                                                             .readUser(getLink(), null)
+                                                             .map(ModelBridgeInternal::createCosmosUserResponse).single();
+        CosmosAsyncClient client = database.getClient();
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
+            context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
-    }
-
-    private Mono<CosmosUserResponse> readInternal() {
-        return this.database.getDocClientWrapper()
-            .readUser(getLink(), null)
-            .map(response -> ModelBridgeInternal.createCosmosUserResponse(response)).single();
+            null,
+            client,
+            null,
+            OperationType.Read,
+            ResourceType.User,
+            null);
     }
 
     private Mono<CosmosUserResponse> replaceInternal(CosmosUserProperties userSettings, Context context) {
         String spanName = "replaceUser." + getId();
-        Mono<CosmosUserResponse> responseMono = replaceInternal(userSettings);
-        return database.getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+        Mono<CosmosUserResponse> responseMono = this.database.getDocClientWrapper()
+                                                             .replaceUser(ModelBridgeInternal.getV2User(userSettings)
+                                                                 , null)
+                                                             .map(ModelBridgeInternal::createCosmosUserResponse).single();
+        CosmosAsyncClient client = database.getClient();
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
+            context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
-    }
-
-    private Mono<CosmosUserResponse> replaceInternal(CosmosUserProperties userSettings) {
-        return this.database.getDocClientWrapper()
-            .replaceUser(ModelBridgeInternal.getV2User(userSettings), null)
-            .map(response -> ModelBridgeInternal.createCosmosUserResponse(response)).single();
+            null,
+            client,
+            null,
+            OperationType.Replace,
+            ResourceType.User,
+            null);
     }
 
     private Mono<CosmosUserResponse> deleteInternal(Context context) {
         String spanName = "deleteUser." + getId();
-        Mono<CosmosUserResponse> responseMono = deleteInternal();
-        return database.getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+        Mono<CosmosUserResponse> responseMono = this.database.getDocClientWrapper()
+                                                             .deleteUser(getLink(), null)
+                                                             .map(ModelBridgeInternal::createCosmosUserResponse).single();
+        CosmosAsyncClient client = database.getClient();
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
+            context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
-    }
-
-    private Mono<CosmosUserResponse> deleteInternal() {
-        return this.database.getDocClientWrapper()
-            .deleteUser(getLink(), null)
-            .map(response -> ModelBridgeInternal.createCosmosUserResponse(response)).single();
+            null,
+            client,
+            null,
+            OperationType.Delete,
+            ResourceType.User,
+            null);
     }
 
     private Mono<CosmosPermissionResponse> createPermissionInternal(
@@ -318,20 +338,23 @@ public class CosmosAsyncUser {
         CosmosPermissionRequestOptions options,
         Context context) {
         String spanName = "createPermission." + getId();
-        Mono<CosmosPermissionResponse> responseMono = createPermissionInternal(permission, options);
-        return database.getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+        Mono<CosmosPermissionResponse> responseMono = database.getDocClientWrapper()
+            .createPermission(getLink(), permission, ModelBridgeInternal.toRequestOptions(options))
+            .map(ModelBridgeInternal::createCosmosPermissionResponse)
+            .single();
+        CosmosAsyncClient client = database.getClient();
+
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
+            context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
-    }
-
-    private Mono<CosmosPermissionResponse> createPermissionInternal(
-        Permission permission,
-        CosmosPermissionRequestOptions options) {
-        return database.getDocClientWrapper()
-            .createPermission(getLink(), permission, ModelBridgeInternal.toRequestOptions(options))
-            .map(response -> ModelBridgeInternal.createCosmosPermissionResponse(response))
-            .single();
+            null,
+            client,
+            null,
+            OperationType.Create,
+            ResourceType.Permission,
+            null);
     }
 
     private Mono<CosmosPermissionResponse> upsertPermissionInternal(
@@ -339,19 +362,22 @@ public class CosmosAsyncUser {
         CosmosPermissionRequestOptions options,
         Context context) {
         String spanName = "upsertPermission." + getId();
-        Mono<CosmosPermissionResponse> responseMono = upsertPermissionInternal(permission, options);
-        return database.getClient().getTracerProvider().traceEnabledCosmosResponsePublisher(responseMono, context,
+        Mono<CosmosPermissionResponse> responseMono = database.getDocClientWrapper()
+            .upsertPermission(getLink(), permission, ModelBridgeInternal.toRequestOptions(options))
+            .map(ModelBridgeInternal::createCosmosPermissionResponse)
+            .single();
+        CosmosAsyncClient client = database.getClient();
+
+        return client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
+            responseMono,
+            context,
             spanName,
             database.getId(),
-            database.getClient().getServiceEndpoint());
-    }
-
-    private Mono<CosmosPermissionResponse> upsertPermissionInternal(
-        Permission permission,
-        CosmosPermissionRequestOptions options) {
-        return database.getDocClientWrapper()
-            .upsertPermission(getLink(), permission, ModelBridgeInternal.toRequestOptions(options))
-            .map(response -> ModelBridgeInternal.createCosmosPermissionResponse(response))
-            .single();
+            null,
+            client,
+            null,
+            OperationType.Upsert,
+            ResourceType.Permission,
+            null);
     }
 }

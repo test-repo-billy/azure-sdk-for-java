@@ -4,19 +4,28 @@
 package com.azure.search.documents.models;
 
 import com.azure.core.annotation.Fluent;
-import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
  * Contains a batch of document write actions to send to the index.
+ *
+ * @param <T> The type of the document being indexed.
  */
 @Fluent
 public class IndexBatchBase<T> {
     /*
      * The actions in the batch.
      */
-    @JsonProperty(value = "value", required = true)
-    private List<IndexAction<T>> actions;
+    private final List<IndexAction<T>> actions;
+
+    /**
+     * Constructor of {@link IndexBatchBase}
+     * @param actions The actions in the batch.
+     */
+    public IndexBatchBase(List<IndexAction<T>> actions) {
+        this.actions = actions;
+    }
 
     /**
      * Get the actions property: The actions in the batch.
@@ -25,16 +34,5 @@ public class IndexBatchBase<T> {
      */
     public List<IndexAction<T>> getActions() {
         return this.actions;
-    }
-
-    /**
-     * Set the actions property: The actions in the batch.
-     *
-     * @param actions the actions value to set.
-     * @return the IndexBatchBase object itself.
-     */
-    protected IndexBatchBase<T> setActions(List<IndexAction<T>> actions) {
-        this.actions = actions;
-        return this;
     }
 }

@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Type representing context local to a single http request and it's response.
+ * Represents the information used to make a single HTTP request.
  */
 public final class HttpPipelineCallContext {
     private HttpRequest httpRequest;
@@ -64,6 +64,19 @@ public final class HttpPipelineCallContext {
      */
     public Optional<Object> getData(String key) {
         return this.data.getData(key);
+    }
+
+    /**
+     *  Gets the context associated to the HTTP call.
+     *
+     *  <p>
+     *  The returned context is a snapshot of the data stored in this http pipeline call context.
+     *  </p>
+     *
+     * @return The context associated to the HTTP call.
+     */
+    public Context getContext() {
+        return data;
     }
 
     /**

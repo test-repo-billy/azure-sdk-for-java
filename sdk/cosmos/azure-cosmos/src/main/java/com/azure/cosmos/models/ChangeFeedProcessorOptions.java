@@ -3,6 +3,8 @@
 package com.azure.cosmos.models;
 
 import com.azure.cosmos.ChangeFeedProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -11,10 +13,25 @@ import java.time.Instant;
  * Specifies the options associated with {@link ChangeFeedProcessor}.
  */
 public final class ChangeFeedProcessorOptions {
-    private static final Duration DEFAULT_RENEW_INTERVAL = Duration.ofMillis(0).plusSeconds(17);
-    private static final Duration DEFAULT_ACQUIRE_INTERVAL = Duration.ofMillis(0).plusSeconds(13);
-    private static final Duration DEFAULT_EXPIRATION_INTERVAL = Duration.ofMillis(0).plusSeconds(60);
-    private static final Duration DEFAULT_FEED_POLL_DELAY = Duration.ofMillis(0).plusSeconds(5);
+    /**
+     * Default renew interval.
+     */
+    public static final Duration DEFAULT_RENEW_INTERVAL = Duration.ofMillis(0).plusSeconds(17);
+
+    /**
+     * Default acquire interval.
+     */
+    public static final Duration DEFAULT_ACQUIRE_INTERVAL = Duration.ofMillis(0).plusSeconds(13);
+
+    /**
+     * Default expiration interval.
+     */
+    public static final Duration DEFAULT_EXPIRATION_INTERVAL = Duration.ofMillis(0).plusSeconds(60);
+
+    /**
+     * Default feed poll delay.
+     */
+    public static final Duration DEFAULT_FEED_POLL_DELAY = Duration.ofMillis(0).plusSeconds(5);
 
     private Duration leaseRenewInterval;
     private Duration leaseAcquireInterval;
@@ -29,6 +46,8 @@ public final class ChangeFeedProcessorOptions {
     private int minScaleCount;
     private int maxScaleCount;
 
+    private Scheduler scheduler;
+
     /**
      * Instantiates a new Change feed processor options.
      */
@@ -40,6 +59,8 @@ public final class ChangeFeedProcessorOptions {
         this.leaseExpirationInterval = DEFAULT_EXPIRATION_INTERVAL;
         this.feedPollDelay = DEFAULT_FEED_POLL_DELAY;
         this.maxScaleCount = 0; // unlimited
+
+        this.scheduler = Schedulers.boundedElastic();
     }
 
     /**
@@ -168,6 +189,11 @@ public final class ChangeFeedProcessorOptions {
 
     /**
      * Sets the maximum number of items to be returned in the enumeration operation.
+     * <p>
+     * NOTE: There are some cases where the number of items returned from the Change Feed can be higher than the specified value.
+     * If items in the container are being written through stored procedures, transactional batch, or bulk, they share the same
+     * <a href="https://docs.microsoft.com/azure/cosmos-db/sql/stored-procedures-triggers-udfs#transactions">transaction</a>
+     * and the same bookkeeping, so they will be returned together when read through the Change Feed.
      *
      * @param maxItemCount the maximum number of items to be returned in the enumeration operation.
      * @return the current ChangeFeedProcessorOptions instance.
@@ -317,6 +343,30 @@ public final class ChangeFeedProcessorOptions {
      */
     public ChangeFeedProcessorOptions setMaxScaleCount(int maxScaleCount) {
         this.maxScaleCount = maxScaleCount;
+        return this;
+    }
+
+    /**
+     * Gets the internal {@link Scheduler} that hosts a pool of ExecutorService-based workers for any change feed processor related tasks.
+     *
+     * @return a {@link Scheduler} that hosts a pool of ExecutorService-based workers..
+     */
+    public Scheduler getScheduler() {
+        return this.scheduler;
+    }
+
+    /**
+     * Sets the internal {@link Scheduler} that hosts a pool of ExecutorService-based workers for any change feed processor related tasks.
+     *
+     * @param scheduler a {@link Scheduler} that hosts a pool of ExecutorService-based workers.
+     * {@link ChangeFeedProcessor} instance.
+     * @return the current ChangeFeedProcessorOptions instance.
+     */
+    public ChangeFeedProcessorOptions setScheduler(Scheduler scheduler) {
+        if (scheduler == null) {
+            throw new IllegalArgumentException("scheduler");
+        }
+        this.scheduler = scheduler;
         return this;
     }
 }

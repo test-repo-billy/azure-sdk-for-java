@@ -3,99 +3,175 @@
 
 package com.azure.cosmos.implementation.query;
 
-import com.azure.cosmos.BridgeInternal;
-import com.azure.cosmos.models.FeedResponse;
-import com.azure.cosmos.implementation.Resource;
+import com.azure.cosmos.CosmosDiagnostics;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
-import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
+import com.azure.cosmos.implementation.spark.OperationContextAndListenerTuple;
+import com.azure.cosmos.models.FeedResponse;
+import com.azure.cosmos.models.ModelBridgeInternal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
-import java.util.function.BiFunction;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-class Fetcher<T extends Resource> {
+import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
+
+abstract class Fetcher<T> {
     private final static Logger logger = LoggerFactory.getLogger(Fetcher.class);
 
-    private final BiFunction<String, Integer, RxDocumentServiceRequest> createRequestFunc;
     private final Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc;
     private final boolean isChangeFeed;
+    private final OperationContextAndListenerTuple operationContext;
+    private Supplier<String> operationContextTextProvider;
 
-    private volatile boolean shouldFetchMore;
-    private volatile int maxItemCount;
-    private volatile int top;
-    private volatile String continuationToken;
+    private final AtomicBoolean shouldFetchMore;
+    private final AtomicInteger maxItemCount;
+    private final AtomicInteger top;
+    private final List<CosmosDiagnostics> cancelledRequestDiagnosticsTracker;
 
-    public Fetcher(BiFunction<String, Integer, RxDocumentServiceRequest> createRequestFunc,
-                   Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc,
-                   String continuationToken,
-                   boolean isChangeFeed,
-                   int top,
-                   int maxItemCount) {
+    public Fetcher(
+        Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc,
+        boolean isChangeFeed,
+        int top,
+        int maxItemCount,
+        OperationContextAndListenerTuple operationContext,
+        List<CosmosDiagnostics> cancelledRequestDiagnosticsTracker) {
 
-        this.createRequestFunc = createRequestFunc;
+        checkNotNull(executeFunc, "Argument 'executeFunc' must not be null.");
+
         this.executeFunc = executeFunc;
         this.isChangeFeed = isChangeFeed;
 
-        this.continuationToken = continuationToken;
-        this.top = top;
+        this.operationContext = operationContext;
+        this.operationContextTextProvider = () -> {
+            String operationContextText = operationContext != null && operationContext.getOperationContext() != null ?
+                operationContext.getOperationContext().toString() : "n/a";
+            this.operationContextTextProvider = () -> operationContextText;
+            return operationContextText;
+        };
+
+        this.top = new AtomicInteger(top);
         if (top == -1) {
-            this.maxItemCount = maxItemCount;
+            this.maxItemCount = new AtomicInteger(maxItemCount);
         } else {
             // it is a top query, we should not retrieve more than requested top.
-            this.maxItemCount = Math.min(maxItemCount, top);
+            this.maxItemCount = new AtomicInteger(Math.min(maxItemCount, top));
         }
-        this.shouldFetchMore = true;
+        this.shouldFetchMore = new AtomicBoolean(true);
+        this.cancelledRequestDiagnosticsTracker = cancelledRequestDiagnosticsTracker;
     }
 
-    public boolean shouldFetchMore() {
-        return shouldFetchMore;
+    public final boolean shouldFetchMore() {
+        return shouldFetchMore.get();
     }
 
     public Mono<FeedResponse<T>> nextPage() {
+        return this.nextPageCore();
+    }
+
+    protected final Mono<FeedResponse<T>> nextPageCore() {
         RxDocumentServiceRequest request = createRequest();
         return nextPage(request);
     }
 
-    private void updateState(FeedResponse<T> response) {
-        continuationToken = response.getContinuationToken();
-        if (top != -1) {
-            top -= response.getResults().size();
-            if (top < 0) {
+    protected abstract String applyServerResponseContinuation(
+        String serverContinuationToken,
+        RxDocumentServiceRequest request);
+
+    protected abstract boolean isFullyDrained(boolean isChangeFeed, FeedResponse<T> response);
+
+    protected abstract String getContinuationForLogging();
+
+    public String getOperationContextText() {
+        return this.operationContextTextProvider.get();
+    }
+
+    private void updateState(FeedResponse<T> response, RxDocumentServiceRequest request) {
+        String transformedContinuation =
+            this.applyServerResponseContinuation(response.getContinuationToken(), request);
+
+        ModelBridgeInternal.setFeedResponseContinuationToken(transformedContinuation, response);
+        if (top.get() != -1) {
+            top.accumulateAndGet(response.getResults().size(), (left, right) -> left - right);
+            if (top.get() < 0) {
                 // this shouldn't happen
                 // this means backend retrieved more items than requested
-                logger.warn("Azure Cosmos DB BackEnd Service returned more than requested {} items", maxItemCount);
-                top = 0;
+                logger.warn("Azure Cosmos DB BackEnd Service returned more than requested {} items, Context: {}",
+                    maxItemCount.get(),
+                    this.operationContextTextProvider.get());
+                top.set(0);
             }
-            maxItemCount = Math.min(maxItemCount, top);
+            maxItemCount.accumulateAndGet(top.get(), Math::min);
         }
 
-        shouldFetchMore = shouldFetchMore &&
-                // if token is null or top == 0 then done
-                (!StringUtils.isEmpty(continuationToken) && (top != 0)) &&
-                // if change feed query and no changes then done
-                (!isChangeFeed || !BridgeInternal.noChanges(response));
+        if (shouldFetchMore.get() &&
+            // if top == 0 then done
+            (top.get() != 0) &&
+            // if fullyDrained then done
+            !this.isFullyDrained(this.isChangeFeed, response)) {
+            shouldFetchMore.set(true);
+        } else {
+            shouldFetchMore.set(false);
+        }
 
-        logger.debug("Fetcher state updated: " +
-                        "isChangeFeed = {}, continuation token = {}, max item count = {}, should fetch more = {}",
-                        isChangeFeed, continuationToken, maxItemCount, shouldFetchMore);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Fetcher state updated: " +
+                    "isChangeFeed = {}, continuation token = {}, max item count = {}, should fetch more = {}, Context: {}",
+                isChangeFeed, this.getContinuationForLogging(), maxItemCount.get(), shouldFetchMore.get(),
+                this.operationContextTextProvider.get());
+        }
+    }
+
+    protected void reEnableShouldFetchMoreForRetry() {
+        this.shouldFetchMore.set(true);
     }
 
     private RxDocumentServiceRequest createRequest() {
-        if (!shouldFetchMore) {
+        if (!shouldFetchMore.get()) {
             // this should never happen
-            logger.error("invalid state, trying to fetch more after completion");
+            logger.error(
+                "invalid state, trying to fetch more after completion, Context: {}",
+                this.operationContextTextProvider.get());
             throw new IllegalStateException("INVALID state, trying to fetch more after completion");
         }
 
-        return createRequestFunc.apply(continuationToken, maxItemCount);
+        return this.createRequest(maxItemCount.get());
     }
 
+    protected abstract RxDocumentServiceRequest createRequest(int maxItemCount);
+
     private Mono<FeedResponse<T>> nextPage(RxDocumentServiceRequest request) {
-        return executeFunc.apply(request).map(rsp -> {
-            updateState(rsp);
-            return rsp;
-        });
+        AtomicBoolean completed = new AtomicBoolean(false);
+
+        return executeFunc
+            .apply(request)
+            .map(rsp -> {
+                updateState(rsp, request);
+                return rsp;
+            })
+            .doOnNext(response -> completed.set(true))
+            .doOnError(throwable -> completed.set(true))
+            .doFinally(signalType -> {
+                // If the signal type is not cancel(which means success or error), we do not need to tracking the diagnostics here
+                // as the downstream will capture it
+                //
+                // Any of the reactor operators can terminate with a cancel signal instead of error signal
+                // For example collectList, Flux.merge, takeUntil
+                // We should only record cancellation diagnostics if the signal is cancelled and the request is cancelled
+                if (signalType != SignalType.CANCEL
+                    || this.cancelledRequestDiagnosticsTracker == null
+                    || completed.get()) {
+                    return;
+                }
+
+                if (request.requestContext != null && request.requestContext.cosmosDiagnostics != null) {
+                    this.cancelledRequestDiagnosticsTracker.add(request.requestContext.cosmosDiagnostics);
+                }
+            });
     }
 }

@@ -8,6 +8,7 @@ import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.eventhubs.jproxy.ProxyServer;
 import com.azure.messaging.eventhubs.jproxy.SimpleProxy;
 import com.azure.messaging.eventhubs.models.EventPosition;
+import org.apache.qpid.proton.engine.SslDomain;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -59,19 +60,22 @@ public class ProxyReceiveTest extends IntegrationTestBase {
 
     @AfterAll()
     public static void cleanup() throws Exception {
-        if (proxyServer != null) {
-            proxyServer.stop();
+        try {
+            if (proxyServer != null) {
+                proxyServer.stop();
+            }
+        } finally {
+            ProxySelector.setDefault(defaultProxySelector);
         }
-
-        ProxySelector.setDefault(defaultProxySelector);
     }
 
     @Test
     public void testReceiverStartOfStreamFilters() {
-        final EventHubConsumerAsyncClient consumer = createBuilder()
+        final EventHubConsumerAsyncClient consumer = toClose(createBuilder()
+            .verifyMode(SslDomain.VerifyMode.ANONYMOUS_PEER)
             .transportType(AmqpTransportType.AMQP_WEB_SOCKETS)
             .consumerGroup(EventHubClientBuilder.DEFAULT_CONSUMER_GROUP_NAME)
-            .buildAsyncConsumerClient();
+            .buildAsyncConsumerClient());
         final String partitionId = "3";
         final IntegrationTestEventData integrationTestEventData = getTestData().get(partitionId);
         final PartitionProperties properties = integrationTestEventData.getPartitionProperties();

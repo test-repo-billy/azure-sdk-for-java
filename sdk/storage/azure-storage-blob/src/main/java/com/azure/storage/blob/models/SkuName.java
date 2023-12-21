@@ -7,38 +7,24 @@ package com.azure.storage.blob.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Defines values for SkuName.
- */
+/** Defines values for SkuName. */
 public enum SkuName {
-    /**
-     * Enum value Standard_LRS.
-     */
+    /** Enum value Standard_LRS. */
     STANDARD_LRS("Standard_LRS"),
 
-    /**
-     * Enum value Standard_GRS.
-     */
+    /** Enum value Standard_GRS. */
     STANDARD_GRS("Standard_GRS"),
 
-    /**
-     * Enum value Standard_RAGRS.
-     */
+    /** Enum value Standard_RAGRS. */
     STANDARD_RAGRS("Standard_RAGRS"),
 
-    /**
-     * Enum value Standard_ZRS.
-     */
+    /** Enum value Standard_ZRS. */
     STANDARD_ZRS("Standard_ZRS"),
 
-    /**
-     * Enum value Premium_LRS.
-     */
+    /** Enum value Premium_LRS. */
     PREMIUM_LRS("Premium_LRS");
 
-    /**
-     * The actual serialized value for a SkuName instance.
-     */
+    /** The actual serialized value for a SkuName instance. */
     private final String value;
 
     SkuName(String value) {
@@ -53,6 +39,9 @@ public enum SkuName {
      */
     @JsonCreator
     public static SkuName fromString(String value) {
+        if (value == null) {
+            return null;
+        }
         SkuName[] items = SkuName.values();
         for (SkuName item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -62,6 +51,7 @@ public enum SkuName {
         return null;
     }
 
+    /** {@inheritDoc} */
     @JsonValue
     @Override
     public String toString() {

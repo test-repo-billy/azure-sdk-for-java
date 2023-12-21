@@ -3,6 +3,12 @@
 
 package com.azure.cosmos.implementation;
 
+import com.azure.cosmos.implementation.directconnectivity.Address;
+import com.azure.cosmos.implementation.query.PartitionedQueryExecutionInfoInternal;
+import com.azure.cosmos.implementation.query.QueryInfo;
+import com.azure.cosmos.implementation.query.QueryItem;
+import com.azure.cosmos.implementation.routing.Range;
+import com.azure.cosmos.models.ChangeFeedPolicy;
 import com.azure.cosmos.models.CompositePath;
 import com.azure.cosmos.models.ConflictResolutionPolicy;
 import com.azure.cosmos.models.ExcludedPath;
@@ -29,6 +35,8 @@ import reactor.util.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +45,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents a base resource that can be serialized to JSON in the Azure Cosmos DB database service.
@@ -87,6 +96,59 @@ public class JsonSerializable {
 
     protected JsonSerializable(byte[] bytes) {
         this.propertyBag = fromJson(bytes);
+    }
+
+    public static JsonSerializable instantiateFromObjectNodeAndType(ObjectNode objectNode, Class<?> klassType) {
+        if (klassType.equals(Document.class)) {
+            return new Document(objectNode);
+        }
+        if (klassType.equals(InternalObjectNode.class)) {
+            return new InternalObjectNode(objectNode);
+        }
+        if (klassType.equals(PartitionKeyRange.class)) {
+            return new PartitionKeyRange(objectNode);
+        }
+        if (klassType.equals(Range.class)) {
+            return new Range<>(objectNode);
+        }
+        if (klassType.equals(QueryInfo.class)) {
+            return new QueryInfo(objectNode);
+        }
+        if (klassType.equals(PartitionedQueryExecutionInfoInternal.class)) {
+            return new PartitionedQueryExecutionInfoInternal(objectNode);
+        }
+        if (klassType.equals(QueryItem.class)) {
+            return new QueryItem(objectNode);
+        }
+        if (klassType.equals(Address.class)) {
+            return new Address(objectNode);
+        }
+        if (klassType.equals(DatabaseAccount.class)) {
+            return new DatabaseAccount(objectNode);
+        }
+        if (klassType.equals(DatabaseAccountLocation.class)) {
+            return new DatabaseAccountLocation(objectNode);
+        }
+        if (klassType.equals(ReplicationPolicy.class)) {
+            return new ReplicationPolicy(objectNode);
+        }
+        if (klassType.equals(ConsistencyPolicy.class)) {
+            return new ConsistencyPolicy(objectNode);
+        }
+        if (klassType.equals(DocumentCollection.class)) {
+            return new DocumentCollection(objectNode);
+        }
+        if (klassType.equals(Database.class)) {
+            return new Database(objectNode);
+        } else {
+            // This should rarely execute. Keeping this for sanity sake
+            try {
+                return (JsonSerializable) klassType.getDeclaredConstructor(String.class)
+                                              .newInstance(Utils.toJson(Utils.getSimpleObjectMapper(), objectNode));
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
     }
 
     private static void checkForValidPOJO(Class<?> c) {
@@ -152,6 +214,15 @@ public class JsonSerializable {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getMap() {
         return getMapper().convertValue(this.propertyBag, HashMap.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Map<String, T> getMap(String propertyKey) {
+        if (this.propertyBag.has(propertyKey)) {
+            Object value = this.get(propertyKey);
+            return (Map<String, T>) getMapper().convertValue(value, HashMap.class);
+        }
+        return null;
     }
 
     /**
@@ -358,7 +429,7 @@ public class JsonSerializable {
                     throw new IllegalStateException("Failed to create enum.", e);
                 }
             } else if (JsonSerializable.class.isAssignableFrom(c)) {
-                return (T) ModelBridgeInternal.instantiateJsonSerializable((ObjectNode) jsonObj, c);
+                return (T) instantiateFromObjectNodeAndType((ObjectNode) jsonObj, c);
             } else if (containsJsonSerializable(c)) {
                 return ModelBridgeInternal.instantiateByObjectNode((ObjectNode) jsonObj, c);
             }
@@ -393,8 +464,8 @@ public class JsonSerializable {
     // Implicit or explicit cast to T is done only after checking values are assignable from Class<T>.
     public <T> List<T> getList(String propertyName, Class<T> c, boolean... convertFromCamelCase) {
         if (this.propertyBag.has(propertyName) && this.propertyBag.hasNonNull(propertyName)) {
-            ArrayNode jsonArray = (ArrayNode) this.propertyBag.get(propertyName);
-            ArrayList<T> result = new ArrayList<T>();
+            JsonNode jsonArray = this.propertyBag.get(propertyName);
+            ArrayList<T> result = new ArrayList<>();
 
             boolean isBaseClass = false;
             boolean isEnumClass = false;
@@ -431,7 +502,7 @@ public class JsonSerializable {
                     }
                 } else if (isJsonSerializable) {
                     // JsonSerializable
-                    T t = (T) ModelBridgeInternal.instantiateJsonSerializable((ObjectNode) n, c);
+                    T t = (T) instantiateFromObjectNodeAndType((ObjectNode) n, c);
                     result.add(t);
 
                 } else if (containsJsonSerializable) {
@@ -570,9 +641,18 @@ public class JsonSerializable {
         return Utils.serializeJsonToByteBuffer(getMapper(), propertyBag);
     }
 
+    public ByteBuffer serializeJsonToByteBuffer(ObjectMapper objectMapper) {
+        this.populatePropertyBag();
+        return Utils.serializeJsonToByteBuffer(objectMapper, propertyBag);
+    }
+
     private String toJson(Object object) {
+        return toJson(getMapper(), object);
+    }
+
+    private static String toJson(ObjectMapper mapper, Object object) {
         try {
-            return getMapper().writeValueAsString(object);
+            return mapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Unable to convert JSON to STRING", e);
         }
@@ -599,10 +679,10 @@ public class JsonSerializable {
     @SuppressWarnings("unchecked")
     // Implicit or explicit cast to T is done after checking values are assignable from Class<T>.
     public <T> T toObject(Class<T> c) {
-        // TODO: We have to remove this if we do not want to support CosmosItemProperties anymore, and change all the
+        // TODO: We have to remove this if we do not want to support InternalObjectNode anymore, and change all the
         //  tests accordingly
-        if (CosmosItemProperties.class.isAssignableFrom(c)) {
-            return (T) new CosmosItemProperties(this.propertyBag);
+        if (InternalObjectNode.class.isAssignableFrom(c)) {
+            return (T) new InternalObjectNode(this.propertyBag);
         }
         if (JsonSerializable.class.isAssignableFrom(c)
             || String.class.isAssignableFrom(c)
@@ -636,6 +716,66 @@ public class JsonSerializable {
                 return this.getMapper().treeToValue(propertyBag, c);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to get POJO.", e);
+            }
+        }
+    }
+
+    /**
+     * Converts to an Object (only POJOs and JsonNode are supported).
+     *
+     * @param <T> the type of the object.
+     * @param c the class of the object, either a POJO class or JsonNode. If c is a POJO class, it must be a member
+     * (and not an anonymous or local) and a static one.
+     * @return the POJO.
+     * @throws IllegalArgumentException thrown if an error occurs
+     * @throws IllegalStateException thrown when objectmapper is unable to read tree
+     */
+    @SuppressWarnings("unchecked")
+    // Implicit or explicit cast to T is done after checking values are assignable from Class<T>.
+    public static <T> T toObjectFromObjectNode(JsonNode node, boolean isValueQuery, Class<T> c) {
+        if (isValueQuery && node.has(Constants.Properties.VALUE)) {
+            return OBJECT_MAPPER.convertValue(node.get(Constants.Properties.VALUE), c);
+        }
+
+        if (InternalObjectNode.class.isAssignableFrom(c)) {
+            return (T) new InternalObjectNode((ObjectNode)node);
+        }
+
+        if (node instanceof ObjectNode &&
+            (JsonSerializable.class.isAssignableFrom(c) || containsJsonSerializable(c))) {
+
+            return c.cast(instantiateFromObjectNodeAndType((ObjectNode)node, c));
+        }
+
+        if (List.class.isAssignableFrom(c)) {
+            try {
+                return OBJECT_MAPPER.readValue(node.toString(), c);
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to convert to collection.", e);
+            }
+        }
+        if (JsonNode.class.isAssignableFrom(c) || ObjectNode.class.isAssignableFrom(c)) {
+            // JsonNode
+            if (JsonNode.class != c) {
+                if (ObjectNode.class != c) {
+                    throw new IllegalArgumentException(
+                        "We support JsonNode but not its sub-classes.");
+                }
+            }
+
+            return c.cast(node);
+        } else {
+            // POJO
+            JsonSerializable.checkForValidPOJO(c);
+            try {
+                return OBJECT_MAPPER.treeToValue(node, c);
+            } catch (IOException e) {
+               throw new IllegalStateException(
+                    String.format(
+                        "Failed to get POJO of type '%s' for json '%s'.",
+                        c.getName(),
+                        toJson(OBJECT_MAPPER, node)),
+                    e);
             }
         }
     }
@@ -680,9 +820,10 @@ public class JsonSerializable {
         return this.propertyBag;
     }
 
-    <T> boolean containsJsonSerializable(Class<T> c) {
+    static <T> boolean containsJsonSerializable(Class<T> c) {
         return CompositePath.class.equals(c)
             || ConflictResolutionPolicy.class.equals(c)
+            || ChangeFeedPolicy.class.equals(c)
             || ExcludedPath.class.equals(c)
             || IncludedPath.class.equals(c)
             || IndexingPolicy.class.equals(c)
@@ -692,5 +833,22 @@ public class JsonSerializable {
             || SqlQuerySpec.class.equals(c)
             || UniqueKey.class.equals(c)
             || UniqueKeyPolicy.class.equals(c);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        JsonSerializable that = (JsonSerializable) o;
+        return Objects.equals(propertyBag, that.propertyBag);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(propertyBag);
     }
 }

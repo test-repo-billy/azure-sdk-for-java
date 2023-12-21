@@ -8,7 +8,7 @@ import com.azure.core.annotation.Immutable;
 import java.util.Locale;
 
 /**
- * The {@link DetectLanguageInput} model.
+ * The {@code DetectLanguageInput} model.
  */
 @Immutable
 public final class DetectLanguageInput {
@@ -53,7 +53,7 @@ public final class DetectLanguageInput {
     }
 
     /**
-     * Get the id property: Unique, non-empty document identifier.
+     * Gets the id property: Unique, non-empty document identifier.
      *
      * @return The id value.
      */
@@ -62,7 +62,7 @@ public final class DetectLanguageInput {
     }
 
     /**
-     * Get the text property: The text property.
+     * Gets the text property: The text property.
      *
      * @return The text value.
      */
@@ -71,7 +71,7 @@ public final class DetectLanguageInput {
     }
 
     /**
-     * Get the countryHint property: The {@code countryHint} property.
+     * Gets the countryHint property: The {@code countryHint} property.
      *
      * @return The {@code countryHint} value.
      */

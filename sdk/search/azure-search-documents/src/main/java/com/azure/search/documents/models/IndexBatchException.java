@@ -21,6 +21,9 @@ public final class IndexBatchException extends AzureException {
     private static final String MESSAGE_FORMAT = "%s of %s indexing actions in the batch failed. The remaining"
         + " actions succeeded and modified the index. Check indexingResults for the status of each index action.";
 
+    /**
+     * Indexing results.
+     */
     private final ArrayList<IndexingResult> results;
 
     /**
@@ -56,10 +59,12 @@ public final class IndexBatchException extends AzureException {
     public <T> IndexBatchBase<T> findFailedActionsToRetry(IndexBatchBase<T> originBatch,
         Function<T, String> keySelector) {
         List<IndexAction<T>> failedActions = doFindFailedActionsToRetry(originBatch, keySelector);
-        return new IndexBatchBase<T>().setActions(failedActions);
+        return new IndexBatchBase<T>(failedActions);
     }
 
     /**
+     * Gets the indexing results returned by the service.
+     *
      * @return The indexing results returned by the service.
      */
     public List<IndexingResult> getIndexingResults() {
@@ -82,13 +87,10 @@ public final class IndexBatchException extends AzureException {
             .collect(Collectors.toList());
     }
 
-    @SuppressWarnings("unchecked")
     private <T> boolean isActionIncluded(IndexAction<T> action, Set<String> uniqueRetriableKeys,
         Function<T, String> keySelector) {
         if (action.getDocument() != null) {
             return uniqueRetriableKeys.contains(keySelector.apply(action.getDocument()));
-        } else if (action.getParamMap() != null) {
-            return uniqueRetriableKeys.contains(keySelector.apply((T) action.getParamMap()));
         }
         return false;
     }

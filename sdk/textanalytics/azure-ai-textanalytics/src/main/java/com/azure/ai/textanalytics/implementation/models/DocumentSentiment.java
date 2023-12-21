@@ -8,9 +8,7 @@ import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-/**
- * The DocumentSentiment model.
- */
+/** The DocumentSentiment model. */
 @Fluent
 public final class DocumentSentiment {
     /*
@@ -50,11 +48,11 @@ public final class DocumentSentiment {
      * Warnings encountered while processing document.
      */
     @JsonProperty(value = "warnings", required = true)
-    private List<TextAnalyticsWarning> warnings;
+    private List<DocumentWarning> warnings;
 
     /**
      * Get the id property: Unique, non-empty document identifier.
-     * 
+     *
      * @return the id value.
      */
     public String getId() {
@@ -63,7 +61,7 @@ public final class DocumentSentiment {
 
     /**
      * Set the id property: Unique, non-empty document identifier.
-     * 
+     *
      * @param id the id value to set.
      * @return the DocumentSentiment object itself.
      */
@@ -73,9 +71,8 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Get the sentiment property: Predicted sentiment for document (Negative,
-     * Neutral, Positive, or Mixed).
-     * 
+     * Get the sentiment property: Predicted sentiment for document (Negative, Neutral, Positive, or Mixed).
+     *
      * @return the sentiment value.
      */
     public DocumentSentimentValue getSentiment() {
@@ -83,9 +80,8 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Set the sentiment property: Predicted sentiment for document (Negative,
-     * Neutral, Positive, or Mixed).
-     * 
+     * Set the sentiment property: Predicted sentiment for document (Negative, Neutral, Positive, or Mixed).
+     *
      * @param sentiment the sentiment value to set.
      * @return the DocumentSentiment object itself.
      */
@@ -95,9 +91,9 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Get the statistics property: if showStats=true was specified in the
-     * request this field will contain information about the document payload.
-     * 
+     * Get the statistics property: if showStats=true was specified in the request this field will contain information
+     * about the document payload.
+     *
      * @return the statistics value.
      */
     public DocumentStatistics getStatistics() {
@@ -105,9 +101,9 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Set the statistics property: if showStats=true was specified in the
-     * request this field will contain information about the document payload.
-     * 
+     * Set the statistics property: if showStats=true was specified in the request this field will contain information
+     * about the document payload.
+     *
      * @param statistics the statistics value to set.
      * @return the DocumentSentiment object itself.
      */
@@ -117,9 +113,9 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Get the confidenceScores property: Document level sentiment confidence
-     * scores between 0 and 1 for each sentiment class.
-     * 
+     * Get the confidenceScores property: Document level sentiment confidence scores between 0 and 1 for each sentiment
+     * class.
+     *
      * @return the confidenceScores value.
      */
     public SentimentConfidenceScorePerLabel getConfidenceScores() {
@@ -127,9 +123,9 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Set the confidenceScores property: Document level sentiment confidence
-     * scores between 0 and 1 for each sentiment class.
-     * 
+     * Set the confidenceScores property: Document level sentiment confidence scores between 0 and 1 for each sentiment
+     * class.
+     *
      * @param confidenceScores the confidenceScores value to set.
      * @return the DocumentSentiment object itself.
      */
@@ -140,7 +136,7 @@ public final class DocumentSentiment {
 
     /**
      * Get the sentences property: Sentence level sentiment analysis.
-     * 
+     *
      * @return the sentences value.
      */
     public List<SentenceSentiment> getSentences() {
@@ -149,7 +145,7 @@ public final class DocumentSentiment {
 
     /**
      * Set the sentences property: Sentence level sentiment analysis.
-     * 
+     *
      * @param sentences the sentences value to set.
      * @return the DocumentSentiment object itself.
      */
@@ -159,23 +155,21 @@ public final class DocumentSentiment {
     }
 
     /**
-     * Get the warnings property: Warnings encountered while processing
-     * document.
-     * 
+     * Get the warnings property: Warnings encountered while processing document.
+     *
      * @return the warnings value.
      */
-    public List<TextAnalyticsWarning> getWarnings() {
+    public List<DocumentWarning> getWarnings() {
         return this.warnings;
     }
 
     /**
-     * Set the warnings property: Warnings encountered while processing
-     * document.
-     * 
+     * Set the warnings property: Warnings encountered while processing document.
+     *
      * @param warnings the warnings value to set.
      * @return the DocumentSentiment object itself.
      */
-    public DocumentSentiment setWarnings(List<TextAnalyticsWarning> warnings) {
+    public DocumentSentiment setWarnings(List<DocumentWarning> warnings) {
         this.warnings = warnings;
         return this;
     }

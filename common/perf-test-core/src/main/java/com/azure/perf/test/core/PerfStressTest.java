@@ -9,40 +9,32 @@ import reactor.core.publisher.Mono;
  * Represents the abstraction of a Performance test class.
  *
  * <p>
- *     The performance test class needs to extend this class. The test class should override {@link PerfStressTest#run()}
- *     and {@link PerfStressTest#runAsync()} methods and the synchronous and asynchronous test logic respectively.
- *     To add any test setup and logic the test class should override {@link PerfStressTest#globalSetupAsync()}
- *     and {@link PerfStressTest#globalCleanupAsync()} methods .
+ * The performance test class needs to extend this class. The test class should override {@link PerfStressTest#run()}
+ * and {@link PerfStressTest#runAsync()} methods and the synchronous and asynchronous test logic respectively.
+ * To add any test setup and logic the test class should override {@link PerfStressTest#globalSetupAsync()}
+ * and {@link PerfStressTest#globalCleanupAsync()} methods .
  * </p>
- *
- *
  * @param <TOptions> the options configured for the test.
  */
-public abstract class PerfStressTest<TOptions extends PerfStressOptions> {
-    protected final TOptions options;
-
+public abstract class PerfStressTest<TOptions extends PerfStressOptions> extends ApiPerfTestBase<TOptions> {
     /**
      * Creates an instance of performance test.
      * @param options the options configured for the test.
+     * @throws IllegalStateException if SSL context cannot be created.
      */
     public PerfStressTest(TOptions options) {
-        this.options = options;
+        super(options);
     }
 
-    /**
-     * Runs the setup required prior to running the performance test.
-     * @return An empty {@link Mono}
-     */
-    public Mono<Void> globalSetupAsync() {
-        return Mono.empty();
+    @Override
+    int runTest() {
+        run();
+        return 1;
     }
 
-    /**
-     * Runs the setup required prior to running an individual thread in the performance test.
-     * @return An empty {@link Mono}
-     */
-    public Mono<Void> setupAsync() {
-        return Mono.empty();
+    @Override
+    Mono<Integer> runTestAsync() {
+        return runAsync().then(Mono.just(1));
     }
 
     /**
@@ -55,20 +47,4 @@ public abstract class PerfStressTest<TOptions extends PerfStressOptions> {
      * @return An empty {@link Mono}
      */
     public abstract Mono<Void> runAsync();
-
-    /**
-     * Runs the cleanup logic after an individual thread finishes in the performance test.
-     * @return An empty {@link Mono}
-     */
-    public Mono<Void> cleanupAsync() {
-        return Mono.empty();
-    }
-
-    /**
-     * Runs the cleanup logic after the performance test finishes.
-     * @return An empty {@link Mono}
-     */
-    public Mono<Void> globalCleanupAsync() {
-        return Mono.empty();
-    }
 }

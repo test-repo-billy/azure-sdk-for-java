@@ -3,28 +3,38 @@
 
 package com.azure.storage.blob.implementation.util;
 
+import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipeline;
 import com.azure.core.http.HttpPipelineBuilder;
 import com.azure.core.http.policy.AddDatePolicy;
+import com.azure.core.http.policy.AddHeadersPolicy;
+import com.azure.core.http.policy.AzureSasCredentialPolicy;
 import com.azure.core.http.policy.BearerTokenAuthenticationPolicy;
 import com.azure.core.http.policy.HttpLogOptions;
 import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.core.http.policy.HttpPolicyProviders;
 import com.azure.core.http.policy.RequestIdPolicy;
+import com.azure.core.http.policy.RetryOptions;
 import com.azure.core.http.policy.UserAgentPolicy;
+import com.azure.core.util.ClientOptions;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.CoreUtils;
+import com.azure.core.util.TracingOptions;
 import com.azure.core.util.logging.ClientLogger;
+import com.azure.core.util.tracing.Tracer;
+import com.azure.core.util.tracing.TracerProvider;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobAudience;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.implementation.BuilderUtils;
 import com.azure.storage.common.implementation.Constants;
-import com.azure.storage.common.implementation.credentials.SasTokenCredential;
-import com.azure.storage.common.implementation.policy.SasTokenCredentialPolicy;
+import com.azure.storage.common.implementation.credentials.CredentialValidator;
+import com.azure.storage.common.policy.MetadataValidationPolicy;
 import com.azure.storage.common.policy.RequestRetryOptions;
-import com.azure.storage.common.policy.RequestRetryPolicy;
 import com.azure.storage.common.policy.ResponseValidationPolicyBuilder;
 import com.azure.storage.common.policy.ScrubEtagPolicy;
 import com.azure.storage.common.policy.StorageSharedKeyCredentialPolicy;
@@ -34,56 +44,87 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.azure.storage.common.Utility.STORAGE_TRACING_NAMESPACE_VALUE;
+
 /**
  * This class provides helper methods for common builder patterns.
- *
+ * <p>
  * RESERVED FOR INTERNAL USE.
  */
 public final class BuilderHelper {
-    private static final Map<String, String> PROPERTIES =
-        CoreUtils.getProperties("azure-storage-blob.properties");
-    private static final String SDK_NAME = "name";
-    private static final String SDK_VERSION = "version";
+    private static final String CLIENT_NAME;
+    private static final String CLIENT_VERSION;
+
+    static {
+        Map<String, String> properties = CoreUtils.getProperties("azure-storage-blob.properties");
+        CLIENT_NAME = properties.getOrDefault("name", "UnknownName");
+        CLIENT_VERSION = properties.getOrDefault("version", "UnknownVersion");
+    }
 
     /**
      * Constructs a {@link HttpPipeline} from values passed from a builder.
      *
      * @param storageSharedKeyCredential {@link StorageSharedKeyCredential} if present.
      * @param tokenCredential {@link TokenCredential} if present.
-     * @param sasTokenCredential {@link SasTokenCredential} if present.
+     * @param azureSasCredential {@link AzureSasCredential} if present.
+     * @param sasToken SAS token if present.
      * @param endpoint The endpoint for the client.
-     * @param retryOptions Retry options to set in the retry policy.
+     * @param retryOptions Storage's retry options to set in the retry policy.
+     * @param coreRetryOptions Core's retry options to set in the retry policy.
      * @param logOptions Logging options to set in the logging policy.
+     * @param clientOptions Client options.
      * @param httpClient HttpClient to use in the builder.
-     * @param additionalPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline.
+     * @param perCallPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline per call.
+     * @param perRetryPolicies Additional {@link HttpPipelinePolicy policies} to set in the pipeline per retry.
      * @param configuration Configuration store contain environment settings.
      * @param logger {@link ClientLogger} used to log any exception.
+     * @param audience {@link BlobAudience} used to determine the audience of the blob.
      * @return A new {@link HttpPipeline} from the passed values.
      */
-    public static HttpPipeline buildPipeline(StorageSharedKeyCredential storageSharedKeyCredential,
-        TokenCredential tokenCredential, SasTokenCredential sasTokenCredential, String endpoint,
-        RequestRetryOptions retryOptions, HttpLogOptions logOptions, HttpClient httpClient,
-        List<HttpPipelinePolicy> additionalPolicies, Configuration configuration, ClientLogger logger) {
+    public static HttpPipeline buildPipeline(
+        StorageSharedKeyCredential storageSharedKeyCredential,
+        TokenCredential tokenCredential, AzureSasCredential azureSasCredential, String sasToken, String endpoint,
+        RequestRetryOptions retryOptions, RetryOptions coreRetryOptions,
+        HttpLogOptions logOptions, ClientOptions clientOptions, HttpClient httpClient,
+        List<HttpPipelinePolicy> perCallPolicies, List<HttpPipelinePolicy> perRetryPolicies,
+        Configuration configuration, BlobAudience audience, ClientLogger logger) {
+
+        CredentialValidator.validateSingleCredentialIsPresent(
+            storageSharedKeyCredential, tokenCredential, azureSasCredential, sasToken, logger);
 
         // Closest to API goes first, closest to wire goes last.
         List<HttpPipelinePolicy> policies = new ArrayList<>();
 
-        policies.add(getUserAgentPolicy(configuration));
+        policies.add(getUserAgentPolicy(configuration, logOptions, clientOptions));
         policies.add(new RequestIdPolicy());
 
+        policies.addAll(perCallPolicies);
         HttpPolicyProviders.addBeforeRetryPolicies(policies);
-        policies.add(new RequestRetryPolicy(retryOptions));
+        policies.add(BuilderUtils.createRetryPolicy(retryOptions, coreRetryOptions, logger));
 
         policies.add(new AddDatePolicy());
+
+        // We need to place this policy right before the credential policy since headers may affect the string to sign
+        // of the request.
+        HttpHeaders headers = CoreUtils.createHttpHeadersFromClientOptions(clientOptions);
+        if (headers != null) {
+            policies.add(new AddHeadersPolicy(headers));
+        }
+        policies.add(new MetadataValidationPolicy());
+
         HttpPipelinePolicy credentialPolicy;
         if (storageSharedKeyCredential != null) {
             credentialPolicy =  new StorageSharedKeyCredentialPolicy(storageSharedKeyCredential);
         } else if (tokenCredential != null) {
             httpsValidation(tokenCredential, "bearer token", endpoint, logger);
-            credentialPolicy =  new BearerTokenAuthenticationPolicy(tokenCredential,
-                String.format("%s/.default", getPrimaryEndpointForTokenAuth(endpoint)));
-        } else if (sasTokenCredential != null) {
-            credentialPolicy =  new SasTokenCredentialPolicy(sasTokenCredential);
+            String scope = audience != null
+                ? ((audience.toString().endsWith("/") ? audience + ".default" : audience + "/.default"))
+                : Constants.STORAGE_SCOPE;
+            credentialPolicy =  new BearerTokenAuthenticationPolicy(tokenCredential, scope);
+        } else if (azureSasCredential != null) {
+            credentialPolicy = new AzureSasCredentialPolicy(azureSasCredential, false);
+        } else if (sasToken != null) {
+            credentialPolicy = new AzureSasCredentialPolicy(new AzureSasCredential(sasToken), false);
         } else {
             credentialPolicy =  null;
         }
@@ -92,7 +133,7 @@ public final class BuilderHelper {
             policies.add(credentialPolicy);
         }
 
-        policies.addAll(additionalPolicies);
+        policies.addAll(perRetryPolicies);
 
         HttpPolicyProviders.addAfterRetryPolicies(policies);
 
@@ -105,20 +146,9 @@ public final class BuilderHelper {
         return new HttpPipelineBuilder()
             .policies(policies.toArray(new HttpPipelinePolicy[0]))
             .httpClient(httpClient)
+            .clientOptions(clientOptions)
+            .tracer(createTracer(clientOptions))
             .build();
-    }
-
-    /**
-     *
-     * @param endpoint The endpoint passed by the customer.
-     * @return The primary endpoint for the account. It may be the same endpoint passed if it is already a primary or it
-     * may have had "-secondary" stripped from the end of the account name.
-     */
-    private static String getPrimaryEndpointForTokenAuth(String endpoint) {
-        String[] parts = endpoint.split("\\.");
-        parts[0] = parts[0].endsWith("-secondary") ? parts[0].substring(0, parts[0].length() - "-secondary".length())
-            : parts[0];
-        return String.join(".", parts);
     }
 
     /**
@@ -141,9 +171,9 @@ public final class BuilderHelper {
      */
     public static String getEndpoint(BlobUrlParts parts) throws MalformedURLException {
         if (ModelHelper.determineAuthorityIsIpStyle(parts.getHost())) {
-            return String.format("%s://%s/%s", parts.getScheme(), parts.getHost(), parts.getAccountName());
+            return parts.getScheme() + "://" + parts.getHost() + "/" + parts.getAccountName();
         } else {
-            return String.format("%s://%s", parts.getScheme(), parts.getHost());
+            return parts.getScheme() + "://" + parts.getHost();
         }
     }
 
@@ -165,15 +195,15 @@ public final class BuilderHelper {
      * Creates a {@link UserAgentPolicy} using the default blob module name and version.
      *
      * @param configuration Configuration store used to determine whether telemetry information should be included.
+     * @param logOptions Logging options to set in the logging policy.
+     * @param clientOptions Client options.
      * @return The default {@link UserAgentPolicy} for the module.
      */
-    private static UserAgentPolicy getUserAgentPolicy(Configuration configuration) {
+    private static UserAgentPolicy getUserAgentPolicy(Configuration configuration, HttpLogOptions logOptions,
+        ClientOptions clientOptions) {
         configuration = (configuration == null) ? Configuration.NONE : configuration;
-
-        String clientName = PROPERTIES.getOrDefault(SDK_NAME, "UnknownName");
-        String clientVersion = PROPERTIES.getOrDefault(SDK_VERSION, "UnknownVersion");
-        return new UserAgentPolicy(getDefaultHttpLogOptions().getApplicationId(), clientName, clientVersion,
-            configuration);
+        String applicationId = CoreUtils.getApplicationId(clientOptions, logOptions);
+        return new UserAgentPolicy(applicationId, CLIENT_NAME, CLIENT_VERSION, configuration);
     }
 
     /*
@@ -187,5 +217,11 @@ public final class BuilderHelper {
             .addOptionalEcho(Constants.HeaderConstants.CLIENT_REQUEST_ID)
             .addOptionalEcho(Constants.HeaderConstants.ENCRYPTION_KEY_SHA256)
             .build();
+    }
+
+    public static Tracer createTracer(ClientOptions clientOptions) {
+        TracingOptions tracingOptions = clientOptions == null ? null : clientOptions.getTracingOptions();
+        return TracerProvider.getDefaultProvider()
+            .createTracer(CLIENT_NAME, CLIENT_VERSION, STORAGE_TRACING_NAMESPACE_VALUE, tracingOptions);
     }
 }

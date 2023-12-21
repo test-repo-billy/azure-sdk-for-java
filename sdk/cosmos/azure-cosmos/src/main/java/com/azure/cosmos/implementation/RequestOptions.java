@@ -4,13 +4,22 @@
 package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosDiagnosticsContext;
+import com.azure.cosmos.CosmosDiagnosticsThresholds;
+import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
+import com.azure.cosmos.implementation.spark.OperationContextAndListenerTuple;
+import com.azure.cosmos.models.DedicatedGatewayRequestOptions;
 import com.azure.cosmos.models.IndexingDirective;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.models.ThroughputProperties;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * Encapsulates options that can be specified for a request issued to the Azure Cosmos DB database service.
@@ -28,11 +37,75 @@ public class RequestOptions {
     private String ifNoneMatchETag;
     private Integer offerThroughput;
     private PartitionKey partitionkey;
-    private String partitionKeyRangeId;
     private boolean scriptLoggingEnabled;
     private boolean quotaInfoEnabled;
     private Map<String, Object> properties;
     private ThroughputProperties throughputProperties;
+    private Boolean contentResponseOnWriteEnabled;
+    private String filterPredicate;
+    private String throughputControlGroupName;
+    private OperationContextAndListenerTuple operationContextAndListenerTuple;
+    private DedicatedGatewayRequestOptions dedicatedGatewayRequestOptions;
+    private CosmosDiagnosticsThresholds thresholds;
+
+    private String trackingId;
+    private boolean nonIdempotentWriteRetriesEnabled = false;
+    private CosmosEndToEndOperationLatencyPolicyConfig endToEndOperationLatencyConfig;
+    private List<String> excludeRegions;
+
+    private Supplier<CosmosDiagnosticsContext> diagnosticsCtxSupplier;
+
+    private final AtomicReference<Runnable> markE2ETimeoutInRequestContextCallbackHook;
+
+    public RequestOptions() {
+        this.markE2ETimeoutInRequestContextCallbackHook = new AtomicReference<>(null);
+    }
+
+    public RequestOptions(RequestOptions toBeCloned) {
+        this.indexingDirective = toBeCloned.indexingDirective;
+        this.consistencyLevel = toBeCloned.consistencyLevel;
+        this.sessionToken = toBeCloned.sessionToken;
+        this.resourceTokenExpirySeconds = toBeCloned.resourceTokenExpirySeconds;
+        this.offerType = toBeCloned.offerType;
+        this.ifMatchETag = toBeCloned.ifMatchETag;
+        this.ifNoneMatchETag = toBeCloned.ifNoneMatchETag;
+        this.offerThroughput = toBeCloned.offerThroughput;
+        this.partitionkey = toBeCloned.partitionkey;
+        this.scriptLoggingEnabled = toBeCloned.scriptLoggingEnabled;
+        this.quotaInfoEnabled = toBeCloned.quotaInfoEnabled;
+        this.throughputProperties = toBeCloned.throughputProperties;
+        this.contentResponseOnWriteEnabled = toBeCloned.contentResponseOnWriteEnabled;
+        this.filterPredicate = toBeCloned.filterPredicate;
+        this.throughputControlGroupName = toBeCloned.throughputControlGroupName;
+        this.operationContextAndListenerTuple = toBeCloned.operationContextAndListenerTuple;
+        this.dedicatedGatewayRequestOptions = toBeCloned.dedicatedGatewayRequestOptions;
+        this.thresholds = toBeCloned.thresholds;
+        this.trackingId = toBeCloned.trackingId;
+        this.nonIdempotentWriteRetriesEnabled = toBeCloned.nonIdempotentWriteRetriesEnabled;
+        this.endToEndOperationLatencyConfig = toBeCloned.endToEndOperationLatencyConfig;
+        this.diagnosticsCtxSupplier = toBeCloned.diagnosticsCtxSupplier;
+        this.markE2ETimeoutInRequestContextCallbackHook = new AtomicReference<>(null);
+
+        if (toBeCloned.customOptions != null) {
+            this.customOptions = new HashMap<>(toBeCloned.customOptions);
+        }
+
+        if (toBeCloned.properties != null) {
+            this.properties = new HashMap<>(toBeCloned.properties);
+        }
+
+        if (toBeCloned.preTriggerInclude != null) {
+            this.preTriggerInclude = new ArrayList<>(toBeCloned.preTriggerInclude);
+        }
+
+        if (toBeCloned.postTriggerInclude != null) {
+            this.postTriggerInclude = new ArrayList<>(toBeCloned.postTriggerInclude);
+        }
+
+        if (toBeCloned.excludeRegions != null) {
+            this.excludeRegions = new ArrayList<>(toBeCloned.excludeRegions);
+        }
+    }
 
     /**
      * Gets the triggers to be invoked before the operation.
@@ -43,6 +116,17 @@ public class RequestOptions {
         return this.preTriggerInclude;
     }
 
+    OperationContextAndListenerTuple getOperationContextAndListenerTuple() {
+        return operationContextAndListenerTuple;
+    }
+
+    public void setOperationContextAndListenerTuple (
+        Object operationContextAndListenerTupleAsObject) {
+
+        this.operationContextAndListenerTuple =
+            (OperationContextAndListenerTuple)operationContextAndListenerTupleAsObject;
+    }
+
     /**
      * Sets the triggers to be invoked before the operation.
      *
@@ -50,6 +134,16 @@ public class RequestOptions {
      */
     public void setPreTriggerInclude(List<String> preTriggerInclude) {
         this.preTriggerInclude = preTriggerInclude;
+    }
+
+    public RequestOptions setNonIdempotentWriteRetriesEnabled(boolean enabled) {
+        this.nonIdempotentWriteRetriesEnabled = enabled;
+
+        return this;
+    }
+
+    public boolean getNonIdempotentWriteRetriesEnabled() {
+        return this.nonIdempotentWriteRetriesEnabled;
     }
 
     /**
@@ -107,6 +201,24 @@ public class RequestOptions {
     }
 
     /**
+     * Gets the FilterPredicate associated with the request in the Azure Cosmos DB service.
+     *
+     * @return the FilterPredicate associated with the request.
+     */
+    public String getFilterPredicate() {
+        return this.filterPredicate;
+    }
+
+    /**
+     * Sets the FilterPredicate associated with the request in the Azure Cosmos DB service.
+     *
+     * @param filterPredicate the filterPredicate associated with the request.
+     */
+    public void setFilterPredicate(String filterPredicate) {
+        this.filterPredicate = filterPredicate;
+    }
+
+    /**
      * Gets the indexing directive (index, do not index etc).
      *
      * @return the indexing directive.
@@ -122,6 +234,14 @@ public class RequestOptions {
      */
     public void setIndexingDirective(IndexingDirective indexingDirective) {
         this.indexingDirective = indexingDirective;
+    }
+
+    public void setTrackingId(String trackingId) {
+        this.trackingId = trackingId;
+    }
+
+    public String getTrackingId() {
+        return this.trackingId;
     }
 
     /**
@@ -241,24 +361,6 @@ public class RequestOptions {
     }
 
     /**
-     * Internal usage only: Gets the partition key range id used to identify the current request's target partition.
-     *
-     * @return the partition key range id value.
-     */
-    String getPartitionKeyRangeId() {
-        return this.partitionKeyRangeId;
-    }
-
-    /**
-     * Internal usage only: Sets the partition key range id used to identify the current request's target partition.
-     *
-     * @param partitionKeyRangeId the partition key range id value.
-     */
-    protected void setPartitionKeyRengeId(String partitionKeyRangeId) {
-        this.partitionKeyRangeId = partitionKeyRangeId;
-    }
-
-    /**
      * Gets whether Javascript stored procedure logging is enabled for the current request in the Azure Cosmos DB database
      * service or not.
      *
@@ -339,4 +441,99 @@ public class RequestOptions {
         this.properties = properties;
     }
 
+    /**
+     * Gets the boolean to only return the headers and status code in Cosmos DB response
+     * in case of Create, Update and Delete operations on CosmosItem.
+     * <p>
+     * If set to false, service doesn't return payload in the response. It reduces networking
+     * and CPU load by not sending the payload back over the network and serializing it on the client.
+     * <p>
+     * This feature does not impact RU usage for read or write operations.
+     * <p>
+     * By-default, this is null.
+     *
+     * @return a boolean indicating whether payload will be included in the response or not for this request.
+     */
+    public Boolean isContentResponseOnWriteEnabled() {
+        return contentResponseOnWriteEnabled;
+    }
+
+    /**
+     * Sets the boolean to only return the headers and status code in Cosmos DB response
+     * in case of Create, Update and Delete operations on CosmosItem.
+     * <p>
+     * If set to false, service doesn't return payload in the response. It reduces networking
+     * and CPU load by not sending the payload back over the network and serializing it on the client.
+     * <p>
+     * This feature does not impact RU usage for read or write operations.
+     * <p>
+     * By-default, this is null.
+     * <p>
+     * NOTE: This flag is also present on {@link com.azure.cosmos.CosmosClientBuilder},
+     * however if specified on {@link com.azure.cosmos.models.CosmosItemRequestOptions},
+     * it will override the value specified in {@link com.azure.cosmos.CosmosClientBuilder} for this request.
+     *
+     * @param contentResponseOnWriteEnabled a boolean indicating whether payload will be included
+     * in the response or not for this request
+     */
+    public void setContentResponseOnWriteEnabled(Boolean contentResponseOnWriteEnabled) {
+        this.contentResponseOnWriteEnabled = contentResponseOnWriteEnabled;
+    }
+
+    public String getThroughputControlGroupName() {
+        return this.throughputControlGroupName;
+    }
+
+    public void setThroughputControlGroupName(String throughputControlGroupName) {
+        this.throughputControlGroupName = throughputControlGroupName;
+    }
+
+    public DedicatedGatewayRequestOptions getDedicatedGatewayRequestOptions() {
+        return dedicatedGatewayRequestOptions;
+    }
+
+    public void setDedicatedGatewayRequestOptions(DedicatedGatewayRequestOptions dedicatedGatewayRequestOptions) {
+        this.dedicatedGatewayRequestOptions = dedicatedGatewayRequestOptions;
+    }
+
+    public CosmosDiagnosticsThresholds getDiagnosticsThresholds() {
+        return this.thresholds;
+    }
+
+    public void setDiagnosticsThresholds(CosmosDiagnosticsThresholds thresholds) {
+        this.thresholds = thresholds;
+    }
+
+    public void setDiagnosticsContextSupplier(Supplier<CosmosDiagnosticsContext> ctxSupplier) {
+        this.diagnosticsCtxSupplier = ctxSupplier;
+    }
+
+    public CosmosDiagnosticsContext getDiagnosticsContextSnapshot() {
+        Supplier<CosmosDiagnosticsContext> ctxSupplierSnapshot = this.diagnosticsCtxSupplier;
+        if (ctxSupplierSnapshot == null) {
+            return null;
+        }
+
+        return ctxSupplierSnapshot.get();
+    }
+
+    public void setCosmosEndToEndLatencyPolicyConfig(CosmosEndToEndOperationLatencyPolicyConfig endToEndOperationLatencyPolicyConfig) {
+        this.endToEndOperationLatencyConfig = endToEndOperationLatencyPolicyConfig;
+    }
+
+    public CosmosEndToEndOperationLatencyPolicyConfig getCosmosEndToEndLatencyPolicyConfig(){
+        return this.endToEndOperationLatencyConfig;
+    }
+
+    public List<String> getExcludeRegions() {
+        return this.excludeRegions;
+    }
+
+    public void setExcludeRegions(List<String> excludeRegions) {
+        this.excludeRegions = excludeRegions;
+    }
+
+    public AtomicReference<Runnable> getMarkE2ETimeoutInRequestContextCallbackHook() {
+        return this.markE2ETimeoutInRequestContextCallbackHook;
+    }
 }

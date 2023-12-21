@@ -6,33 +6,35 @@ package com.azure.data.tables.implementation.models;
 
 import com.azure.core.annotation.Fluent;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-/** The TableServiceError model. */
+/** Table Service error. */
+@JacksonXmlRootElement(localName = "null")
 @Fluent
 public final class TableServiceError {
     /*
-     * The error message.
+     * The odata error.
      */
-    @JsonProperty(value = "Message")
-    private String message;
+    @JsonProperty(value = "odata.error")
+    private TableServiceErrorOdataError odataError;
 
     /**
-     * Get the message property: The error message.
+     * Get the odataError property: The odata error.
      *
-     * @return the message value.
+     * @return the odataError value.
      */
-    public String getMessage() {
-        return this.message;
+    public TableServiceErrorOdataError getOdataError() {
+        return this.odataError;
     }
 
     /**
-     * Set the message property: The error message.
+     * Set the odataError property: The odata error.
      *
-     * @param message the message value to set.
+     * @param odataError the odataError value to set.
      * @return the TableServiceError object itself.
      */
-    public TableServiceError setMessage(String message) {
-        this.message = message;
+    public TableServiceError setOdataError(TableServiceErrorOdataError odataError) {
+        this.odataError = odataError;
         return this;
     }
 }

@@ -4,6 +4,7 @@
 package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.ThrottlingRetryOptions;
+import com.azure.cosmos.implementation.caches.RxCollectionCache;
 
 /**
  * While this class is public, but it is not part of our published public APIs.
@@ -12,21 +13,37 @@ import com.azure.cosmos.ThrottlingRetryOptions;
  * Represents the retry policy configuration associated with a DocumentClient instance.
  */
 public class RetryPolicy implements IRetryPolicyFactory {
+    private final DiagnosticsClientContext diagnosticsClientContext;
     private final GlobalEndpointManager globalEndpointManager;
     private final boolean enableEndpointDiscovery;
     private final ThrottlingRetryOptions throttlingRetryOptions;
+    private RxCollectionCache rxCollectionCache;
 
-    public RetryPolicy(GlobalEndpointManager globalEndpointManager, ConnectionPolicy connectionPolicy) {
+    public RetryPolicy(DiagnosticsClientContext diagnosticsClientContext, GlobalEndpointManager globalEndpointManager, ConnectionPolicy connectionPolicy) {
+        this.diagnosticsClientContext = diagnosticsClientContext;
         this.enableEndpointDiscovery = connectionPolicy.isEndpointDiscoveryEnabled();
         this.globalEndpointManager = globalEndpointManager;
         this.throttlingRetryOptions = connectionPolicy.getThrottlingRetryOptions();
     }
 
     @Override
-    public DocumentClientRetryPolicy getRequestPolicy() {
-        ClientRetryPolicy clientRetryPolicy = new ClientRetryPolicy(this.globalEndpointManager,
-                this.enableEndpointDiscovery, this.throttlingRetryOptions);
+    public DocumentClientRetryPolicy getRequestPolicy(DiagnosticsClientContext clientContextOverride) {
+        DiagnosticsClientContext effectiveClientContext = this.diagnosticsClientContext;
+        if (clientContextOverride != null) {
+            effectiveClientContext = clientContextOverride;
+        }
+        ClientRetryPolicy clientRetryPolicy = new ClientRetryPolicy(effectiveClientContext,
+            this.globalEndpointManager, this.enableEndpointDiscovery, this.throttlingRetryOptions, this.rxCollectionCache);
 
         return clientRetryPolicy;
+    }
+
+    @Override
+    public RetryContext getRetryContext() {
+        return null;
+    }
+
+    public void setRxCollectionCache(RxCollectionCache rxCollectionCache) {
+        this.rxCollectionCache = rxCollectionCache;
     }
 }

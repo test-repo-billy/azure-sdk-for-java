@@ -3,6 +3,10 @@
 
 package com.azure.core.http.policy;
 
+import com.azure.core.util.Configuration;
+
+import static com.azure.core.util.Configuration.getGlobalConfiguration;
+
 /**
  * The level of detail to log on HTTP messages.
  */
@@ -34,22 +38,56 @@ public enum HttpLogDetailLevel {
      */
     BODY_AND_HEADERS;
 
+    static final String BASIC_VALUE = "basic";
+    static final String HEADERS_VALUE = "headers";
+    static final String BODY_VALUE = "body";
+    static final String BODY_AND_HEADERS_VALUE = "body_and_headers";
+    static final String BODYANDHEADERS_VALUE = "bodyandheaders";
+
+    static final HttpLogDetailLevel ENVIRONMENT_HTTP_LOG_DETAIL_LEVEL = fromConfiguration(getGlobalConfiguration());
+
+    static HttpLogDetailLevel fromConfiguration(Configuration configuration) {
+        String detailLevel = configuration.get(Configuration.PROPERTY_AZURE_HTTP_LOG_DETAIL_LEVEL, "none");
+
+        HttpLogDetailLevel logDetailLevel;
+        if (BASIC_VALUE.equalsIgnoreCase(detailLevel)) {
+            logDetailLevel = BASIC;
+        } else if (HEADERS_VALUE.equalsIgnoreCase(detailLevel)) {
+            logDetailLevel = HEADERS;
+        } else if (BODY_VALUE.equalsIgnoreCase(detailLevel)) {
+            logDetailLevel = BODY;
+        } else if (BODY_AND_HEADERS_VALUE.equalsIgnoreCase(detailLevel)
+            || BODYANDHEADERS_VALUE.equalsIgnoreCase(detailLevel)) {
+            logDetailLevel = BODY_AND_HEADERS;
+        } else {
+            logDetailLevel = NONE;
+        }
+
+        return logDetailLevel;
+    }
+
     /**
-     * @return a value indicating whether a request's URL should be logged.
+     * Whether a URL should be logged.
+     *
+     * @return Whether a URL should be logged.
      */
     public boolean shouldLogUrl() {
         return this != NONE;
     }
 
     /**
-     * @return a value indicating whether HTTP message headers should be logged.
+     * Whether headers should be logged.
+     *
+     * @return Whether headers should be logged.
      */
     public boolean shouldLogHeaders() {
         return this == HEADERS || this == BODY_AND_HEADERS;
     }
 
     /**
-     * @return a value indicating whether HTTP message bodies should be logged.
+     * Whether a body should be logged.
+     *
+     * @return Whether a body should be logged.
      */
     public boolean shouldLogBody() {
         return this == BODY || this == BODY_AND_HEADERS;

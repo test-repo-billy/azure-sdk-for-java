@@ -6,18 +6,19 @@ package com.azure.cosmos.implementation.query;
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.FeedResponse;
-import com.azure.cosmos.implementation.Resource;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.Utils;
+import com.azure.cosmos.models.ModelBridgeInternal;
 import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-public final class SkipDocumentQueryExecutionContext<T extends Resource> implements IDocumentQueryExecutionComponent<T> {
+public final class SkipDocumentQueryExecutionContext<T>
+    implements IDocumentQueryExecutionComponent<T> {
 
     private final IDocumentQueryExecutionComponent<T> component;
     private int skipCount;
@@ -30,10 +31,11 @@ public final class SkipDocumentQueryExecutionContext<T extends Resource> impleme
         this.skipCount = skipCount;
     }
 
-    public static <T extends Resource> Flux<IDocumentQueryExecutionComponent<T>> createAsync(
-        Function<String, Flux<IDocumentQueryExecutionComponent<T>>> createSourceComponentFunction,
+    public static <T> Flux<IDocumentQueryExecutionComponent<T>> createAsync(
+        BiFunction<String, PipelinedDocumentQueryParams<T>, Flux<IDocumentQueryExecutionComponent<T>>> createSourceComponentFunction,
         int skipCount,
-        String continuationToken) {
+        String continuationToken,
+        PipelinedDocumentQueryParams<T> documentQueryParams) {
         OffsetContinuationToken offsetContinuationToken;
         Utils.ValueHolder<OffsetContinuationToken> outOffsetContinuationToken = new Utils.ValueHolder<>();
         if (continuationToken != null) {
@@ -51,7 +53,7 @@ public final class SkipDocumentQueryExecutionContext<T extends Resource> impleme
             offsetContinuationToken = new OffsetContinuationToken(skipCount, null);
         }
 
-        return createSourceComponentFunction.apply(offsetContinuationToken.getSourceToken())
+        return createSourceComponentFunction.apply(offsetContinuationToken.getSourceToken(), documentQueryParams)
                    .map(component -> new SkipDocumentQueryExecutionContext<>(component,
                        offsetContinuationToken.getOffset()));
     }
@@ -76,12 +78,13 @@ public final class SkipDocumentQueryExecutionContext<T extends Resource> impleme
                 headers.put(HttpConstants.HttpHeaders.CONTINUATION, offsetContinuationToken.toJson());
             }
 
-            return BridgeInternal.createFeedResponseWithQueryMetrics(documentsAfterSkip, headers,
-                BridgeInternal.queryMetricsFromFeedResponse(tFeedResponse));
+            return BridgeInternal.createFeedResponseWithQueryMetrics(documentsAfterSkip,
+                headers,
+                BridgeInternal.queryMetricsFromFeedResponse(tFeedResponse),
+                ModelBridgeInternal.getQueryPlanDiagnosticsContext(tFeedResponse),
+                false,
+                false,
+                tFeedResponse.getCosmosDiagnostics());
         });
-    }
-
-    IDocumentQueryExecutionComponent<T> getComponent() {
-        return this.component;
     }
 }

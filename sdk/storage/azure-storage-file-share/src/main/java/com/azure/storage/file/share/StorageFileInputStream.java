@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
  * Provides an input stream to read a given storage file resource.
  */
 public class StorageFileInputStream extends StorageInputStream {
-    private final ClientLogger logger = new ClientLogger(StorageFileInputStream.class);
+    private static final ClientLogger LOGGER = new ClientLogger(StorageFileInputStream.class);
 
     private final ShareFileAsyncClient shareFileAsyncClient;
 
@@ -58,10 +58,9 @@ public class StorageFileInputStream extends StorageInputStream {
     @Override
     protected synchronized ByteBuffer dispatchRead(final int readLength, final long offset) {
         try {
-            ByteBuffer currentBuffer = this.shareFileAsyncClient
-                .downloadWithResponse(new ShareFileRange(offset, offset + readLength - 1), false)
-                .flatMap(response -> FluxUtil.collectBytesInByteBufferStream(response.getValue())
-                    .map(ByteBuffer::wrap))
+            ByteBuffer currentBuffer = this.shareFileAsyncClient.downloadWithResponse(
+                new ShareFileRange(offset, offset + readLength - 1), false)
+                .flatMap(response -> FluxUtil.collectBytesInByteBufferStream(response.getValue()).map(ByteBuffer::wrap))
                 .block();
 
             this.bufferSize = readLength;
@@ -70,7 +69,8 @@ public class StorageFileInputStream extends StorageInputStream {
         } catch (final ShareStorageException e) {
             this.streamFaulted = true;
             this.lastError = new IOException(e);
-            throw logger.logExceptionAsError(new RuntimeException(this.lastError.getMessage()));
+
+            throw LOGGER.logExceptionAsError(new RuntimeException(this.lastError.getMessage(), e));
         }
     }
 }

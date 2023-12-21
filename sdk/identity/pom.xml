@@ -8,10 +8,11 @@
   <artifactId>azure-identity-service</artifactId>
   <packaging>pom</packaging>
   <version>1.0.0</version><!-- Need not change for every release-->
+
   <modules>
-    <!-- NOTE: Commenting out becuase we are now binary composed.
-    -->
-    <module>azure-identity</module>
-    <module>azure-identity-perf</module>
+      <module>azure-identity</module>
+      <module>azure-identity-perf</module>
+      <module>azure-identity-extensions</module>
+      <module>azure-identity-broker</module>
   </modules>
 </project>

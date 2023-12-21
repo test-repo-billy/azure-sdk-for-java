@@ -11,27 +11,26 @@ import com.microsoft.azure.keyvault.core.IKey;
 import com.microsoft.azure.keyvault.core.IKeyResolver;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 /**
  * Extremely basic key resolver to test client side encryption
  */
-public class FakeKeyResolver implements AsyncKeyEncryptionKeyResolver, IKeyResolver {
+class FakeKeyResolver implements AsyncKeyEncryptionKeyResolver, IKeyResolver {
+    private final FakeKey key;
 
-    FakeKey key;
-
-    public FakeKeyResolver(FakeKey key) {
+    FakeKeyResolver(FakeKey key) {
         this.key = key;
     }
 
     @Override
     public Mono<? extends AsyncKeyEncryptionKey> buildAsyncKeyEncryptionKey(String keyId) {
-        if (keyId.equals(this.key.getKeyId().block())) {
-            return Mono.just(this.key);
-        } else {
-            return Mono.error(new IllegalArgumentException("Key does not exist"));
-        }
-
+        return key.getKeyId().flatMap(id -> Objects.equals(id, keyId)
+            ? Mono.just(key)
+            : Mono.error(new IllegalArgumentException("Key does not exist")));
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public ListenableFuture<IKey> resolveKeyAsync(String s) {
         return Futures.immediateFuture(this.key);

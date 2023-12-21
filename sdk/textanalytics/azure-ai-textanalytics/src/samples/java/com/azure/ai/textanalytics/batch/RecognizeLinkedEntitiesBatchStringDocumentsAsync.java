@@ -37,7 +37,6 @@ public class RecognizeLinkedEntitiesBatchStringDocumentsAsync {
             "Mount Shasta has lenticular clouds."
         );
 
-        // Request options: show statistics and model version
         TextAnalyticsRequestOptions requestOptions = new TextAnalyticsRequestOptions().setIncludeStatistics(true).setModelVersion("latest");
 
         // Recognizing linked entities for each document in a batch of documents
@@ -45,11 +44,11 @@ public class RecognizeLinkedEntitiesBatchStringDocumentsAsync {
         client.recognizeLinkedEntitiesBatch(documents, "en", requestOptions).subscribe(
             linkedEntitiesResultCollection -> {
                 // Model version
-                System.out.printf("Results of Azure Text Analytics \"Linked Entities Recognition\" Model, version: %s%n", linkedEntitiesResultCollection.getModelVersion());
+                System.out.printf("Results of \"Linked Entities Recognition\" Model, version: %s%n", linkedEntitiesResultCollection.getModelVersion());
 
                 // Batch statistics
                 TextDocumentBatchStatistics batchStatistics = linkedEntitiesResultCollection.getStatistics();
-                System.out.printf("Documents statistics: document count = %s, erroneous document count = %s, transaction count = %s, valid document count = %s.%n",
+                System.out.printf("Documents statistics: document count = %d, erroneous document count = %d, transaction count = %d, valid document count = %d.%n",
                     batchStatistics.getDocumentCount(), batchStatistics.getInvalidDocumentCount(), batchStatistics.getTransactionCount(), batchStatistics.getValidDocumentCount());
 
                 // Recognized linked entities from a batch of documents
@@ -62,10 +61,13 @@ public class RecognizeLinkedEntitiesBatchStringDocumentsAsync {
                         // Valid document
                         entitiesResult.getEntities().forEach(linkedEntity -> {
                             System.out.println("Linked Entities:");
-                            System.out.printf("\tName: %s, entity ID in data source: %s, URL: %s, data source: %s.%n",
-                                linkedEntity.getName(), linkedEntity.getDataSourceEntityId(), linkedEntity.getUrl(), linkedEntity.getDataSource());
+                            System.out.printf("\tName: %s, entity ID in data source: %s, URL: %s, data source: %s,"
+                                    + " Bing Entity Search API ID: %s.%n",
+                                linkedEntity.getName(), linkedEntity.getDataSourceEntityId(), linkedEntity.getUrl(),
+                                linkedEntity.getDataSource(), linkedEntity.getBingEntitySearchApiId());
                             linkedEntity.getMatches().forEach(entityMatch -> System.out.printf(
-                                "\tMatched entity: %s, confidence score: %f.%n", entityMatch.getText(), entityMatch.getConfidenceScore()));
+                                "\tMatched entity: %s, confidence score: %f.%n",
+                                entityMatch.getText(), entityMatch.getConfidenceScore()));
                         });
                     }
                 }

@@ -4,7 +4,11 @@
 package com.azure.search.documents.indexes.models;
 
 import com.azure.core.annotation.Fluent;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.azure.json.JsonWriter;
+import com.azure.search.documents.indexes.implementation.models.NGramTokenFilterV1;
+import com.azure.search.documents.indexes.implementation.models.NGramTokenFilterV2;
+
+import java.io.IOException;
 
 /**
  * Generates n-grams of the given size(s). This token filter is implemented
@@ -12,26 +16,35 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @Fluent
 public final class NGramTokenFilter extends TokenFilter {
-    private final String odataType;
+    private final NGramTokenFilterV1 v1Filter;
+    private final NGramTokenFilterV2 v2Filter;
 
-    /*
-     * The minimum n-gram length. Default is 1. Must be less than the value of
-     * maxGram.
-     */
-    @JsonProperty(value = "minGram")
-    private Integer minGram;
+    NGramTokenFilter(NGramTokenFilterV1 v1Filter) {
+        super(v1Filter.getName());
 
-    /*
-     * The maximum n-gram length. Default is 2.
-     */
-    @JsonProperty(value = "maxGram")
-    private Integer maxGram;
+        this.v1Filter = v1Filter;
+        this.v2Filter = null;
+    }
+
+    NGramTokenFilter(NGramTokenFilterV2 v2Filter) {
+        super(v2Filter.getName());
+
+        this.v1Filter = null;
+        this.v2Filter = v2Filter;
+    }
 
     /**
-     * Constructor for {@link NGramTokenFilter}.
+     * Constructor of {@link NGramTokenFilter}.
+     *
+     * @param name The name of the token filter. It must only contain letters, digits,
+     * spaces, dashes or underscores, can only start and end with alphanumeric
+     * characters, and is limited to 128 characters.
      */
-    public NGramTokenFilter() {
-        odataType = "#Microsoft.Azure.Search.KeywordTokenizerV2";
+    public NGramTokenFilter(String name) {
+        super(name);
+
+        this.v1Filter = null;
+        this.v2Filter = new NGramTokenFilterV2(name);
     }
 
     /**
@@ -41,7 +54,7 @@ public final class NGramTokenFilter extends TokenFilter {
      * @return the minGram value.
      */
     public Integer getMinGram() {
-        return this.minGram;
+        return (v1Filter != null) ? v1Filter.getMinGram() : v2Filter.getMinGram();
     }
 
     /**
@@ -52,7 +65,11 @@ public final class NGramTokenFilter extends TokenFilter {
      * @return the NGramTokenFilter object itself.
      */
     public NGramTokenFilter setMinGram(Integer minGram) {
-        this.minGram = minGram;
+        if (v1Filter != null) {
+            v1Filter.setMinGram(minGram);
+        } else {
+            v2Filter.setMinGram(minGram);
+        }
         return this;
     }
 
@@ -62,7 +79,7 @@ public final class NGramTokenFilter extends TokenFilter {
      * @return the maxGram value.
      */
     public Integer getMaxGram() {
-        return this.maxGram;
+        return (v1Filter != null) ? v1Filter.getMaxGram() : v2Filter.getMaxGram();
     }
 
     /**
@@ -72,7 +89,16 @@ public final class NGramTokenFilter extends TokenFilter {
      * @return the NGramTokenFilter object itself.
      */
     public NGramTokenFilter setMaxGram(Integer maxGram) {
-        this.maxGram = maxGram;
+        if (v1Filter != null) {
+            v1Filter.setMaxGram(maxGram);
+        } else {
+            v2Filter.setMaxGram(maxGram);
+        }
         return this;
+    }
+
+    @Override
+    public JsonWriter toJson(JsonWriter jsonWriter) throws IOException {
+        return (v1Filter != null) ? v1Filter.toJson(jsonWriter) : v2Filter.toJson(jsonWriter);
     }
 }

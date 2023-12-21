@@ -3,6 +3,8 @@
 
 package com.azure.storage.queue;
 
+import com.azure.core.util.BinaryData;
+import com.azure.core.util.Context;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.queue.models.QueueAccessPolicy;
 import com.azure.storage.queue.models.QueueProperties;
@@ -139,6 +141,20 @@ public class QueueAsyncJavaDocCodeSamples {
     }
 
     /**
+     * Generates a code sample for using {@link QueueAsyncClient#sendMessage(BinaryData)}
+     */
+    public void enqueueMessageBinaryDataAsync() {
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.sendMessage#BinaryData
+        client.sendMessage(BinaryData.fromString("Hello, Azure")).subscribe(
+                response -> {
+                },
+                error -> System.err.print(error.toString()),
+                () -> System.out.println("Complete enqueuing the message!")
+        );
+        // END: com.azure.storage.queue.queueAsyncClient.sendMessage#BinaryData
+    }
+
+    /**
      * Generates a code sample for using {@link QueueAsyncClient#sendMessageWithResponse(String, Duration,
      * Duration)}
      */
@@ -152,6 +168,22 @@ public class QueueAsyncJavaDocCodeSamples {
                 () -> System.out.println("Complete enqueuing the message!")
         );
         // END: com.azure.storage.queue.queueAsyncClient.sendMessageWithResponse#string-duration-duration
+    }
+
+    /**
+     * Generates a code sample for using {@link QueueAsyncClient#sendMessageWithResponse(BinaryData, Duration,
+     * Duration)}
+     */
+    public void enqueueMessageBinaryDataAsyncWithTimeoutOverload() {
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.sendMessageWithResponse#BinaryData-duration-duration
+        client.sendMessageWithResponse(BinaryData.fromString("Hello, Azure"),
+                Duration.ofSeconds(5), null).subscribe(
+                response -> System.out.printf("Message %s expires at %s", response.getValue().getMessageId(),
+                    response.getValue().getExpirationTime()),
+                error -> System.err.print(error.toString()),
+                () -> System.out.println("Complete enqueuing the message!")
+        );
+        // END: com.azure.storage.queue.queueAsyncClient.sendMessageWithResponse#BinaryData-duration-duration
     }
 
     /**
@@ -171,13 +203,29 @@ public class QueueAsyncJavaDocCodeSamples {
     }
 
     /**
+     * Generates a code sample for using {@link QueueAsyncClient#sendMessageWithResponse(BinaryData, Duration,
+     * Duration)}
+     */
+    public void enqueueMessageBinaryDataAsyncWithLiveTimeOverload() {
+        // BEGIN: com.azure.storage.queue.QueueAsyncClient.sendMessageWithResponse-liveTime#BinaryData-Duration-Duration
+        client.sendMessageWithResponse(BinaryData.fromString("Goodbye, Azure"),
+                null, Duration.ofSeconds(5)).subscribe(
+                response -> System.out.printf("Message %s expires at %s", response.getValue().getMessageId(),
+                    response.getValue().getExpirationTime()),
+                error -> System.err.print(error.toString()),
+                () -> System.out.println("Complete enqueuing the message!")
+        );
+        // END: com.azure.storage.queue.QueueAsyncClient.sendMessageWithResponse-liveTime#BinaryData-Duration-Duration
+    }
+
+    /**
      * Generates a code sample for using {@link QueueAsyncClient#receiveMessage()}
      */
     public void getMessageAsync() {
         // BEGIN: com.azure.storage.queue.queueAsyncClient.receiveMessage
         client.receiveMessage().subscribe(
             message -> System.out.println("The message got from getMessages operation: "
-                + message.getMessageText()),
+                + message.getBody().toString()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete receiving the message!")
         );
@@ -191,7 +239,7 @@ public class QueueAsyncJavaDocCodeSamples {
         // BEGIN: com.azure.storage.queue.queueAsyncClient.receiveMessages#integer
         client.receiveMessages(5).subscribe(
             message -> System.out.println("The message got from getMessages operation: "
-                + message.getMessageText()),
+                + message.getBody().toString()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete receiving the message!")
         );
@@ -206,7 +254,7 @@ public class QueueAsyncJavaDocCodeSamples {
         client.receiveMessages(5, Duration.ofSeconds(60))
             .subscribe(
                 message -> System.out.println("The message got from getMessages operation: "
-                    + message.getMessageText()),
+                    + message.getBody().toString()),
                 error -> System.err.print(error.toString()),
                 () -> System.out.println("Complete receiving the message!")
             );
@@ -220,7 +268,8 @@ public class QueueAsyncJavaDocCodeSamples {
     public void peekMessageAsync() {
         // BEGIN: com.azure.storage.queue.queueAsyncClient.peekMessage
         client.peekMessage().subscribe(
-            peekMessages -> System.out.println("The message got from peek operation: " + peekMessages.getMessageText()),
+            peekMessages -> System.out.println("The message got from peek operation: "
+                + peekMessages.getBody().toString()),
             error -> System.err.print(error.toString()),
             () -> System.out.println("Complete peeking the message!")
         );
@@ -507,4 +556,75 @@ public class QueueAsyncJavaDocCodeSamples {
         client.generateSas(values); // Client must be authenticated via StorageSharedKeyCredential
         // END: com.azure.storage.queue.QueueAsyncClient.generateSas#QueueServiceSasSignatureValues
     }
+
+
+    /**
+     * Code snippet for {@link QueueAsyncClient#generateSas(QueueServiceSasSignatureValues, Context)}
+     */
+    public void generateSasWithContext() {
+        // BEGIN: com.azure.storage.queue.QueueAsyncClient.generateSas#QueueServiceSasSignatureValues-Context
+        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+        QueueSasPermission permission = new QueueSasPermission().setReadPermission(true);
+
+        QueueServiceSasSignatureValues values = new QueueServiceSasSignatureValues(expiryTime, permission)
+            .setStartTime(OffsetDateTime.now());
+
+        // Client must be authenticated via StorageSharedKeyCredential
+        client.generateSas(values, new Context("key", "value"));
+        // END: com.azure.storage.queue.QueueAsyncClient.generateSas#QueueServiceSasSignatureValues-Context
+    }
+
+    /**
+     * Generates a code sample for using {@link QueueAsyncClient#createIfNotExists()} and
+     * {@link QueueAsyncClient#createIfNotExistsWithResponse(Map)}
+     */
+    public void createIfNotExistsQueueAsyncCodeSnippets() {
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.createIfNotExists
+        client.createIfNotExists().subscribe(created -> {
+            if (created) {
+                System.out.println("Successfully created.");
+            } else {
+                System.out.println("Already exists.");
+            }
+        });
+        // END: com.azure.storage.queue.queueAsyncClient.createIfNotExists
+
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.createIfNotExistsWithResponse#map
+        client.createIfNotExistsWithResponse(Collections.singletonMap("queue", "metadataMap"))
+            .subscribe(response -> {
+                if (response.getStatusCode() == 409) {
+                    System.out.println("Already exists.");
+                } else {
+                    System.out.println("successfully created.");
+                }
+            });
+        // END: com.azure.storage.queue.queueAsyncClient.createIfNotExistsWithResponse#map
+    }
+
+    /**
+     * Generates a code sample for using {@link QueueAsyncClient#deleteIfExists()} and
+     * {@link QueueAsyncClient#deleteIfExistsWithResponse()}
+     */
+    public void deleteQueueIfExistsAsyncCodeSippets() {
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.deleteIfExists
+        client.deleteIfExists().subscribe(deleted -> {
+            if (deleted) {
+                System.out.println("Successfully deleted.");
+            } else {
+                System.out.println("Does not exist.");
+            }
+        });
+        // END: com.azure.storage.queue.queueAsyncClient.deleteIfExists
+
+        // BEGIN: com.azure.storage.queue.queueAsyncClient.deleteIfExistsWithResponse
+        client.deleteIfExistsWithResponse().subscribe(response -> {
+            if (response.getStatusCode() == 404) {
+                System.out.println("Does not exist.");
+            } else {
+                System.out.println("successfully deleted.");
+            }
+        });
+        // END: com.azure.storage.queue.queueAsyncClient.deleteIfExistsWithResponse
+    }
+
 }

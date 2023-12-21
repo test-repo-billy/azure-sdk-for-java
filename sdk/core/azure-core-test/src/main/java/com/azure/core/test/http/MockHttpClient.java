@@ -5,6 +5,7 @@ package com.azure.core.test.http;
 
 import com.azure.core.http.ContentType;
 import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
@@ -12,6 +13,7 @@ import com.azure.core.test.implementation.entities.HttpBinFormDataJSON;
 import com.azure.core.test.implementation.entities.HttpBinFormDataJSON.Form;
 import com.azure.core.test.implementation.entities.HttpBinFormDataJSON.PizzaSize;
 import com.azure.core.test.implementation.entities.HttpBinJSON;
+import com.azure.core.test.utils.MessageDigestUtils;
 import com.azure.core.util.Base64Url;
 import com.azure.core.util.DateTimeRfc1123;
 import com.azure.core.util.FluxUtil;
@@ -27,18 +29,19 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * This HttpClient attempts to mimic the behavior of http://httpbin.org without ever making a network call.
  */
 public class MockHttpClient extends NoOpHttpClient {
     private static final HttpHeaders RESPONSE_HEADERS = new HttpHeaders()
-        .put("Date", "Fri, 13 Oct 2017 20:33:09 GMT")
-        .put("Via", "1.1 vegur")
-        .put("Connection", "keep-alive")
-        .put("X-Processed-Time", "1.0")
-        .put("Access-Control-Allow-Credentials", "true")
-        .put("Content-Type", "application/json");
+        .set(HttpHeaderName.DATE, "Fri, 13 Oct 2017 20:33:09 GMT")
+        .set(HttpHeaderName.VIA, "1.1 vegur")
+        .set(HttpHeaderName.CONNECTION, "keep-alive")
+        .set(HttpHeaderName.fromString("X-Processed-Time"), "1.0")
+        .set(HttpHeaderName.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+        .set(HttpHeaderName.CONTENT_TYPE, "application/json");
 
     @Override
     public Mono<HttpResponse> send(HttpRequest request) {
@@ -47,7 +50,7 @@ public class MockHttpClient extends NoOpHttpClient {
         try {
             final URL requestUrl = request.getUrl();
             final String requestHost = requestUrl.getHost();
-            final String contentType = request.getHeaders().getValue("Content-Type");
+            final String contentType = request.getHeaders().getValue(HttpHeaderName.CONTENT_TYPE);
             if ("localhost".equalsIgnoreCase(requestHost)) {
                 final String requestPath = requestUrl.getPath();
                 final String requestPathLower = requestPath.toLowerCase();
@@ -64,9 +67,17 @@ public class MockHttpClient extends NoOpHttpClient {
                     final String byteCountString = requestPath.substring("/bytes/".length());
                     final int byteCount = Integer.parseInt(byteCountString);
                     HttpHeaders newHeaders = new HttpHeaders(RESPONSE_HEADERS)
-                        .put("Content-Type", ContentType.APPLICATION_OCTET_STREAM)
-                        .put("Content-Length", Integer.toString(byteCount));
-                    response = new MockHttpResponse(request, 200, newHeaders, byteCount == 0 ? null : new byte[byteCount]);
+                        .set(HttpHeaderName.CONTENT_TYPE, ContentType.APPLICATION_OCTET_STREAM)
+                        .set(HttpHeaderName.CONTENT_LENGTH, Integer.toString(byteCount));
+                    byte[] content;
+                    if (byteCount > 0) {
+                        content = new byte[byteCount];
+                        ThreadLocalRandom.current().nextBytes(content);
+                        newHeaders = newHeaders.set(HttpHeaderName.ETAG, MessageDigestUtils.md5(content));
+                    } else {
+                        content = null;
+                    }
+                    response = new MockHttpResponse(request, 200, newHeaders, content);
                 } else if (requestPathLower.startsWith("/base64urlbytes/")) {
                     final String byteCountString = requestPath.substring("/base64urlbytes/".length());
                     final int byteCount = Integer.parseInt(byteCountString);
@@ -76,7 +87,7 @@ public class MockHttpClient extends NoOpHttpClient {
                     }
                     final Base64Url base64EncodedBytes = bytes.length == 0 ? null : Base64Url.encode(bytes);
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, base64EncodedBytes);
-                } else if (requestPathLower.equals("/base64urllistofbytes")) {
+                } else if ("/base64urllistofbytes".equals(requestPathLower)) {
                     final List<String> base64EncodedBytesList = new ArrayList<>();
                     for (int i = 0; i < 3; ++i) {
                         final int byteCount = (i + 1) * 10;
@@ -88,7 +99,7 @@ public class MockHttpClient extends NoOpHttpClient {
                         base64EncodedBytesList.add(base64UrlEncodedBytes.toString());
                     }
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, base64EncodedBytesList);
-                } else if (requestPathLower.equals("/base64urllistoflistofbytes")) {
+                } else if ("/base64urllistoflistofbytes".equals(requestPathLower)) {
                     final List<List<String>> result = new ArrayList<>();
                     for (int i = 0; i < 2; ++i) {
                         final List<String> innerList = new ArrayList<>();
@@ -105,7 +116,7 @@ public class MockHttpClient extends NoOpHttpClient {
                         result.add(innerList);
                     }
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, result);
-                } else if (requestPathLower.equals("/base64urlmapofbytes")) {
+                } else if ("/base64urlmapofbytes".equals(requestPathLower)) {
                     final Map<String, String> result = new HashMap<>();
                     for (int i = 0; i < 2; ++i) {
                         final String key = Integer.toString(i);
@@ -120,28 +131,28 @@ public class MockHttpClient extends NoOpHttpClient {
                         result.put(key, base64UrlEncodedBytes.toString());
                     }
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, result);
-                } else if (requestPathLower.equals("/datetimerfc1123")) {
+                } else if ("/datetimerfc1123".equals(requestPathLower)) {
                     final DateTimeRfc1123 now = new DateTimeRfc1123(OffsetDateTime.ofInstant(Instant.ofEpochSecond(0), ZoneOffset.UTC));
                     final String result = now.toString();
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, result);
-                } else if (requestPathLower.equals("/unixtime")) {
+                } else if ("/unixtime".equals(requestPathLower)) {
                     response = new MockHttpResponse(request, 200, RESPONSE_HEADERS, 0);
-                } else if (requestPathLower.equals("/delete")) {
+                } else if ("/delete".equals(requestPathLower)) {
                     final HttpBinJSON json = new HttpBinJSON();
                     json.url(cleanseUrl(requestUrl));
                     json.data(createHttpBinResponseDataForRequest(request));
                     response = new MockHttpResponse(request, 200, json);
-                } else if (requestPathLower.equals("/get")) {
+                } else if ("/get".equals(requestPathLower)) {
                     final HttpBinJSON json = new HttpBinJSON();
                     json.url(cleanseUrl(requestUrl));
                     json.headers(toMap(request.getHeaders()));
                     response = new MockHttpResponse(request, 200, json);
-                } else if (requestPathLower.equals("/patch")) {
+                } else if ("/patch".equals(requestPathLower)) {
                     final HttpBinJSON json = new HttpBinJSON();
                     json.url(cleanseUrl(requestUrl));
                     json.data(createHttpBinResponseDataForRequest(request));
                     response = new MockHttpResponse(request, 200, json);
-                } else if (requestPathLower.equals("/post")) {
+                } else if ("/post".equals(requestPathLower)) {
                     if (contentType != null && contentType.contains("x-www-form-urlencoded")) {
                         Map<String, String> parsed = bodyToMap(request);
                         final HttpBinFormDataJSON json = new HttpBinFormDataJSON();
@@ -160,7 +171,7 @@ public class MockHttpClient extends NoOpHttpClient {
                         json.headers(toMap(request.getHeaders()));
                         response = new MockHttpResponse(request, 200, json);
                     }
-                } else if (requestPathLower.equals("/put")) {
+                } else if ("/put".equals(requestPathLower)) {
                     final HttpBinJSON json = new HttpBinJSON();
                     json.url(cleanseUrl(requestUrl));
                     json.data(createHttpBinResponseDataForRequest(request));
@@ -170,6 +181,11 @@ public class MockHttpClient extends NoOpHttpClient {
                     final String statusCodeString = requestPathLower.substring("/status/".length());
                     final int statusCode = Integer.parseInt(statusCodeString);
                     response = new MockHttpResponse(request, statusCode);
+                } else if (requestPathLower.startsWith("/voideagerreadoom")) {
+                    response = new MockHttpResponse(request, 200);
+                } else if (requestPathLower.startsWith("/voiderrorreturned")) {
+                    response = new MockHttpResponse(request, 400,
+                        "void exception body thrown".getBytes(StandardCharsets.UTF_8));
                 }
             } else if ("echo.org".equalsIgnoreCase(requestHost)) {
                 return FluxUtil.collectBytesInByteBufferStream(request.getBody())
@@ -201,10 +217,10 @@ public class MockHttpClient extends NoOpHttpClient {
         return body;
     }
 
-    private static Map<String, String> toMap(HttpHeaders headers) {
-        final Map<String, String> result = new HashMap<>();
+    private static Map<String, List<String>> toMap(HttpHeaders headers) {
+        final Map<String, List<String>> result = new HashMap<>();
         for (final HttpHeader header : headers) {
-            result.put(header.getName(), header.getValue());
+            result.put(header.getName(), header.getValuesList());
         }
         return result;
     }

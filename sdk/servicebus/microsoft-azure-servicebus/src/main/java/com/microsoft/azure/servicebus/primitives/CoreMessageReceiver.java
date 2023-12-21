@@ -66,7 +66,7 @@ import com.microsoft.azure.servicebus.amqp.SessionHandler;
 public class CoreMessageReceiver extends ClientEntity implements IAmqpReceiver, IErrorContextProvider {
     private static final Logger TRACE_LOGGER = LoggerFactory.getLogger(CoreMessageReceiver.class);
     private static final Duration LINK_REOPEN_TIMEOUT = Duration.ofMinutes(5); // service closes link long before this timeout expires
-    private static final Duration RETURN_MESSAGES_DAEMON_WAKE_UP_INTERVAL = Duration.ofMillis(1); // Wakes up every 1 millisecond
+    private static final Duration RETURN_MESSAGES_DAEMON_WAKE_UP_INTERVAL = Duration.ofMillis(10); // Wakes up every few milliseconds
     private static final Duration UPDATE_STATE_REQUESTS_DAEMON_WAKE_UP_INTERVAL = Duration.ofMillis(500); // Wakes up every 500 milliseconds
     private static final Duration ZERO_TIMEOUT_APPROXIMATION = Duration.ofMillis(200);
     private static final int CREDIT_FLOW_BATCH_SIZE = 50; // Arbitrarily chosen 50 to avoid sending too many flows in case prefetch count is large
@@ -1072,31 +1072,33 @@ public class CoreMessageReceiver extends ClientEntity implements IAmqpReceiver, 
 		    	this.shouldRetryLinkReopenOnTransientFailure = true;
 		    }
 
-		    this.receiveLinkReopenFuture.handleAsync((v, ex) -> {
-		    	if (ex == null) {
-		    		this.ensureLinkReopenFutureToWaitOn.complete(null);
-		    	} else {
-		    		if (ex instanceof ServiceBusException && ((ServiceBusException)ex).getIsTransient()) {
-		    			if (this.shouldRetryLinkReopenOnTransientFailure) {
-		    				// Retry link creation
-		    				this.shouldRetryLinkReopenOnTransientFailure = false;
-		    				this.ensureLinkIsOpen();
-		    			} else {
-		    				this.ensureLinkReopenFutureToWaitOn.completeExceptionally(ex);
-		    			}
-		    		} else {
-		    			this.ensureLinkReopenFutureToWaitOn.completeExceptionally(ex);
-		    		}
-
-		    	}
-		    	return null;
-		    }, 
-		    MessagingFactory.INTERNAL_THREAD_POOL);
+		    this.receiveLinkReopenFuture.handleAsync((v, ex) -> onReceiveLinkFutureCompleted(v, ex),
+                MessagingFactory.INTERNAL_THREAD_POOL);
 
 		    return this.ensureLinkReopenFutureToWaitOn;
         } else {
             return CompletableFuture.completedFuture(null);
         }
+    }
+
+    private synchronized Void onReceiveLinkFutureCompleted(Void v, Throwable ex) {
+        if (ex == null) {
+            this.ensureLinkReopenFutureToWaitOn.complete(null);
+        } else {
+            if (ex instanceof ServiceBusException && ((ServiceBusException) ex).getIsTransient()) {
+                if (this.shouldRetryLinkReopenOnTransientFailure) {
+                    // Retry link creation
+                    this.shouldRetryLinkReopenOnTransientFailure = false;
+                    this.ensureLinkIsOpen();
+                } else {
+                    this.ensureLinkReopenFutureToWaitOn.completeExceptionally(ex);
+                }
+            } else {
+                this.ensureLinkReopenFutureToWaitOn.completeExceptionally(ex);
+            }
+
+        }
+        return null;
     }
 
     private void completePendingUpdateStateWorkItem(Delivery delivery, String deliveryTagAsString, UpdateStateWorkItem workItem, Exception exception) {
@@ -1117,6 +1119,9 @@ public class CoreMessageReceiver extends ClientEntity implements IAmqpReceiver, 
         }
     }
 
+    /**
+     * Commenting out unused private method.
+     *
     private void clearAllPendingWorkItems(Throwable exception) {
         TRACE_LOGGER.info("Completeing all pending receive and updateState operation on the receiver to '{}'", this.receivePath);
         final boolean isTransientException = exception == null
@@ -1142,7 +1147,8 @@ public class CoreMessageReceiver extends ClientEntity implements IAmqpReceiver, 
             ExceptionUtil.completeExceptionally(pendingUpdate.getValue().getWork(), exception, this, true);
         }
     }
-    
+    */
+
     private void completeAllPendingReceiveWorkItems(Throwable exception) {
     	TRACE_LOGGER.info("Completeing all receive operations on the receiver to '{}'", this.receivePath);
     	Iterator<ReceiveWorkItem> pendingRecivesIterator = this.pendingReceives.iterator();
@@ -1160,11 +1166,11 @@ public class CoreMessageReceiver extends ClientEntity implements IAmqpReceiver, 
             }
         }
     }
-    
+
     private void completeAllPendingUpdateStateWorkItems(Throwable exception) {
     	TRACE_LOGGER.info("Completeing all updateState operations on the receiver to '{}'", this.receivePath);
     	for (Map.Entry<String, UpdateStateWorkItem> pendingUpdate : this.pendingUpdateStateRequests.entrySet()) {
-            pendingUpdateStateRequests.remove(pendingUpdate.getKey());            
+            pendingUpdateStateRequests.remove(pendingUpdate.getKey());
             if (exception == null) {
             	AsyncUtil.completeFuture(pendingUpdate.getValue().getWork(), null);
             } else {

@@ -5,7 +5,6 @@ package com.azure.cosmos.benchmark;
 
 import com.azure.cosmos.ConnectionMode;
 import com.azure.cosmos.ConsistencyLevel;
-import com.azure.cosmos.benchmark.Configuration.Operation.OperationTypeConverter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -16,6 +15,7 @@ import io.micrometer.azuremonitor.AzureMonitorConfig;
 import io.micrometer.azuremonitor.AzureMonitorMeterRegistry;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.config.NamingConvention;
 import io.micrometer.core.lang.Nullable;
 import io.micrometer.graphite.GraphiteConfig;
@@ -28,11 +28,15 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
-class Configuration {
-
-    final static String DEFAULT_PARTITION_KEY_PATH = "/pk";
+public class Configuration {
+    public static final String SUCCESS_COUNTER_METER_NAME = "#Successful Operations";
+    public static final String FAILURE_COUNTER_METER_NAME = "#Unsuccessful Operations";
+    public static final String LATENCY_METER_NAME = "Latency";
+    public final static String DEFAULT_PARTITION_KEY_PATH = "/pk";
     private final static int DEFAULT_GRAPHITE_SERVER_PORT = 2003;
     private MeterRegistry azureMonitorMeterRegistry;
     private MeterRegistry graphiteMeterRegistry;
@@ -61,6 +65,9 @@ class Configuration {
     @Parameter(names = "-maxConnectionPoolSize", description = "Max Connection Pool Size")
     private Integer maxConnectionPoolSize = 1000;
 
+    @Parameter(names = "-diagnosticsThresholdDuration", description = "Latency threshold for printing diagnostics", converter = DurationConverter.class)
+    private Duration diagnosticsThresholdDuration = Duration.ofSeconds(60);
+
     @Parameter(names = "-disablePassingPartitionKeyAsOptionOnWrite", description = "Disables passing partition in request options for write operation;" +
         " in this case, json will be parsed and partition key will be extracted (this requires more computational overhead).")
     private boolean disablePassingPartitionKeyAsOptionOnWrite = false;
@@ -80,6 +87,53 @@ class Configuration {
     @Parameter(names = "-throughput", description = "provisioned throughput for test container")
     private int throughput = 100000;
 
+    @Parameter(names = "-numberOfCollectionForCtl", description = "Number of collections for ctl load")
+    private int numberOfCollectionForCtl = 4;
+
+    @Parameter(names = "-readWriteQueryReadManyPct", description = "Comma separated read write query readMany workload percent")
+    private String readWriteQueryReadManyPct = "90,8,1,1";
+
+    @Parameter(names = "-manageDatabase", description = "Control switch for creating/deleting underlying database resource")
+    private boolean manageDatabase = false;
+
+    @Parameter(names = "-preferredRegionsList", description = "Comma separated preferred regions list")
+    private String preferredRegionsList;
+
+    @Parameter(names = "-encryptedStringFieldCount", description = "Number of string field that need to be encrypted")
+    private int encryptedStringFieldCount = 1;
+
+    @Parameter(names = "-encryptedLongFieldCount", description = "Number of long field that need to be encrypted")
+    private int encryptedLongFieldCount = 0;
+
+    @Parameter(names = "-encryptedDoubleFieldCount", description = "Number of double field that need to be encrypted")
+    private int encryptedDoubleFieldCount = 0;
+
+    @Parameter(names = "-encryptionEnabled", description = "Control switch to enable the encryption operation")
+    private boolean encryptionEnabled = false;
+
+    @Parameter(names = "-defaultLog4jLoggerEnabled", description = "Control switch to enable the default log4j logger in 4.42 and above")
+    private String defaultLog4jLoggerEnabled = String.valueOf(false);
+
+
+    @Parameter(names = "-tupleSize", description = "Number of cosmos identity tuples to be queried using readMany")
+    private int tupleSize = 1;
+
+    @Parameter(names = "-isProactiveConnectionManagementEnabled", description = "Mode which denotes whether connections are proactively established during warm up.")
+    private String isProactiveConnectionManagementEnabled = String.valueOf(false);
+
+    @Parameter(names = "-isUseUnWarmedUpContainer", description = "Mode which denotes whether to use a container with no warmed up connections. NOTE: " +
+            "To be used when isProactiveConnectionManagementEnabled is set to false and isUseUnWarmedUpContainer is set to true")
+    private String isUseUnWarmedUpContainer = String.valueOf(false);
+
+    @Parameter(names = "-proactiveConnectionRegionsCount", description = "Number of regions where endpoints are to be proactively connected to.")
+    private int proactiveConnectionRegionsCount = 1;
+
+    @Parameter(names = "-minConnectionPoolSizePerEndpoint", description = "Minimum number of connections to establish per endpoint for proactive connection management")
+    private int minConnectionPoolSizePerEndpoint = 0;
+
+    @Parameter(names = "-aggressiveWarmupDuration", description = "The duration for which proactive connections are aggressively established", converter = DurationConverter.class)
+    private Duration aggressiveWarmupDuration = Duration.ZERO;
+
     @Parameter(names = "-operation", description = "Type of Workload:\n"
         + "\tReadThroughput- run a READ workload that prints only throughput *\n"
         + "\tReadThroughputWithMultipleClients - run a READ workload that prints throughput and latency for multiple client read.*\n"
@@ -97,7 +151,13 @@ class Configuration {
         + "\tQueryTopOrderby - run a 'Select top 1000 * from c order by c._ts' workload that prints throughput\n"
         + "\tMixed - runa workload of 90 reads, 9 writes and 1 QueryTopOrderby per 100 operations *\n"
         + "\tReadMyWrites - run a workflow of writes followed by reads and queries attempting to read the write.*\n"
-        + "\n\t* writes 10k documents initially, which are used in the reads", converter = OperationTypeConverter.class)
+        + "\tCtlWorkload - run a ctl workflow.*\n"
+        + "\tReadAllItemsOfLogicalPartition - run a workload that uses readAllItems for a logical partition and prints throughput\n"
+        + "\n\t* writes 10k documents initially, which are used in the reads"
+        + "\tLinkedInCtlWorkload - ctl for LinkedIn workload.*\n"
+        + "\tReadManyLatency - run a workload for readMany for a finite number of cosmos identity tuples that prints both throughput and latency*\n"
+        + "\tReadManyThroughput - run a workload for readMany for a finite no of cosmos identity tuples that prints throughput*\n",
+        converter = Operation.OperationTypeConverter.class)
     private Operation operation = Operation.WriteThroughput;
 
     @Parameter(names = "-concurrency", description = "Degree of Concurrency in Inserting Documents."
@@ -130,16 +190,87 @@ class Configuration {
     @Parameter(names = "-numberOfPreCreatedDocuments", description = "Total NUMBER Of Documents To pre create for a read workload to use")
     private int numberOfPreCreatedDocuments = 1000;
 
+    @Parameter(names = "-sparsityWaitTime", description = "Sleep time before making each request. Default is no sleep time."
+        + " NOTE: For now only ReadLatency and ReadThroughput support this."
+        + " Format: A string representation of this duration using ISO-8601 seconds based representation, such as "
+        + "PT20.345S (20.345 seconds), PT15M (15 minutes)", converter = DurationConverter.class)
+    private Duration sparsityWaitTime = null;
+
+    @Parameter(names = "-skipWarmUpOperations", description = "the number of operations to be skipped before starting perf numbers.")
+    private int skipWarmUpOperations = 0;
+
     @Parameter(names = "-useSync", description = "Uses Sync API")
     private boolean useSync = false;
 
     @Parameter(names = "-contentResponseOnWriteEnabled", description = "if set to false, does not returns content response on document write operations")
     private String contentResponseOnWriteEnabled = String.valueOf(true);
 
+    @Parameter(names = "-bulkloadBatchSize", description = "Control the number of documents uploaded in each BulkExecutor load iteration (Only supported for the LinkedInCtlWorkload)")
+    private int bulkloadBatchSize = 200000;
+
+    @Parameter(names = "-testScenario", description = "The test scenario (GET, QUERY) for the LinkedInCtlWorkload")
+    private String testScenario = "GET";
+
+    @Parameter(names = "-applicationName", description = "The application name suffix in the user agent header")
+    private String applicationName = "";
+
+    @Parameter(names = "-accountNameInGraphiteReporter", description = "if set, account name with be appended in graphite reporter")
+    private boolean accountNameInGraphiteReporter = false;
+
+    @Parameter(names = "-clientTelemetryEnabled", description = "Switch to enable client telemetry")
+    private String clientTelemetryEnabled = String.valueOf(false);
+
+    @Parameter(names = "-clientTelemetrySchedulingInSeconds", description = "Client telemetry scheduling intervals in seconds")
+    private int clientTelemetrySchedulingInSeconds = 10 * 60;
+
+    @Parameter(names = "-clientTelemetryEndpoint", description = "Client Telemetry Juno endpoint")
+    private String clientTelemetryEndpoint;
+
+    @Parameter(names = "-pointLatencyThresholdMs", description = "Latency threshold for point operations")
+    private int pointLatencyThresholdMs = -1;
+
+    @Parameter(names = "-nonPointLatencyThresholdMs", description = "Latency threshold for non-point operations")
+    private int nonPointLatencyThresholdMs = -1;
+
+    @Parameter(names = "-testVariationName", description = "An identifier for the test variation")
+    private String testVariationName = "";
+
+    @Parameter(names = "-branchName", description = "The branch name form where the source code being tested was built")
+    private String branchName = "";
+
+    @Parameter(names = "-commitId", description = "A commit identifier showing the version of the source code being tested")
+    private String commitId = "";
+
+    @Parameter(names = "-resultUploadDatabase", description = "The name of the database into which to upload the results")
+    private String resultUploadDatabase = "";
+
+    @Parameter(names = "-resultUploadContainer", description = "AThe name of the container inot which to upload the results")
+    private String resultUploadContainer = "";
+
+    public enum Environment {
+        Daily,   // This is the CTL environment where we run the workload for a fixed number of hours
+        Staging; // This is the CTL environment where the worload runs as a long running job
+
+        static class EnvironmentConverter implements IStringConverter<Environment> {
+            @Override
+            public Environment convert(String value) {
+                if (value == null) {
+                    return Environment.Daily;
+                }
+
+                return Environment.valueOf(value);
+            }
+        }
+    }
+
+    @Parameter(names = "-environment", description = "The CTL Environment we are validating the workload",
+        converter = Environment.EnvironmentConverter.class)
+    private Environment environment = Environment.Daily;
+
     @Parameter(names = {"-h", "-help", "--help"}, description = "Help", help = true)
     private boolean help = false;
 
-    enum Operation {
+    public enum Operation {
         ReadThroughput,
         WriteThroughput,
         ReadLatency,
@@ -155,7 +286,12 @@ class Configuration {
         QueryTopOrderby,
         Mixed,
         ReadMyWrites,
-        ReadThroughputWithMultipleClients;
+        ReadThroughputWithMultipleClients,
+        CtlWorkload,
+        ReadAllItemsOfLogicalPartition,
+        LinkedInCtlWorkload,
+        ReadManyLatency,
+        ReadManyThroughput;
 
         static Operation fromString(String code) {
 
@@ -214,88 +350,107 @@ class Configuration {
         }
     }
 
+    public int getSkipWarmUpOperations() {
+        return skipWarmUpOperations;
+    }
 
-    boolean isDisablePassingPartitionKeyAsOptionOnWrite() {
+    public Duration getSparsityWaitTime() {
+        return sparsityWaitTime;
+    }
+
+    public boolean isDisablePassingPartitionKeyAsOptionOnWrite() {
         return disablePassingPartitionKeyAsOptionOnWrite;
     }
 
-    boolean isSync() {
+    public boolean isSync() {
         return useSync;
     }
 
-    Duration getMaxRunningTimeDuration() {
+    public boolean isAccountNameInGraphiteReporter() {
+        return accountNameInGraphiteReporter;
+    }
+
+    public Duration getMaxRunningTimeDuration() {
         return maxRunningTimeDuration;
     }
 
-    Operation getOperationType() {
+    public Operation getOperationType() {
         return operation;
     }
 
-    int getNumberOfOperations() {
+    public int getNumberOfOperations() {
         return numberOfOperations;
     }
 
-    int getThroughput() {
+    public int getThroughput() {
         return throughput;
     }
 
-    String getServiceEndpoint() {
+    public String getServiceEndpoint() {
         return serviceEndpoint;
     }
 
-    String getMasterKey() {
+    public String getMasterKey() {
         return masterKey;
     }
 
-    boolean isHelp() {
+    public String getApplicationName() {
+        return applicationName;
+    }
+
+    public boolean isHelp() {
         return help;
     }
 
-    int getDocumentDataFieldSize() {
+    public int getDocumentDataFieldSize() {
         return documentDataFieldSize;
     }
 
-    int getDocumentDataFieldCount() {
+    public int getDocumentDataFieldCount() {
         return documentDataFieldCount;
     }
 
-    Integer getMaxConnectionPoolSize() {
+    public Integer getMaxConnectionPoolSize() {
         return maxConnectionPoolSize;
     }
 
-    ConnectionMode getConnectionMode() {
+    public ConnectionMode getConnectionMode() {
         return connectionMode;
     }
 
-    ConsistencyLevel getConsistencyLevel() {
+    public ConsistencyLevel getConsistencyLevel() {
         return consistencyLevel;
     }
 
-    String isContentResponseOnWriteEnabled() {
-        return contentResponseOnWriteEnabled;
+    public boolean isContentResponseOnWriteEnabled() {
+        return Boolean.parseBoolean(contentResponseOnWriteEnabled);
     }
 
-    String getDatabaseId() {
+    public String getDatabaseId() {
         return databaseId;
     }
 
-    String getCollectionId() {
+    public String getCollectionId() {
         return collectionId;
     }
 
-    int getNumberOfPreCreatedDocuments() {
+    public int getNumberOfPreCreatedDocuments() {
         return numberOfPreCreatedDocuments;
     }
 
-    int getPrintingInterval() {
+    public int getPrintingInterval() {
         return printingInterval;
     }
 
-    File getReportingDirectory() {
+    public Duration getDiagnosticsThresholdDuration() {
+        return diagnosticsThresholdDuration;
+    }
+
+    public File getReportingDirectory() {
         return reportingDirectory == null ? null : new File(reportingDirectory);
     }
 
-    int getConcurrency() {
+    public int getConcurrency() {
         if (this.concurrency != null) {
             return concurrency;
         } else {
@@ -303,7 +458,7 @@ class Configuration {
         }
     }
 
-    boolean isUseNameLink() {
+    public boolean isUseNameLink() {
         return useNameLink;
     }
 
@@ -346,11 +501,138 @@ class Configuration {
         }
     }
 
+    public String getTestVariationName() {
+        return this.testVariationName;
+    }
+
+    public String getBranchName() {
+        return this.branchName;
+    }
+
+    public String getCommitId() {
+        return this.commitId;
+    }
+
+    public int getNumberOfCollectionForCtl(){
+        return this.numberOfCollectionForCtl;
+    }
+
+    public String getReadWriteQueryReadManyPct() {
+        return this.readWriteQueryReadManyPct;
+    }
+
+    public boolean shouldManageDatabase() {
+        return this.manageDatabase;
+    }
+
+    public int getBulkloadBatchSize() {
+        return this.bulkloadBatchSize;
+    }
+
+    public String getTestScenario() {
+        return this.testScenario;
+    }
+
+    public Environment getEnvironment() {
+        return this.environment;
+    }
+
     public String toString() {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
     }
 
-    void tryGetValuesFromSystem() {
+    public List<String> getPreferredRegionsList() {
+        List<String> preferredRegions = null;
+        if (StringUtils.isNotEmpty(preferredRegionsList)) {
+            String[] preferredArray = preferredRegionsList.split(",");
+            if (preferredArray != null && preferredArray.length > 0) {
+                preferredRegions = new ArrayList<>(Arrays.asList(preferredArray));
+            }
+        }
+        return preferredRegions;
+    }
+
+    public int getEncryptedStringFieldCount() {
+        return encryptedStringFieldCount;
+    }
+
+    public int getEncryptedLongFieldCount() {
+        return encryptedLongFieldCount;
+    }
+
+    public int getEncryptedDoubleFieldCount() {
+        return encryptedDoubleFieldCount;
+    }
+
+    public boolean isEncryptionEnabled() {
+        return encryptionEnabled;
+    }
+
+    public boolean isClientTelemetryEnabled() {
+        return Boolean.parseBoolean(clientTelemetryEnabled);
+    }
+
+    public boolean isDefaultLog4jLoggerEnabled() {
+        return Boolean.parseBoolean(defaultLog4jLoggerEnabled);
+    }
+
+    public String getClientTelemetryEndpoint() {
+        return clientTelemetryEndpoint;
+    }
+
+    public int getClientTelemetrySchedulingInSeconds() {
+        return clientTelemetrySchedulingInSeconds;
+    }
+
+    public Integer getTupleSize() {
+        return tupleSize;
+    }
+
+    public Duration getPointOperationThreshold() {
+        if (this.pointLatencyThresholdMs < 0) {
+            return Duration.ofDays(300);
+        }
+
+        return Duration.ofMillis(this.pointLatencyThresholdMs);
+    }
+
+    public Duration getNonPointOperationThreshold() {
+        if (this.nonPointLatencyThresholdMs < 0) {
+            return Duration.ofDays(300);
+        }
+
+        return Duration.ofMillis(this.nonPointLatencyThresholdMs);
+    }
+
+    public boolean isProactiveConnectionManagementEnabled() {
+        return Boolean.parseBoolean(isProactiveConnectionManagementEnabled);
+    }
+
+    public boolean isUseUnWarmedUpContainer() {
+        return Boolean.parseBoolean(isUseUnWarmedUpContainer);
+    }
+
+    public Integer getProactiveConnectionRegionsCount() {
+        return proactiveConnectionRegionsCount;
+    }
+
+    public Duration getAggressiveWarmupDuration() {
+        return aggressiveWarmupDuration;
+    }
+
+    public Integer getMinConnectionPoolSizePerEndpoint() {
+        return minConnectionPoolSizePerEndpoint;
+    }
+
+    public String getResultUploadDatabase() {
+        return Strings.emptyToNull(resultUploadDatabase);
+    }
+
+    public String getResultUploadContainer() {
+        return Strings.emptyToNull(resultUploadContainer);
+    }
+
+    public void tryGetValuesFromSystem() {
         serviceEndpoint = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("SERVICE_END_POINT")),
                                                     serviceEndpoint);
 
@@ -373,7 +655,7 @@ class Configuration {
         consistencyLevel = consistencyLevelConverter.convert(StringUtils
                                                                      .defaultString(Strings.emptyToNull(System.getenv().get("CONSISTENCY_LEVEL")), consistencyLevel.name()));
 
-        OperationTypeConverter operationTypeConverter = new OperationTypeConverter();
+        Operation.OperationTypeConverter operationTypeConverter = new Operation.OperationTypeConverter();
         operation = operationTypeConverter.convert(
                 StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("OPERATION")), operation.name()));
 
@@ -388,6 +670,44 @@ class Configuration {
         String throughputValue = StringUtils.defaultString(
                 Strings.emptyToNull(System.getenv().get("THROUGHPUT")), Integer.toString(throughput));
         throughput = Integer.parseInt(throughputValue);
+
+        preferredRegionsList = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "PREFERRED_REGIONS_LIST")), preferredRegionsList);
+
+        encryptedStringFieldCount = Integer.parseInt(
+            StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("ENCRYPTED_STRING_FIELD_COUNT")),
+                Integer.toString(encryptedStringFieldCount)));
+
+        encryptedLongFieldCount = Integer.parseInt(
+            StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("ENCRYPTED_LONG_FIELD_COUNT")),
+                Integer.toString(encryptedLongFieldCount)));
+
+        encryptedDoubleFieldCount = Integer.parseInt(
+            StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("ENCRYPTED_DOUBLE_FIELD_COUNT")),
+                Integer.toString(encryptedDoubleFieldCount)));
+
+        encryptionEnabled = Boolean.parseBoolean(StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "ENCRYPTED_ENABLED")),
+            Boolean.toString(encryptionEnabled)));
+
+        tupleSize = Integer.parseInt(
+                StringUtils.defaultString(Strings.emptyToNull(System.getenv().get("COSMOS_IDENTITY_TUPLE_SIZE")),
+                        Integer.toString(tupleSize)));
+
+        testVariationName = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "COSMOS_TEST_VARIATION_NAME")), testVariationName);
+
+        branchName = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "COSMOS_BRANCH_NAME")), branchName);
+
+        commitId = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "COSMOS_COMMIT_ID")), commitId);
+
+        resultUploadDatabase = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "COSMOS_RESULT_UPLOAD_DATABASE")), resultUploadDatabase);
+
+        resultUploadContainer = StringUtils.defaultString(Strings.emptyToNull(System.getenv().get(
+            "COSMOS_RESULT_UPLOAD_CONTAINER")), resultUploadContainer);
     }
 
     private synchronized MeterRegistry azureMonitorMeterRegistry(String instrumentationKey) {
@@ -395,6 +715,7 @@ class Configuration {
         if (this.azureMonitorMeterRegistry == null) {
 
             Duration step = Duration.ofSeconds(Integer.getInteger("azure.cosmos.monitoring.azureMonitor.step", this.printingInterval));
+            String testCategoryTag = System.getProperty("azure.cosmos.monitoring.azureMonitor.testCategory");
             boolean enabled = !Boolean.getBoolean("azure.cosmos.monitoring.azureMonitor.disabled");
 
             final AzureMonitorConfig config = new AzureMonitorConfig() {
@@ -423,6 +744,11 @@ class Configuration {
             };
 
             this.azureMonitorMeterRegistry = new AzureMonitorMeterRegistry(config, Clock.SYSTEM);
+            if (!Strings.isNullOrEmpty(testCategoryTag)) {
+                List<Tag> globalTags = new ArrayList<>();
+                globalTags.add(Tag.of("TestCategory", testCategoryTag));
+                this.azureMonitorMeterRegistry.config().commonTags(globalTags);
+            }
         }
 
         return this.azureMonitorMeterRegistry;

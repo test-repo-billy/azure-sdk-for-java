@@ -5,29 +5,38 @@ package com.azure.core.test.policy;
 
 import com.azure.core.http.ContentType;
 import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.HttpPipelinePolicy;
+import com.azure.core.test.TestMode;
+import com.azure.core.test.implementation.TestingHelpers;
 import com.azure.core.test.models.NetworkCallError;
 import com.azure.core.test.models.NetworkCallRecord;
 import com.azure.core.test.models.RecordedData;
 import com.azure.core.test.models.RecordingRedactor;
+import com.azure.core.util.CoreUtils;
+import com.azure.core.util.FluxUtil;
 import com.azure.core.util.UrlBuilder;
 import com.azure.core.util.logging.ClientLogger;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -35,20 +44,18 @@ import java.util.zip.GZIPInputStream;
  * recorded into {@link RecordedData}.
  */
 public class RecordNetworkCallPolicy implements HttpPipelinePolicy {
-    private static final int DEFAULT_BUFFER_LENGTH = 1024;
-    private static final String CONTENT_TYPE = "Content-Type";
+    private static final int DEFAULT_BUFFER_LENGTH = 8192;
+    private static final HttpHeaderName X_MS_VERSION = HttpHeaderName.fromString("x-ms-version");
     private static final String CONTENT_ENCODING = "Content-Encoding";
     private static final String CONTENT_LENGTH = "Content-Length";
-    private static final String X_MS_CLIENT_REQUEST_ID = "x-ms-client-request-id";
     private static final String X_MS_ENCRYPTION_KEY_SHA256 = "x-ms-encryption-key-sha256";
-    private static final String X_MS_VERSION = "x-ms-version";
-    private static final String USER_AGENT = "User-Agent";
     private static final String STATUS_CODE = "StatusCode";
     private static final String BODY = "Body";
     private static final String SIG = "sig";
 
     private final ClientLogger logger = new ClientLogger(RecordNetworkCallPolicy.class);
     private final RecordedData recordedData;
+    private final RecordingRedactor redactor;
 
     /**
      * Creates a policy that records network calls into {@code recordedData}.
@@ -56,20 +63,33 @@ public class RecordNetworkCallPolicy implements HttpPipelinePolicy {
      * @param recordedData The record to persist network calls into.
      */
     public RecordNetworkCallPolicy(RecordedData recordedData) {
-        Objects.requireNonNull(recordedData, "'recordedData' cannot be null.");
+        this(recordedData, Collections.emptyList());
+    }
+
+    /**
+     * Creates a policy that records network calls into {@code recordedData} by redacting sensitive information by
+     * applying the provided redactor functions.
+     * @param recordedData The record to persist network calls into.
+     * @param redactors The custom redactor functions to apply to redact sensitive information from recorded data.
+     */
+    public RecordNetworkCallPolicy(RecordedData recordedData, List<Function<String, String>> redactors) {
         this.recordedData = recordedData;
+        redactor = new RecordingRedactor(redactors);
+
     }
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
+        // If TEST_MODE isn't RECORD do not record.
+        if (TestingHelpers.getTestMode() != TestMode.RECORD) {
+            return next.process();
+        }
+
         final NetworkCallRecord networkCallRecord = new NetworkCallRecord();
         Map<String, String> headers = new HashMap<>();
 
-        captureRequestHeaders(context.getHttpRequest().getHeaders(), headers,
-            X_MS_CLIENT_REQUEST_ID,
-            CONTENT_TYPE,
-            X_MS_VERSION,
-            USER_AGENT);
+        captureRequestHeaders(context.getHttpRequest().getHeaders(), headers, HttpHeaderName.X_MS_CLIENT_REQUEST_ID,
+            HttpHeaderName.CONTENT_TYPE, X_MS_VERSION, HttpHeaderName.USER_AGENT);
 
         networkCallRecord.setHeaders(headers);
         networkCallRecord.setMethod(context.getHttpRequest().getHttpMethod().toString());
@@ -77,53 +97,56 @@ public class RecordNetworkCallPolicy implements HttpPipelinePolicy {
         // Remove sensitive information such as SAS token signatures from the recording.
         UrlBuilder urlBuilder = UrlBuilder.parse(context.getHttpRequest().getUrl());
         redactedAccountName(urlBuilder);
-        if (urlBuilder.getQuery().containsKey(SIG)) {
+        if (urlBuilder.getQuery().containsKey("sig")) {
             urlBuilder.setQueryParameter(SIG, "REDACTED");
         }
-        networkCallRecord.setUri(urlBuilder.toString().replaceAll("\\?$", ""));
+        String uriString = urlBuilder.toString();
+        networkCallRecord.setUri(uriString.endsWith("?") ? uriString.substring(0, uriString.length() - 2) : uriString);
 
         return next.process()
             .doOnError(throwable -> {
                 networkCallRecord.setException(new NetworkCallError(throwable));
                 recordedData.addNetworkCall(networkCallRecord);
                 throw logger.logExceptionAsWarning(Exceptions.propagate(throwable));
-            }).flatMap(httpResponse -> {
-                final HttpResponse bufferedResponse = httpResponse.buffer();
-
-                return extractResponseData(bufferedResponse).map(responseData -> {
-                    networkCallRecord.setResponse(responseData);
-                    String body = responseData.get(BODY);
+            }).flatMap(httpResponse -> extractResponseData(httpResponse, redactor, logger)
+                .map(responseAndSessionRecordData -> {
+                    Map<String, String> sessionRecordData = responseAndSessionRecordData.getT2();
+                    networkCallRecord.setResponse(sessionRecordData);
+                    String body = sessionRecordData.get(BODY);
 
                     // Remove pre-added header if this is a waiting or redirection
                     if (body != null && body.contains("<Status>InProgress</Status>")
-                        || Integer.parseInt(responseData.get(STATUS_CODE)) == HttpURLConnection.HTTP_MOVED_TEMP) {
+                        || Integer.parseInt(sessionRecordData.get(STATUS_CODE)) == HttpURLConnection.HTTP_MOVED_TEMP) {
                         logger.info("Waiting for a response or redirection.");
                     } else {
                         recordedData.addNetworkCall(networkCallRecord);
                     }
 
-                    return bufferedResponse;
-                });
-            });
+                    return responseAndSessionRecordData.getT1();
+                }));
     }
 
-    private void redactedAccountName(UrlBuilder urlBuilder) {
-        String[] hostParts = urlBuilder.getHost().split("\\.");
-        hostParts[0] = "REDACTED";
-
-        urlBuilder.setHost(String.join(".", hostParts));
+    private static void redactedAccountName(UrlBuilder urlBuilder) {
+        String originalHost = urlBuilder.getHost();
+        int indexOf = originalHost.indexOf(".");
+        if (indexOf == -1) {
+            urlBuilder.setHost("REDACTED");
+        } else {
+            urlBuilder.setHost("REDACTED" + originalHost.substring(indexOf));
+        }
     }
 
-    private void captureRequestHeaders(HttpHeaders requestHeaders, Map<String, String> captureHeaders,
-        String... headerNames) {
-        for (String headerName : headerNames) {
+    private static void captureRequestHeaders(HttpHeaders requestHeaders, Map<String, String> captureHeaders,
+        HttpHeaderName... headerNames) {
+        for (HttpHeaderName headerName : headerNames) {
             if (requestHeaders.getValue(headerName) != null) {
-                captureHeaders.put(headerName, requestHeaders.getValue(headerName));
+                captureHeaders.put(headerName.getCaseInsensitiveName(), requestHeaders.getValue(headerName));
             }
         }
     }
 
-    private Mono<Map<String, String>> extractResponseData(final HttpResponse response) {
+    private static Mono<Tuple2<HttpResponse, Map<String, String>>> extractResponseData(final HttpResponse response,
+        final RecordingRedactor redactor, final ClientLogger logger) {
         final Map<String, String> responseData = new HashMap<>();
         responseData.put(STATUS_CODE, Integer.toString(response.getStatusCode()));
 
@@ -146,67 +169,58 @@ public class RecordNetworkCallPolicy implements HttpPipelinePolicy {
             responseData.put("retry-after", "0");
         }
 
-        String contentType = response.getHeaderValue(CONTENT_TYPE);
-        if (contentType == null) {
-            return response.getBodyAsByteArray().switchIfEmpty(Mono.just(new byte[0])).map(bytes -> {
-                if (bytes.length == 0) {
-                    return responseData;
-                }
+        String contentType = response.getHeaderValue(HttpHeaderName.CONTENT_TYPE);
+        String contentLengthHeader = response.getHeaderValue(HttpHeaderName.CONTENT_LENGTH);
 
-                String content = new String(bytes, StandardCharsets.UTF_8);
-                responseData.put(CONTENT_LENGTH, Integer.toString(content.length()));
-                responseData.put(BODY, content);
-                return responseData;
-            });
-        } else if (contentType.equalsIgnoreCase(ContentType.APPLICATION_OCTET_STREAM)
-            || contentType.equalsIgnoreCase("avro/binary")) {
-            return response.getBodyAsByteArray().switchIfEmpty(Mono.just(new byte[0])).map(bytes -> {
-                if (bytes.length == 0) {
-                    return responseData;
-                }
-
-                responseData.put(BODY, Arrays.toString(bytes));
-                return responseData;
-            });
-        } else if (contentType.contains("json") || response.getHeaderValue(CONTENT_ENCODING) == null) {
-            return response.getBodyAsString(StandardCharsets.UTF_8).switchIfEmpty(Mono.just("")).map(content -> {
-                responseData.put(BODY, new RecordingRedactor().redact(content));
-                return responseData;
-            });
-        } else {
-            return response.getBodyAsByteArray().switchIfEmpty(Mono.just(new byte[0])).map(bytes -> {
-                if (bytes.length == 0) {
-                    return responseData;
-                }
-
-                String content;
-                if ("gzip".equalsIgnoreCase(response.getHeaderValue(CONTENT_ENCODING))) {
-                    try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bytes));
-                         ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-                        byte[] buffer = new byte[DEFAULT_BUFFER_LENGTH];
-                        int position = 0;
-                        int bytesRead = gis.read(buffer, position, buffer.length);
-
-                        while (bytesRead != -1) {
-                            output.write(buffer, 0, bytesRead);
-                            position += bytesRead;
-                            bytesRead = gis.read(buffer, position, buffer.length);
-                        }
-
-                        content = new String(output.toByteArray(), StandardCharsets.UTF_8);
-                    } catch (IOException e) {
-                        throw logger.logExceptionAsWarning(Exceptions.propagate(e));
-                    }
-                } else {
-                    content = new String(bytes, StandardCharsets.UTF_8);
-                }
-
-                responseData.remove(CONTENT_ENCODING);
-                responseData.put(CONTENT_LENGTH, Integer.toString(content.length()));
-
-                responseData.put(BODY, content);
-                return responseData;
-            });
+        if (!CoreUtils.isNullOrEmpty(contentLengthHeader) && Long.parseLong(contentLengthHeader) == 0) {
+            return Mono.just(Tuples.of(response, responseData));
         }
+
+        final HttpResponse bufferedResponse = response.buffer();
+        return FluxUtil.collectBytesInByteBufferStream(bufferedResponse.getBody())
+            .map(bytes -> {
+                if (contentType == null) {
+                    String content = new String(bytes, StandardCharsets.UTF_8);
+                    responseData.put(CONTENT_LENGTH, Integer.toString(content.length()));
+                    responseData.put(BODY, content);
+                } else if (ContentType.APPLICATION_OCTET_STREAM.equalsIgnoreCase(contentType)
+                    || "avro/binary".equalsIgnoreCase(contentType)) {
+                    responseData.put(BODY, Base64.getEncoder().encodeToString(bytes));
+                } else if (contentType.contains("json")
+                    || response.getHeaderValue(HttpHeaderName.CONTENT_ENCODING) == null) {
+                    responseData.put(BODY, redactor.redact(CoreUtils.bomAwareToString(bytes,
+                        response.getHeaderValue(HttpHeaderName.CONTENT_TYPE))));
+                } else {
+                    String content;
+                    if ("gzip".equalsIgnoreCase(response.getHeaderValue(HttpHeaderName.CONTENT_ENCODING))) {
+                        try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bytes));
+                             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                            byte[] buffer = new byte[DEFAULT_BUFFER_LENGTH];
+                            int position = 0;
+                            int bytesRead = gis.read(buffer, position, buffer.length);
+
+                            while (bytesRead != -1) {
+                                output.write(buffer, 0, bytesRead);
+                                position += bytesRead;
+                                bytesRead = gis.read(buffer, 0, buffer.length);
+                            }
+
+                            content = output.toString("UTF-8");
+                        } catch (IOException e) {
+                            throw logger.logExceptionAsWarning(Exceptions.propagate(e));
+                        }
+                    } else {
+                        content = new String(bytes, StandardCharsets.UTF_8);
+                    }
+
+                    responseData.remove(CONTENT_ENCODING);
+                    responseData.put(CONTENT_LENGTH, Integer.toString(content.length()));
+
+                    responseData.put(BODY, content);
+                }
+
+                return Tuples.of(bufferedResponse, responseData);
+            })
+            .switchIfEmpty(Mono.fromSupplier(() -> Tuples.of(bufferedResponse, responseData)));
     }
 }

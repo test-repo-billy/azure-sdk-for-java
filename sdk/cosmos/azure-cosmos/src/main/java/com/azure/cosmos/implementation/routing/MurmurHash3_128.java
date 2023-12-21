@@ -3,11 +3,32 @@
 
 package com.azure.cosmos.implementation.routing;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+
 public class MurmurHash3_128 {
     private static final UInt128 zeroSeed = new UInt128(0, 0);
 
     public static UInt128 hash128(byte[] bytes, int limit) {
         return hash128(bytes, limit, zeroSeed);
+    }
+
+    public static <T> UInt128 hash128(T value, UInt128 seed) throws IOException {
+        if (value instanceof UInt128) {
+            ByteBuffer buffer = ((UInt128) value).toByteBuffer();
+            return hash128(buffer.array(), buffer.array().length, seed);
+        }
+        if (value instanceof Serializable) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream os = new ObjectOutputStream(out);
+            os.writeObject(value);
+            return hash128(out.toByteArray(), out.toByteArray().length, seed);
+        }
+
+        throw new IllegalArgumentException(String.format("Unexpected type: %s", value.getClass().toString()));
     }
 
     public static UInt128 hash128(byte[] bytes, int length, UInt128 seed) {
@@ -107,11 +128,6 @@ public class MurmurHash3_128 {
         h2 = Long.reverseBytes(h2);
 
         return new UInt128(h1, h2);
-    }
-
-    private static int rotateLeft32(int n, int numBits) {
-        assert numBits < 32;
-        return Integer.rotateLeft(n, numBits);
     }
 
     private static long rotateLeft64(long n, int numBits) {

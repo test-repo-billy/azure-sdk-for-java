@@ -8,19 +8,24 @@ import com.azure.core.util.ExpandableStringEnum;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.Collection;
 
-/**
- * Defines values for ArchiveStatus.
- */
+/** Defines values for ArchiveStatus. */
 public final class ArchiveStatus extends ExpandableStringEnum<ArchiveStatus> {
-    /**
-     * Static value rehydrate-pending-to-hot for ArchiveStatus.
-     */
+    /** Static value rehydrate-pending-to-hot for ArchiveStatus. */
     public static final ArchiveStatus REHYDRATE_PENDING_TO_HOT = fromString("rehydrate-pending-to-hot");
 
-    /**
-     * Static value rehydrate-pending-to-cool for ArchiveStatus.
-     */
+    /** Static value rehydrate-pending-to-cool for ArchiveStatus. */
     public static final ArchiveStatus REHYDRATE_PENDING_TO_COOL = fromString("rehydrate-pending-to-cool");
+
+    /** Static value rehydrate-pending-to-cold for ArchiveStatus. */
+    public static final ArchiveStatus REHYDRATE_PENDING_TO_COLD = fromString("rehydrate-pending-to-cold");
+
+    /**
+     * Creates a new instance of ArchiveStatus value.
+     *
+     * @deprecated Use the {@link #fromString(String)} factory method.
+     */
+    @Deprecated
+    public ArchiveStatus() {}
 
     /**
      * Creates or finds a ArchiveStatus from its string representation.
@@ -34,6 +39,8 @@ public final class ArchiveStatus extends ExpandableStringEnum<ArchiveStatus> {
     }
 
     /**
+     * Gets known ArchiveStatus values.
+     *
      * @return known ArchiveStatus values.
      */
     public static Collection<ArchiveStatus> values() {

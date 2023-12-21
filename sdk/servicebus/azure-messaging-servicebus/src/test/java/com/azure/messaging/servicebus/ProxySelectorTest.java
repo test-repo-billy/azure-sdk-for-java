@@ -5,6 +5,7 @@ package com.azure.messaging.servicebus;
 
 import com.azure.core.amqp.AmqpRetryOptions;
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.util.BinaryData;
 import com.azure.core.util.logging.ClientLogger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
@@ -63,7 +64,7 @@ public class ProxySelectorTest extends IntegrationTestBase {
             }
         });
 
-        final ServiceBusMessage message = new ServiceBusMessage("Hello".getBytes());
+        final ServiceBusMessage message = new ServiceBusMessage(BinaryData.fromString("Hello"));
         final ServiceBusSenderAsyncClient sender = new ServiceBusClientBuilder()
             .connectionString(getConnectionString())
             .transportType(AmqpTransportType.AMQP_WEB_SOCKETS)
@@ -72,17 +73,14 @@ public class ProxySelectorTest extends IntegrationTestBase {
             .queueName(queueName)
             .buildAsyncClient();
 
-        try {
-            StepVerifier.create(sender.send(message))
-                .expectErrorSatisfies(error -> {
-                    // The message can vary because it is returned from proton-j, so we don't want to compare against that.
-                    // This is a transient error from ExceptionUtil.java: line 67.
-                    System.out.println("Error: " + error);
-                })
-                .verify();
-        } finally {
-            dispose(sender);
-        }
+        toClose(sender);
+        StepVerifier.create(sender.sendMessage(message))
+            .expectErrorSatisfies(error -> {
+                // The message can vary because it is returned from proton-j, so we don't want to compare against that.
+                // This is a transient error from ExceptionUtil.java: line 67.
+                System.out.println("Error: " + error);
+            })
+            .verify(TIMEOUT);
 
         final boolean awaited = countDownLatch.await(2, TimeUnit.SECONDS);
         Assertions.assertTrue(awaited);

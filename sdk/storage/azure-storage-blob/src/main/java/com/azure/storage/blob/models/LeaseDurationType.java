@@ -7,23 +7,15 @@ package com.azure.storage.blob.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Defines values for LeaseDurationType.
- */
+/** Defines values for LeaseDurationType. */
 public enum LeaseDurationType {
-    /**
-     * Enum value infinite.
-     */
+    /** Enum value infinite. */
     INFINITE("infinite"),
 
-    /**
-     * Enum value fixed.
-     */
+    /** Enum value fixed. */
     FIXED("fixed");
 
-    /**
-     * The actual serialized value for a LeaseDurationType instance.
-     */
+    /** The actual serialized value for a LeaseDurationType instance. */
     private final String value;
 
     LeaseDurationType(String value) {
@@ -38,6 +30,9 @@ public enum LeaseDurationType {
      */
     @JsonCreator
     public static LeaseDurationType fromString(String value) {
+        if (value == null) {
+            return null;
+        }
         LeaseDurationType[] items = LeaseDurationType.values();
         for (LeaseDurationType item : items) {
             if (item.toString().equalsIgnoreCase(value)) {
@@ -47,6 +42,7 @@ public enum LeaseDurationType {
         return null;
     }
 
+    /** {@inheritDoc} */
     @JsonValue
     @Override
     public String toString() {

@@ -9,7 +9,15 @@ import com.azure.core.util.ServiceVersion;
  * The versions of Azure App Configuration supported by this client library.
  */
 public enum ConfigurationServiceVersion implements ServiceVersion {
-    V1_0("1.0");
+    /**
+     * Service version {@code 1.0}.
+     */
+    V1_0("1.0"),
+
+    /**
+     * Service version {@code 2023-10-01}.
+     */
+    V2023_10_01("2023-10-01");
 
     private final String version;
 
@@ -31,6 +39,6 @@ public enum ConfigurationServiceVersion implements ServiceVersion {
      * @return the latest {@link ConfigurationServiceVersion}
      */
     public static ConfigurationServiceVersion getLatest() {
-        return V1_0;
+        return V2023_10_01;
     }
 }

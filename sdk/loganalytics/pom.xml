@@ -8,7 +8,9 @@
   <artifactId>azure-loganalytics-service</artifactId>
   <packaging>pom</packaging>
   <version>1.0.0</version><!-- Need not change for every release-->
+
   <modules>
-    <module>microsoft-azure-loganalytics</module>
+      <module>azure-resourcemanager-loganalytics</module>
+      <module>microsoft-azure-loganalytics</module>
   </modules>
 </project>

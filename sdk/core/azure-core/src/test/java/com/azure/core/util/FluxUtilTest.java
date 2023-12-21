@@ -9,7 +9,12 @@ import com.azure.core.http.HttpRequest;
 import com.azure.core.http.rest.Response;
 import com.azure.core.http.rest.SimpleResponse;
 import com.azure.core.util.logging.ClientLogger;
+import com.azure.core.util.mocking.MockAsynchronousFileChannel;
+import com.azure.core.util.mocking.MockFileChannel;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -18,26 +23,40 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.Channels;
+import java.nio.channels.CompletionHandler;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLockInterruptionException;
+import java.nio.channels.NonWritableChannelException;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static com.azure.core.CoreTestUtils.assertArraysEqual;
+import static com.azure.core.CoreTestUtils.fillArray;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,29 +64,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class FluxUtilTest {
     @Test
     public void testCallWithContextGetSingle() {
-        String response = getSingle()
-            .subscriberContext(reactor.util.context.Context.of("FirstName", "Foo", "LastName", "Bar"))
-            .block();
-        assertEquals("Hello, Foo Bar", response);
+        StepVerifier.create(getSingle()
+                .contextWrite(reactor.util.context.Context.of("FirstName", "Foo", "LastName", "Bar")))
+            .assertNext(response -> assertEquals("Hello, Foo Bar", response))
+            .verifyComplete();
     }
 
     @Test
     public void testCallWithContextGetCollection() {
-        List<String> expectedLines = Arrays.asList("Hello,", "Foo", "Bar");
-        List<String> actualLines = new ArrayList<>();
-        getCollection()
-            .subscriberContext(reactor.util.context.Context.of("FirstName", "Foo", "LastName", "Bar"))
-            .doOnNext(actualLines::add)
-            .subscribe();
-        assertEquals(expectedLines, actualLines);
+        StepVerifier.create(getCollection()
+                .contextWrite(reactor.util.context.Context.of("FirstName", "Foo", "LastName", "Bar")))
+            .assertNext(response -> assertEquals("Hello,", response))
+            .assertNext(response -> assertEquals("Foo", response))
+            .assertNext(response -> assertEquals("Bar", response))
+            .verifyComplete();
     }
 
     @Test
     public void testCallWithDefaultContextGetSingle() {
-        String response = getSingleWithContextAttributes()
-            .subscriberContext(reactor.util.context.Context.of("FirstName", "Foo"))
-            .block();
-        assertEquals("Hello, Foo additionalContextValue", response);
+        StepVerifier.create(getSingleWithContextAttributes()
+                .contextWrite(reactor.util.context.Context.of("FirstName", "Foo")))
+            .assertNext(response -> assertEquals("Hello, Foo additionalContextValue", response))
+            .verifyComplete();
     }
 
     @Test
@@ -160,15 +178,210 @@ public class FluxUtilTest {
         String original = "hello there";
         String target = "testo there";
 
-        Flux<ByteBuffer> body = Flux.just(ByteBuffer.wrap(toReplace.getBytes(StandardCharsets.UTF_8)));
+        byte[] bytes = toReplace.getBytes(StandardCharsets.UTF_8);
+        Flux<ByteBuffer> body = Flux.just(ByteBuffer.wrap(bytes, 0, 2), ByteBuffer.wrap(bytes, 2, 2));
         File file = createFileIfNotExist();
-        FileOutputStream stream = new FileOutputStream(file);
-        stream.write(original.getBytes(StandardCharsets.UTF_8));
-        stream.close();
+
+        try (FileOutputStream stream = new FileOutputStream(file)) {
+            stream.write(original.getBytes(StandardCharsets.UTF_8));
+        }
+
         try (AsynchronousFileChannel channel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.WRITE)) {
             FluxUtil.writeFile(body, channel).block();
             byte[] outputStream = Files.readAllBytes(file.toPath());
-            assertArrayEquals(outputStream, target.getBytes(StandardCharsets.UTF_8));
+            assertArraysEqual(outputStream, target.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void testWriteFileWithPosition() throws Exception {
+        String toReplace = "test";
+        String original = "hello there";
+        String target = "hello teste";
+
+        byte[] bytes = toReplace.getBytes(StandardCharsets.UTF_8);
+        Flux<ByteBuffer> body = Flux.just(ByteBuffer.wrap(bytes, 0, 2), ByteBuffer.wrap(bytes, 2, 2));
+        File file = createFileIfNotExist();
+
+        try (FileOutputStream stream = new FileOutputStream(file)) {
+            stream.write(original.getBytes(StandardCharsets.UTF_8));
+        }
+
+        try (AsynchronousFileChannel channel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.WRITE)) {
+            FluxUtil.writeFile(body, channel, 6).block();
+            byte[] outputStream = Files.readAllBytes(file.toPath());
+            assertArraysEqual(outputStream, target.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void testWriteWritableChannel() {
+        String content = "test";
+
+        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        Flux<ByteBuffer> body = Flux.just(ByteBuffer.wrap(bytes, 0, 2), ByteBuffer.wrap(bytes, 2, 2));
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        WritableByteChannel channel = Channels.newChannel(byteArrayOutputStream);
+
+        FluxUtil.writeToWritableByteChannel(body, channel).block();
+        assertArraysEqual(byteArrayOutputStream.toByteArray(), bytes);
+    }
+
+    @ParameterizedTest
+    @MethodSource("writeFileDoesNotSwallowErrorSupplier")
+    public void writeFileDoesNotSwallowError(Flux<ByteBuffer> data, AsynchronousFileChannel channel,
+        Class<? extends Throwable> expectedException) {
+        Flux<Void> writeFile = Flux.using(() -> channel, c -> FluxUtil.writeFile(data, c), c -> {
+            try {
+                c.close();
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        });
+
+        StepVerifier.create(writeFile)
+            .expectError(expectedException)
+            .verify(Duration.ofSeconds(30));
+    }
+
+    private static Stream<Arguments> writeFileDoesNotSwallowErrorSupplier() {
+        // AsynchronousFileChannel that throws NonWritableChannelException.
+        AsynchronousFileChannel nonWritableChannel = new MockAsynchronousFileChannel(new byte[4096]) {
+
+            @Override
+            public Future<Integer> write(ByteBuffer src, long position) {
+                return new CompletableFuture<Integer>() {
+                    @Override
+                    public Integer get() throws ExecutionException {
+                        throw new ExecutionException(new NonWritableChannelException());
+                    }
+                };
+            }
+
+            @Override
+            public <A> void write(ByteBuffer src, long position, A attachment,
+                CompletionHandler<Integer, ? super A> handler) {
+                handler.failed(new NonWritableChannelException(), attachment);
+            }
+        };
+
+        // Flux<ByteBuffer> that throws an error during processing.
+        Flux<ByteBuffer> exceptionThrowingFlux = Flux.generate(() -> 0, (count, sink) -> {
+            if (count == 10) {
+                sink.error(new IOException());
+                return count;
+            }
+
+            sink.next(ByteBuffer.allocate(16));
+            return count + 1;
+        });
+        AsynchronousFileChannel exceptionThrowingChannel = new MockAsynchronousFileChannel() {
+            @Override
+            public <A> void write(ByteBuffer src, long position, A attachment,
+                CompletionHandler<Integer, ? super A> handler) {
+                int remaining = src.remaining();
+                src.position(src.position() + remaining);
+                handler.completed(remaining, attachment);
+            }
+        };
+
+        // CompletionHandler that emits a writing error.
+        AsynchronousFileChannel completionHandlerPropagatesError = new MockAsynchronousFileChannel(new byte[4096]) {
+            @Override
+            public Future<Integer> write(ByteBuffer src, long position) {
+                return new CompletableFuture<Integer>() {
+                    @Override
+                    public Integer get() throws ExecutionException {
+                        throw new ExecutionException(new FileLockInterruptionException());
+                    }
+                };
+            }
+
+            @Override
+            public <A> void write(ByteBuffer src, long position, A attachment,
+                CompletionHandler<Integer, ? super A> handler) {
+                handler.failed(new FileLockInterruptionException(), attachment);
+            }
+        };
+
+        return Stream.of(
+            // AsynchronousFileChannel doesn't have write capabilities.
+            Arguments.of(Flux.just(ByteBuffer.allocate(1)), nonWritableChannel, NonWritableChannelException.class),
+
+            // Flux<ByteBuffer> has an exception during processing.
+            Arguments.of(exceptionThrowingFlux, exceptionThrowingChannel, IOException.class),
+
+            // AsynchronousFileChannel that has an error propagated from the CompletionHandler.
+            Arguments.of(Flux.just(ByteBuffer.allocate(1)), completionHandlerPropagatesError,
+                FileLockInterruptionException.class)
+        );
+    }
+
+    @Test
+    public void writingRetriableStreamThatFails() throws IOException {
+        byte[] data = new byte[1024 * 1024];
+        fillArray(data);
+
+        AtomicInteger errorCount = new AtomicInteger();
+        Flux<ByteBuffer> retriableStream = FluxUtil.createRetriableDownloadFlux(
+            () -> generateStream(data, 0, errorCount),
+            (throwable, position) -> generateStream(data, position, errorCount), 5);
+
+        Path file = Files.createTempFile("writingRetriableStreamThatFails" + UUID.randomUUID(), ".txt");
+        file.toFile().deleteOnExit();
+
+        Flux<Void> writeFile = Flux.using(() -> AsynchronousFileChannel.open(file, StandardOpenOption.WRITE),
+            channel -> FluxUtil.writeFile(retriableStream, channel), channel -> {
+                try {
+                    channel.close();
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            });
+
+        StepVerifier.create(writeFile)
+            .expectComplete()
+            .verify(Duration.ofSeconds(60));
+
+        byte[] writtenData = Files.readAllBytes(file);
+        assertArraysEqual(data, writtenData);
+    }
+
+    private Flux<ByteBuffer> generateStream(byte[] data, long offset, AtomicInteger errorCount) {
+        final long[] pos = new long[]{offset};
+
+        return Flux.push(emitter -> {
+            while (pos[0] != data.length) {
+                double random = Math.random();
+                if (random < 0.05 && errorCount.getAndIncrement() < 5) {
+                    emitter.error(new IOException());
+                    return;
+                }
+
+                int readCount = (int) Math.min(4096, data.length - pos[0]);
+                emitter.next(ByteBuffer.wrap(data, (int) pos[0], readCount));
+
+                pos[0] += readCount;
+            }
+
+            emitter.complete();
+        });
+    }
+
+    @Test
+    public void readFile() throws IOException {
+        final byte[] expectedFileBytes = new byte[10 * 1024 * 1024];
+        fillArray(expectedFileBytes);
+
+        MockAsynchronousFileChannel mockAsynchronousFileChannel = new MockAsynchronousFileChannel(expectedFileBytes,
+            expectedFileBytes.length);
+
+        try (AsynchronousFileChannel channel = mockAsynchronousFileChannel) {
+            StepVerifier.create(FluxUtil.collectBytesInByteBufferStream(FluxUtil.readFile(channel),
+                    expectedFileBytes.length))
+                .assertNext(bytes -> assertArraysEqual(expectedFileBytes, bytes))
+                .verifyComplete();
         }
     }
 
@@ -196,7 +409,7 @@ public class FluxUtilTest {
 
                 // Check if this is the last emission expected.
                 if (requestCount.decrementAndGet() == -1) {
-                    assertArrayEquals(expected, collectionBuffer.array());
+                    assertArraysEqual(expected, collectionBuffer.array());
                     return false;
                 } else {
                     return true;
@@ -209,9 +422,8 @@ public class FluxUtilTest {
         byte[] singleRead = new byte[4096];
         byte[] multipleReads = new byte[8193];
 
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(singleRead);
-        random.nextBytes(multipleReads);
+        fillArray(singleRead);
+        fillArray(multipleReads);
 
         return Stream.of(
             Arguments.arguments(null, null, emptyBuffer),
@@ -227,18 +439,18 @@ public class FluxUtilTest {
     @Test
     public void toFluxByteBufferMultipleSubscriptions() {
         byte[] singleRead = new byte[4096];
-        new SecureRandom().nextBytes(singleRead);
+        fillArray(singleRead);
 
         InputStream inputStream = new ByteArrayInputStream(singleRead);
 
         Flux<ByteBuffer> conversionFlux = FluxUtil.toFluxByteBuffer(inputStream);
 
         StepVerifier.create(FluxUtil.collectBytesInByteBufferStream(conversionFlux))
-            .assertNext(actual -> assertArrayEquals(singleRead, actual))
+            .assertNext(actual -> assertArraysEqual(singleRead, actual))
             .verifyComplete();
 
         StepVerifier.create(FluxUtil.collectBytesInByteBufferStream(conversionFlux))
-            .assertNext(actual -> assertArrayEquals(new byte[0], actual))
+            .assertNext(actual -> assertArraysEqual(new byte[0], actual))
             .verifyComplete();
     }
 
@@ -253,20 +465,86 @@ public class FluxUtilTest {
 
     @Test
     public void toFluxByteBufferSinkException() {
-        InputStream inputStream = new InputStream() {
+        InputStream inputStream = new ByteArrayInputStream(new byte[0]) {
             @Override
-            public int read() {
-                return 0;
-            }
-
-            @Override
-            public int read(byte[] b, int off, int len) throws IOException {
-                throw new IOException("Error");
+            public synchronized int read(byte[] b, int off, int len) {
+                throw new IllegalStateException("error");
             }
         };
 
         StepVerifier.create(FluxUtil.toFluxByteBuffer(inputStream))
-            .verifyError(IOException.class);
+            .verifyError(IllegalStateException.class);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS) // Test is disabled on Windows as a FileChannel isn't used.
+    public void toFluxByteBufferFileInputStreamChannelCloses() throws IOException {
+        AtomicInteger positionCalls = new AtomicInteger();
+        AtomicInteger sizeCalls = new AtomicInteger();
+        AtomicInteger implCloseChannelCalls = new AtomicInteger();
+
+        MockFileChannel channel = new MockFileChannel() {
+            @Override
+            public void implCloseChannel() {
+                implCloseChannelCalls.incrementAndGet();
+            }
+
+            @Override
+            public long position() {
+                positionCalls.incrementAndGet();
+                return 0L;
+            }
+
+            @Override
+            public long size() {
+                sizeCalls.incrementAndGet();
+                return 0L;
+            }
+        };
+
+        AtomicInteger getChannelCalls = new AtomicInteger();
+        FileInputStream inputStream = new FileInputStream(new FileDescriptor()) {
+            @Override
+            public FileChannel getChannel() {
+                getChannelCalls.incrementAndGet();
+                return channel;
+            }
+        };
+
+        StepVerifier.create(FluxUtil.toFluxByteBuffer(inputStream))
+            .verifyComplete();
+
+        assertEquals(1, getChannelCalls.get());
+        assertEquals(1, positionCalls.get());
+        assertEquals(1, sizeCalls.get());
+        assertEquals(1, implCloseChannelCalls.get());
+    }
+
+    /**
+     * Verifies that the usage of {@link FluxUtil#toFluxByteBuffer(InputStream)} with a {@link FileInputStream} does
+     * not prevent the file from being deleted.
+     *
+     * @throws IOException If an error occurs while creating the temporary file.
+     */
+    @RepeatedTest(10) // Repeat the test times to ensure it's not a fluke.
+    public void ensureFileInputStreamFileCanBeDeletedAsConversionToFluxByteBuffer() throws IOException {
+        Path file = Files.createTempFile("canBeDeleted" + CoreUtils.randomUuid(), "");
+        Files.write(file, "some random data".getBytes(StandardCharsets.UTF_8));
+        FileInputStream fileInputStream = new FileInputStream(file.toFile());
+
+        Mono<Void> convertThenDeleteFile = FluxUtil.toFluxByteBuffer(fileInputStream)
+            .then(Mono.create(sink -> {
+                try {
+                    fileInputStream.close();
+                    Files.delete(file);
+                    sink.success();
+                } catch (IOException e) {
+                    sink.error(e);
+                }
+            }));
+
+        StepVerifier.create(convertThenDeleteFile).verifyComplete();
+        assertTrue(Files.notExists(file));
     }
 
     public Flux<ByteBuffer> mockReturnType() {
@@ -278,8 +556,7 @@ public class FluxUtilTest {
     }
 
     private Flux<String> getCollection() {
-        return FluxUtil
-            .fluxContext(this::serviceCallCollection);
+        return FluxUtil.fluxContext(this::serviceCallCollection);
     }
 
     private Mono<String> getSingleWithContextAttributes() {
@@ -312,12 +589,19 @@ public class FluxUtilTest {
         return Mono.just(msg);
     }
 
-    private File createFileIfNotExist() throws IOException {
-        File file = new File("target/test1");
-        if (file.getParentFile() != null) {
-            file.getParentFile().mkdirs();
+    private File createFileIfNotExist() {
+        String fileName = UUID.randomUUID().toString();
+        File file = new File("target");
+        if (!file.exists()) {
+            if (!file.getParentFile().mkdirs()) {
+                throw new RuntimeException("Unable to create directories: " + file.getAbsolutePath());
+            }
         }
-        file.createNewFile();
-        return file;
+
+        try {
+            return Files.createTempFile(file.toPath(), fileName, "").toFile();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
     }
 }

@@ -3,11 +3,10 @@
 
 package com.azure.search.documents.models;
 
+import com.azure.core.models.GeoPoint;
 import com.azure.core.util.CoreUtils;
 import com.azure.core.util.logging.ClientLogger;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.azure.search.documents.implementation.util.Utility;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
  * Represents a parameter value to be used in scoring functions (for example, referencePointParameter).
  */
 public final class ScoringParameter {
-    private final ClientLogger logger = new ClientLogger(ScoringParameter.class);
+    private static final ClientLogger LOGGER = new ClientLogger(ScoringParameter.class);
     private final String name;
     private final List<String> values;
 
@@ -36,7 +35,7 @@ public final class ScoringParameter {
     public ScoringParameter(String nameValuePair) {
         Objects.requireNonNull(nameValuePair);
         if (!nameValuePair.contains(DASH)) {
-            throw logger.logExceptionAsError(new IllegalArgumentException(
+            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
                 String.format("The name and value string: %s is invalid.", nameValuePair)));
         }
         this.name = nameValuePair.split(DASH)[0];
@@ -50,9 +49,7 @@ public final class ScoringParameter {
      * @param values Values of the scoring parameter.
      * @throws NullPointerException if {@code name} or {@code values} is null.
      */
-    @JsonCreator
-    public ScoringParameter(@JsonProperty(value = "name") String name,
-        @JsonProperty(value = "values") List<String> values) {
+    public ScoringParameter(String name, List<String> values) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(values);
         this.name = name;
@@ -65,9 +62,16 @@ public final class ScoringParameter {
      *
      * @param name Name of the scoring parameter.
      * @param value Value of the scoring parameter.
+     * @throws NullPointerException If {@code value} is null.
      */
     public ScoringParameter(String name, GeoPoint value) {
         this(name, toLonLatStrings(value));
+    }
+
+    private static List<String> toLonLatStrings(GeoPoint point) {
+        Objects.requireNonNull(point);
+        return Arrays.asList(Utility.formatCoordinate(point.getCoordinates().getLongitude()),
+            Utility.formatCoordinate(point.getCoordinates().getLatitude()));
     }
 
     /**
@@ -88,11 +92,6 @@ public final class ScoringParameter {
         return new ArrayList<>(values);
     }
 
-    private static List<String> toLonLatStrings(GeoPoint point) {
-        Objects.requireNonNull(point);
-        return Arrays.asList(String.valueOf(point.getLongitude()), String.valueOf(point.getLatitude()));
-    }
-
     /**
      * Covert {@link ScoringParameter} to string.
      *
@@ -100,12 +99,11 @@ public final class ScoringParameter {
      * @throws IllegalArgumentException if all values in the list are null or empty.
      */
     @Override
-    @JsonValue
     public String toString() {
         String flattenValue = values.stream().filter(value -> !CoreUtils.isNullOrEmpty(value))
             .map(ScoringParameter::escapeValue).collect(Collectors.joining(COMMA));
         if (CoreUtils.isNullOrEmpty(flattenValue)) {
-            throw logger.logExceptionAsError(
+            throw LOGGER.logExceptionAsError(
                 new IllegalArgumentException("There must be at least one valid value for scoring parameter values."));
         }
         return name + DASH + flattenValue;

@@ -37,18 +37,17 @@ public class RecognizeEntitiesBatchStringDocuments {
             "Elon Musk is the CEO of SpaceX and Tesla."
         );
 
-        // Request options: show statistics and model version
         TextAnalyticsRequestOptions requestOptions = new TextAnalyticsRequestOptions().setIncludeStatistics(true).setModelVersion("latest");
 
         // Recognizing entities for each document in a batch of documents
         RecognizeEntitiesResultCollection recognizeEntitiesResultCollection = client.recognizeEntitiesBatch(documents, "en", requestOptions);
 
         // Model version
-        System.out.printf("Results of Azure Text Analytics \"Entities Recognition\" Model, version: %s%n", recognizeEntitiesResultCollection.getModelVersion());
+        System.out.printf("Results of \"Entities Recognition\" Model, version: %s%n", recognizeEntitiesResultCollection.getModelVersion());
 
         // Batch statistics
         TextDocumentBatchStatistics batchStatistics = recognizeEntitiesResultCollection.getStatistics();
-        System.out.printf("Documents statistics: document count = %s, erroneous document count = %s, transaction count = %s, valid document count = %s.%n",
+        System.out.printf("Documents statistics: document count = %d, erroneous document count = %d, transaction count = %d, valid document count = %d.%n",
             batchStatistics.getDocumentCount(), batchStatistics.getInvalidDocumentCount(), batchStatistics.getTransactionCount(), batchStatistics.getValidDocumentCount());
 
         // Recognized entities for each document in a batch of documents
