@@ -62,7 +62,7 @@ def sdk_automation_typespec(config: dict) -> List[dict]:
             logging.info('SDK folder: ' + sdk_folder)
             succeeded = True
         except subprocess.CalledProcessError as error:
-            logging.error(f'TypeSpec-Project-Process.ps1 fail: {error}')
+            logging.error(f'tsp-client init fail: {error}')
 
         if succeeded:
             # check require_sdk_integration
