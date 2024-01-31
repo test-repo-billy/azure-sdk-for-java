@@ -53,7 +53,7 @@ def sdk_automation_typespec(config: dict) -> List[dict]:
                 return text
 
             repo = remove_prefix(repo_url, 'https://github.com/')
-            cmd = ['npx', 'tsp-client', 'init', '--tsp-config', tsp_dir, '--commit', head_sha, '--repo', repo]
+            cmd = ['npx', 'tsp-client', 'init', '--debug', '--tsp-config', tsp_dir, '--commit', head_sha, '--repo', repo]
             logging.info('Command line: ' + ' '.join(cmd))
             output = subprocess.check_output(cmd, cwd=sdk_root)
             output_str = str(output, 'utf-8')
