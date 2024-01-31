@@ -32,8 +32,8 @@ def sdk_automation_typespec(config: dict) -> List[dict]:
     if 'relatedTypeSpecProjectFolder' not in config:
         return packages
 
-    head_sha = config['headSha']
-    repo_url = config['repoHttpsUrl']
+    head_sha: str = config['headSha']
+    repo_url: str = config['repoHttpsUrl']
 
     tsp_projects = config['relatedTypeSpecProjectFolder']
     if isinstance(tsp_projects, str):
@@ -47,7 +47,13 @@ def sdk_automation_typespec(config: dict) -> List[dict]:
         service = None
         module = None
         try:
-            cmd = ['pwsh', './eng/common/scripts/TypeSpec-Project-Process.ps1', tsp_dir, head_sha, repo_url]
+            def remove_prefix(text, prefix):
+                if text.startswith(prefix):
+                    return text[len(prefix):]
+                return text
+
+            repo = remove_prefix(repo_url, 'https://github.com/')
+            cmd = ['npx', 'tsp-client', 'init', '--tsp-config', tsp_dir, '--commit', head_sha, '--repo', repo]
             logging.info('Command line: ' + ' '.join(cmd))
             output = subprocess.check_output(cmd, cwd=sdk_root)
             output_str = str(output, 'utf-8')
