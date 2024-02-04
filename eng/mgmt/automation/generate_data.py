@@ -77,7 +77,8 @@ def sdk_automation_typespec(config: dict) -> List[dict]:
 
             sdk_folder = find_sdk_folder()
             logging.info('SDK folder: ' + sdk_folder)
-            succeeded = True
+            if sdk_folder:
+                succeeded = True
         except subprocess.CalledProcessError as error:
             logging.error(f'tsp-client init fail: {error}')
 
