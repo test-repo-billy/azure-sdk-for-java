@@ -49,68 +49,6 @@ public interface ServicesClient {
     ServicesDescriptionInner getByResourceGroup(String resourceGroupName, String resourceName);
 
     /**
-     * Create or update the metadata of a service instance.
-     * 
-     * @param resourceGroupName The name of the resource group that contains the service instance.
-     * @param resourceName The name of the service instance.
-     * @param serviceDescription The service instance metadata.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the {@link SyncPoller} for polling of the description of the service.
-     */
-    @ServiceMethod(returns = ReturnType.LONG_RUNNING_OPERATION)
-    SyncPoller<PollResult<ServicesDescriptionInner>, ServicesDescriptionInner>
-        beginCreateOrUpdate(String resourceGroupName, String resourceName, ServicesDescriptionInner serviceDescription);
-
-    /**
-     * Create or update the metadata of a service instance.
-     * 
-     * @param resourceGroupName The name of the resource group that contains the service instance.
-     * @param resourceName The name of the service instance.
-     * @param serviceDescription The service instance metadata.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the {@link SyncPoller} for polling of the description of the service.
-     */
-    @ServiceMethod(returns = ReturnType.LONG_RUNNING_OPERATION)
-    SyncPoller<PollResult<ServicesDescriptionInner>, ServicesDescriptionInner> beginCreateOrUpdate(
-        String resourceGroupName, String resourceName, ServicesDescriptionInner serviceDescription, Context context);
-
-    /**
-     * Create or update the metadata of a service instance.
-     * 
-     * @param resourceGroupName The name of the resource group that contains the service instance.
-     * @param resourceName The name of the service instance.
-     * @param serviceDescription The service instance metadata.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the description of the service.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    ServicesDescriptionInner createOrUpdate(String resourceGroupName, String resourceName,
-        ServicesDescriptionInner serviceDescription);
-
-    /**
-     * Create or update the metadata of a service instance.
-     * 
-     * @param resourceGroupName The name of the resource group that contains the service instance.
-     * @param resourceName The name of the service instance.
-     * @param serviceDescription The service instance metadata.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the description of the service.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    ServicesDescriptionInner createOrUpdate(String resourceGroupName, String resourceName,
-        ServicesDescriptionInner serviceDescription, Context context);
-
-    /**
      * Update the metadata of a service instance.
      * 
      * @param resourceGroupName The name of the resource group that contains the service instance.

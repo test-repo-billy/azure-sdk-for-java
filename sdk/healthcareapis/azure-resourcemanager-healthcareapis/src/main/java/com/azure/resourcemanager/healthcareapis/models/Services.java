@@ -39,6 +39,35 @@ public interface Services {
     ServicesDescription getByResourceGroup(String resourceGroupName, String resourceName);
 
     /**
+     * Update the metadata of a service instance.
+     * 
+     * @param resourceGroupName The name of the resource group that contains the service instance.
+     * @param resourceName The name of the service instance.
+     * @param servicePatchDescription The service instance metadata and security metadata.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the description of the service.
+     */
+    ServicesDescription update(String resourceGroupName, String resourceName,
+        ServicesPatchDescription servicePatchDescription);
+
+    /**
+     * Update the metadata of a service instance.
+     * 
+     * @param resourceGroupName The name of the resource group that contains the service instance.
+     * @param resourceName The name of the service instance.
+     * @param servicePatchDescription The service instance metadata and security metadata.
+     * @param context The context to associate with this operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the description of the service.
+     */
+    ServicesDescription update(String resourceGroupName, String resourceName,
+        ServicesPatchDescription servicePatchDescription, Context context);
+
+    /**
      * Delete a service instance.
      * 
      * @param resourceGroupName The name of the resource group that contains the service instance.
@@ -129,56 +158,4 @@ public interface Services {
      * @return the properties indicating whether a given service name is available.
      */
     ServicesNameAvailabilityInfo checkNameAvailability(CheckNameAvailabilityParameters checkNameAvailabilityInputs);
-
-    /**
-     * Get the metadata of a service instance.
-     * 
-     * @param id the resource ID.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the metadata of a service instance along with {@link Response}.
-     */
-    ServicesDescription getById(String id);
-
-    /**
-     * Get the metadata of a service instance.
-     * 
-     * @param id the resource ID.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the metadata of a service instance along with {@link Response}.
-     */
-    Response<ServicesDescription> getByIdWithResponse(String id, Context context);
-
-    /**
-     * Delete a service instance.
-     * 
-     * @param id the resource ID.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void deleteById(String id);
-
-    /**
-     * Delete a service instance.
-     * 
-     * @param id the resource ID.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void deleteByIdWithResponse(String id, Context context);
-
-    /**
-     * Begins definition for a new ServicesDescription resource.
-     * 
-     * @param name resource name.
-     * @return the first stage of the new ServicesDescription definition.
-     */
-    ServicesDescription.DefinitionStages.Blank define(String name);
 }
