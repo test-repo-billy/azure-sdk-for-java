@@ -16,6 +16,7 @@ import com.azure.resourcemanager.healthcareapis.models.CheckNameAvailabilityPara
 import com.azure.resourcemanager.healthcareapis.models.Services;
 import com.azure.resourcemanager.healthcareapis.models.ServicesDescription;
 import com.azure.resourcemanager.healthcareapis.models.ServicesNameAvailabilityInfo;
+import com.azure.resourcemanager.healthcareapis.models.ServicesPatchDescription;
 
 public final class ServicesImpl implements Services {
     private static final ClientLogger LOGGER = new ClientLogger(ServicesImpl.class);
@@ -51,6 +52,28 @@ public final class ServicesImpl implements Services {
         }
     }
 
+    public ServicesDescription update(String resourceGroupName, String resourceName,
+        ServicesPatchDescription servicePatchDescription) {
+        ServicesDescriptionInner inner
+            = this.serviceClient().update(resourceGroupName, resourceName, servicePatchDescription);
+        if (inner != null) {
+            return new ServicesDescriptionImpl(inner, this.manager());
+        } else {
+            return null;
+        }
+    }
+
+    public ServicesDescription update(String resourceGroupName, String resourceName,
+        ServicesPatchDescription servicePatchDescription, Context context) {
+        ServicesDescriptionInner inner
+            = this.serviceClient().update(resourceGroupName, resourceName, servicePatchDescription, context);
+        if (inner != null) {
+            return new ServicesDescriptionImpl(inner, this.manager());
+        } else {
+            return null;
+        }
+    }
+
     public void deleteByResourceGroup(String resourceGroupName, String resourceName) {
         this.serviceClient().delete(resourceGroupName, resourceName);
     }
@@ -61,23 +84,23 @@ public final class ServicesImpl implements Services {
 
     public PagedIterable<ServicesDescription> list() {
         PagedIterable<ServicesDescriptionInner> inner = this.serviceClient().list();
-        return Utils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
+        return ResourceManagerUtils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
     }
 
     public PagedIterable<ServicesDescription> list(Context context) {
         PagedIterable<ServicesDescriptionInner> inner = this.serviceClient().list(context);
-        return Utils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
+        return ResourceManagerUtils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
     }
 
     public PagedIterable<ServicesDescription> listByResourceGroup(String resourceGroupName) {
         PagedIterable<ServicesDescriptionInner> inner = this.serviceClient().listByResourceGroup(resourceGroupName);
-        return Utils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
+        return ResourceManagerUtils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
     }
 
     public PagedIterable<ServicesDescription> listByResourceGroup(String resourceGroupName, Context context) {
         PagedIterable<ServicesDescriptionInner> inner
             = this.serviceClient().listByResourceGroup(resourceGroupName, context);
-        return Utils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
+        return ResourceManagerUtils.mapPage(inner, inner1 -> new ServicesDescriptionImpl(inner1, this.manager()));
     }
 
     public Response<ServicesNameAvailabilityInfo> checkNameAvailabilityWithResponse(
@@ -103,71 +126,11 @@ public final class ServicesImpl implements Services {
         }
     }
 
-    public ServicesDescription getById(String id) {
-        String resourceGroupName = Utils.getValueFromIdByName(id, "resourceGroups");
-        if (resourceGroupName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'resourceGroups'.", id)));
-        }
-        String resourceName = Utils.getValueFromIdByName(id, "services");
-        if (resourceName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'services'.", id)));
-        }
-        return this.getByResourceGroupWithResponse(resourceGroupName, resourceName, Context.NONE).getValue();
-    }
-
-    public Response<ServicesDescription> getByIdWithResponse(String id, Context context) {
-        String resourceGroupName = Utils.getValueFromIdByName(id, "resourceGroups");
-        if (resourceGroupName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'resourceGroups'.", id)));
-        }
-        String resourceName = Utils.getValueFromIdByName(id, "services");
-        if (resourceName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'services'.", id)));
-        }
-        return this.getByResourceGroupWithResponse(resourceGroupName, resourceName, context);
-    }
-
-    public void deleteById(String id) {
-        String resourceGroupName = Utils.getValueFromIdByName(id, "resourceGroups");
-        if (resourceGroupName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'resourceGroups'.", id)));
-        }
-        String resourceName = Utils.getValueFromIdByName(id, "services");
-        if (resourceName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'services'.", id)));
-        }
-        this.delete(resourceGroupName, resourceName, Context.NONE);
-    }
-
-    public void deleteByIdWithResponse(String id, Context context) {
-        String resourceGroupName = Utils.getValueFromIdByName(id, "resourceGroups");
-        if (resourceGroupName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'resourceGroups'.", id)));
-        }
-        String resourceName = Utils.getValueFromIdByName(id, "services");
-        if (resourceName == null) {
-            throw LOGGER.logExceptionAsError(new IllegalArgumentException(
-                String.format("The resource ID '%s' is not valid. Missing path segment 'services'.", id)));
-        }
-        this.delete(resourceGroupName, resourceName, context);
-    }
-
     private ServicesClient serviceClient() {
         return this.innerClient;
     }
 
     private com.azure.resourcemanager.healthcareapis.HealthcareApisManager manager() {
         return this.serviceManager;
-    }
-
-    public ServicesDescriptionImpl define(String name) {
-        return new ServicesDescriptionImpl(name, this.manager());
     }
 }
