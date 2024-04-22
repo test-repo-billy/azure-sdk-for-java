@@ -7,14 +7,28 @@ package com.azure.resourcemanager.servicelinker.models;
 import com.azure.core.annotation.Fluent;
 import com.azure.core.util.logging.ClientLogger;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeId;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-/** The authentication info when authType is servicePrincipal secret. */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "authType")
+/**
+ * The authentication info when authType is servicePrincipal secret.
+ */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    property = "authType",
+    defaultImpl = ServicePrincipalSecretAuthInfo.class,
+    visible = true)
 @JsonTypeName("servicePrincipalSecret")
 @Fluent
 public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
+    /*
+     * The authentication type.
+     */
+    @JsonTypeId
+    @JsonProperty(value = "authType", required = true)
+    private AuthType authType = AuthType.SERVICE_PRINCIPAL_SECRET;
+
     /*
      * ServicePrincipal application clientId for servicePrincipal auth.
      */
@@ -30,12 +44,28 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
     /*
      * Secret for servicePrincipal auth.
      */
-    @JsonProperty(value = "secret", required = true)
+    @JsonProperty(value = "secret")
     private String secret;
 
     /**
+     * Creates an instance of ServicePrincipalSecretAuthInfo class.
+     */
+    public ServicePrincipalSecretAuthInfo() {
+    }
+
+    /**
+     * Get the authType property: The authentication type.
+     * 
+     * @return the authType value.
+     */
+    @Override
+    public AuthType authType() {
+        return this.authType;
+    }
+
+    /**
      * Get the clientId property: ServicePrincipal application clientId for servicePrincipal auth.
-     *
+     * 
      * @return the clientId value.
      */
     public String clientId() {
@@ -44,7 +74,7 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Set the clientId property: ServicePrincipal application clientId for servicePrincipal auth.
-     *
+     * 
      * @param clientId the clientId value to set.
      * @return the ServicePrincipalSecretAuthInfo object itself.
      */
@@ -55,7 +85,7 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Get the principalId property: Principal Id for servicePrincipal auth.
-     *
+     * 
      * @return the principalId value.
      */
     public String principalId() {
@@ -64,7 +94,7 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Set the principalId property: Principal Id for servicePrincipal auth.
-     *
+     * 
      * @param principalId the principalId value to set.
      * @return the ServicePrincipalSecretAuthInfo object itself.
      */
@@ -75,7 +105,7 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Get the secret property: Secret for servicePrincipal auth.
-     *
+     * 
      * @return the secret value.
      */
     public String secret() {
@@ -84,7 +114,7 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Set the secret property: Secret for servicePrincipal auth.
-     *
+     * 
      * @param secret the secret value to set.
      * @return the ServicePrincipalSecretAuthInfo object itself.
      */
@@ -95,29 +125,26 @@ public final class ServicePrincipalSecretAuthInfo extends AuthInfoBase {
 
     /**
      * Validates the instance.
-     *
+     * 
      * @throws IllegalArgumentException thrown if the instance is not valid.
      */
     @Override
     public void validate() {
         super.validate();
         if (clientId() == null) {
-            throw LOGGER
-                .logExceptionAsError(
-                    new IllegalArgumentException(
-                        "Missing required property clientId in model ServicePrincipalSecretAuthInfo"));
+            throw LOGGER.atError()
+                .log(new IllegalArgumentException(
+                    "Missing required property clientId in model ServicePrincipalSecretAuthInfo"));
         }
         if (principalId() == null) {
-            throw LOGGER
-                .logExceptionAsError(
-                    new IllegalArgumentException(
-                        "Missing required property principalId in model ServicePrincipalSecretAuthInfo"));
+            throw LOGGER.atError()
+                .log(new IllegalArgumentException(
+                    "Missing required property principalId in model ServicePrincipalSecretAuthInfo"));
         }
         if (secret() == null) {
-            throw LOGGER
-                .logExceptionAsError(
-                    new IllegalArgumentException(
-                        "Missing required property secret in model ServicePrincipalSecretAuthInfo"));
+            throw LOGGER.atError()
+                .log(new IllegalArgumentException(
+                    "Missing required property secret in model ServicePrincipalSecretAuthInfo"));
         }
     }
 
