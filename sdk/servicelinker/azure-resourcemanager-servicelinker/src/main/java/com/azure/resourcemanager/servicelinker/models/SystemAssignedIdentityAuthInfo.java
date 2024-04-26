@@ -5,17 +5,48 @@
 package com.azure.resourcemanager.servicelinker.models;
 
 import com.azure.core.annotation.Immutable;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeId;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-/** The authentication info when authType is systemAssignedIdentity. */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "authType")
+/**
+ * The authentication info when authType is systemAssignedIdentity.
+ */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    property = "authType",
+    defaultImpl = SystemAssignedIdentityAuthInfo.class,
+    visible = true)
 @JsonTypeName("systemAssignedIdentity")
 @Immutable
 public final class SystemAssignedIdentityAuthInfo extends AuthInfoBase {
+    /*
+     * The authentication type.
+     */
+    @JsonTypeId
+    @JsonProperty(value = "authType", required = true)
+    private AuthType authType = AuthType.SYSTEM_ASSIGNED_IDENTITY;
+
+    /**
+     * Creates an instance of SystemAssignedIdentityAuthInfo class.
+     */
+    public SystemAssignedIdentityAuthInfo() {
+    }
+
+    /**
+     * Get the authType property: The authentication type.
+     * 
+     * @return the authType value.
+     */
+    @Override
+    public AuthType authType() {
+        return this.authType;
+    }
+
     /**
      * Validates the instance.
-     *
+     * 
      * @throws IllegalArgumentException thrown if the instance is not valid.
      */
     @Override
